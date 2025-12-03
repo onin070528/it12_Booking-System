@@ -54,8 +54,13 @@
                             <div class="absolute left-0 bg-[#93BFC7] w-10 h-10 flex items-center justify-center rounded">
                                 <i class="fas fa-lock text-white text-xl"></i>
                             </div>
-                            <input type="password" name="password" placeholder="Password"
-                                   class="w-full pl-12 h-10 bg-gray-100 rounded" required>
+                            <input type="password" name="password" id="login-password" placeholder="Password"
+                                   class="w-full pl-12 pr-12 h-10 bg-gray-100 rounded" required>
+                            <button type="button" onclick="togglePassword('login-password', 'login-password-toggle')" 
+                                    class="absolute right-0 mr-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                    id="login-password-toggle">
+                                <i class="fas fa-eye" id="login-password-icon"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -85,6 +90,24 @@
     </div>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script>
+        function togglePassword(inputId, toggleId) {
+            const passwordInput = document.getElementById(inputId);
+            let iconId = inputId + '-icon';
+            const passwordIcon = document.getElementById(iconId);
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                passwordIcon.classList.remove('fa-eye');
+                passwordIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                passwordIcon.classList.remove('fa-eye-slash');
+                passwordIcon.classList.add('fa-eye');
+            }
+        }
+    </script>
 </body>
 
 </html>

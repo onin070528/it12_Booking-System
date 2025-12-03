@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\PaymentController;
 
 // Redirect root to login if not authenticated
 Route::get('/', function () {
@@ -54,10 +55,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return view('booking.create');
     })->name('booking.create');
 
-    // Payment History
-    Route::get('/payments', function () {
-        return view('payments.index');
-    })->name('payments.index');
+    // Payment routes
+    Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+    Route::get('/booking/{booking}/checkout', [PaymentController::class, 'checkout'])->name('payment.checkout');
+    Route::post('/booking/{booking}/payment', [PaymentController::class, 'processPayment'])->name('payment.process');
+    Route::get('/payment/return', [PaymentController::class, 'paymentReturn'])->name('payment.return');
+    Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
+    Route::get('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
 
     // Notifications
     Route::get('/notifications', function () {
@@ -75,6 +79,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::get('/calendar', [EventController::class, 'index'])->name('calendar');
 Route::get('/events', [EventController::class, 'events'])->name('events');
 Route::post('/events', [EventController::class, 'store'])->name('events.store');
+
+// PayMongo webhook (no auth required, signature verification handles security)
+Route::post('/webhook/paymongo', [PaymentController::class, 'webhook'])->name('payment.webhook');
 
 // Include authentication routes (login, register, password reset, etc.)
 require __DIR__ . '/auth.php';

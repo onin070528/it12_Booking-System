@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class AdminSeeder extends Seeder
 {
@@ -13,17 +12,31 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create admin user if it doesn't exist
-        User::firstOrCreate(
+        // Create or update admin user
+        $admin = User::firstOrCreate(
             ['email' => 'admin@rjsevents.com'],
             [
                 'name' => 'Admin User',
-                'password' => Hash::make('admin123'),
+                'first_name' => 'Admin',
+                'last_name' => 'User',
+                'middle_initial' => null,
+                'password' => 'admin123',
                 'role' => 'admin',
             ]
         );
 
-        $this->command->info('Admin user created successfully!');
+        // Update password and role if user already exists (to fix any password issues)
+        if ($admin->wasRecentlyCreated === false) {
+            $admin->update([
+                'first_name' => 'Admin',
+                'last_name' => 'User',
+                'middle_initial' => null,
+                'password' => 'admin123', // The User model's 'hashed' cast will automatically hash this
+                'role' => 'admin',
+            ]);
+        }
+
+        $this->command->info('Admin user created/updated successfully!');
         $this->command->info('Email: admin@rjsevents.com');
         $this->command->info('Password: admin123');
     }

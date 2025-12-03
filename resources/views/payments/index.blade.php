@@ -32,7 +32,7 @@
                         <i class="fas fa-user-shield mr-2"></i>Welcome, {{ Auth::user()->name }}
                     </h2>
                     <p class="text-1xl " style="color: #93BFC7;">
-                        Admin Control Panel
+                        Payment History
                     </p>
                 </div>
                 </div>
@@ -61,52 +61,65 @@
         <table class="w-full">
             <thead>
                 <tr class="bg-white text-[#93BFC7] font-semibold hover:bg-gray-200 border-b border-gray-300">
-                    <th class="px-6 py-4 text-left ">Payment Date</th>
-                    <th class="px-6 py-4 text-left ">Payment Method</th>
-                    <th class="px-6 py-4 text-left ">Amount</th>
-                    <th class="px-6 py-4 text-left ">Status</th>
+                    <th class="px-6 py-4 text-left">Payment Date</th>
+                    <th class="px-6 py-4 text-left">Booking</th>
+                    <th class="px-6 py-4 text-left">Payment Method</th>
+                    <th class="px-6 py-4 text-left">Amount</th>
+                    <th class="px-6 py-4 text-left">Status</th>
                 </tr>
             </thead>
 
            <tbody>
-    <!-- Row 1 – Paid -->
-    <tr class="bg-white font-medium text-[#93BFC7] hover:bg-gray-200 border-b border-gray-300">
-        <td class="px-6 py-4 ">07/28/2025</td>
-        <td class="px-6 py-4 ">Stripe</td>
-        <td class="px-6 py-4  ">10,000.00</td>
-        <td class="px-6 py-4">
-            <span class="px-4 py-1 rounded-full bg-[#D4F6DF] text-green-900 font-medium inline-block">
-                Paid
-            </span>
-        </td>
-    </tr>
-
-    <!-- Row 2 – Pending/Partial -->
-    <tr class="bg-white font-medium text-[#93BFC7] hover:bg-gray-200 border-b border-gray-300">
-        <td class="px-6 py-4 ">08/08/2025</td>
-        <td class="px-6 py-4 ">Cash</td>
-        <td class="px-6 py-4 ">5,000.00</td>
-        <td class="px-6 py-4">
-            <span class="px-4 py-1 rounded-full bg-[#FDFCB1] text-yellow-900 font-medium inline-block">
-                Partial
-            </span>
-        </td>
-    </tr>
-
-    <!-- Row 3 – Cancelled -->
-    <tr class="bg-white font-medium text-[#93BFC7] hover:bg-gray-200 border-b border-gray-300">
-        <td class="px-6 py-4">08/20/2025</td>
-        <td class="px-6 py-4 ">Cash</td>
-        <td class="px-6 py-4 ">67,000.00</td>
-        <td class="px-6 py-4">
-            <span class="px-4 py-1 rounded-full bg-[#FDB1B1] text-red-900 font-medium inline-block">
-                Cancelled
-            </span>
-        </td>
-    </tr>
-</tbody>
+                @forelse($payments as $payment)
+                <tr class="bg-white font-medium text-[#93BFC7] hover:bg-gray-200 border-b border-gray-300">
+                    <td class="px-6 py-4">{{ $payment->created_at->format('M d, Y') }}</td>
+                    <td class="px-6 py-4">
+                        {{ $payment->booking->event_type ?? 'N/A' }}
+                        <span class="text-xs text-gray-500 block">{{ $payment->booking->event_date->format('M d, Y') ?? '' }}</span>
+                    </td>
+                    <td class="px-6 py-4 capitalize">{{ $payment->payment_method ?? 'N/A' }}</td>
+                    <td class="px-6 py-4">₱{{ number_format($payment->amount, 2) }}</td>
+                    <td class="px-6 py-4">
+                        @if($payment->status === 'paid')
+                            <span class="px-4 py-1 rounded-full bg-[#D4F6DF] text-green-900 font-medium inline-block">
+                                Paid
+                            </span>
+                        @elseif($payment->status === 'pending')
+                            <span class="px-4 py-1 rounded-full bg-[#FDFCB1] text-yellow-900 font-medium inline-block">
+                                Pending
+                            </span>
+                        @elseif($payment->status === 'failed')
+                            <span class="px-4 py-1 rounded-full bg-[#FDB1B1] text-red-900 font-medium inline-block">
+                                Failed
+                            </span>
+                        @elseif($payment->status === 'cancelled')
+                            <span class="px-4 py-1 rounded-full bg-[#FDB1B1] text-red-900 font-medium inline-block">
+                                Cancelled
+                            </span>
+                        @else
+                            <span class="px-4 py-1 rounded-full bg-gray-200 text-gray-700 font-medium inline-block">
+                                {{ ucfirst($payment->status) }}
+                            </span>
+                        @endif
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                        No payment history found.
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
         </table>
     </div>
+
+    <!-- Pagination -->
+    @if($payments->hasPages())
+    <div class="bg-white px-6 py-4 border-t border-gray-200">
+        {{ $payments->links() }}
+    </div>
+    @endif
 
 </div>
 
@@ -116,4 +129,3 @@
 
 </body>
 </html>
-

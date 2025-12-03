@@ -23,8 +23,16 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $middleInitial = fake()->optional()->randomElement(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']);
+        $fullName = trim($firstName . ' ' . ($middleInitial ? $middleInitial . '. ' : '') . $lastName);
+
         return [
-            'name' => fake()->name(),
+            'name' => $fullName,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'middle_initial' => $middleInitial,
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
