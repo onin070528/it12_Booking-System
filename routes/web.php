@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ChatController;
 
 // Redirect root to login if not authenticated
 Route::get('/', function () {
@@ -27,10 +30,20 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/events', [EventController::class, 'adminStore'])->name('events.store');
 
 
-    Route::get('/AdminBooking', [EventController::class, 'AdminBooking'])->name('AdminBooking');
+    Route::get('/AdminBooking', [BookingController::class, 'index'])->name('AdminBooking');
+    Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('booking.show');
+    Route::post('/booking/{booking}/schedule', [BookingController::class, 'updateSchedule'])->name('booking.schedule');
+    Route::post('/booking/{booking}/confirm', [BookingController::class, 'confirm'])->name('booking.confirm');
     Route::get('/AdminPayment', [EventController::class, 'AdminPayment'])->name('AdminPayment');
     Route::get('/AdminInventory', [EventController::class, 'AdminInventory'])->name('AdminInventory');
+    Route::post('/AdminInventory', [EventController::class, 'storeInventory'])->name('AdminInventory.store');
     Route::get('/AdminReports', [EventController::class, 'AdminReports'])->name('AdminReports');
+    
+    // Admin Messages
+    Route::get('/messages', [ChatController::class, 'adminIndex'])->name('messages.index');
+    Route::post('/messages/send', [ChatController::class, 'send'])->name('messages.send');
+    Route::get('/messages/get', [ChatController::class, 'getMessages'])->name('messages.get');
+    Route::get('/messages/unread-count', [ChatController::class, 'getUnreadCount'])->name('messages.unread-count');
 });
 
 // Protected routes - require authentication
@@ -41,9 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 
     // Home route - My Bookings page
-    Route::get('/home', function () {
-        return view('home');
-    })->name('home');
+    Route::get('/home', [BookingController::class, 'userBookings'])->name('home');
 
     // Calendar of Events
     Route::get('/calendar', function () {
@@ -54,6 +65,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/booking/create', function () {
         return view('booking.create');
     })->name('booking.create');
+    Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
+    
+    // Choose Communication Method
+    Route::post('/booking/{booking}/choose-communication', [BookingController::class, 'chooseCommunicationMethod'])->name('booking.choose-communication');
 
     // Payment routes
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
@@ -64,9 +79,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
 
     // Notifications
-    Route::get('/notifications', function () {
-        return view('notifications.index');
-    })->name('notifications.index');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
+    Route::get('/notifications/recent', [NotificationController::class, 'getRecent'])->name('notifications.recent');
+
+    // Messages
+    Route::get('/messages', [ChatController::class, 'index'])->name('messages.index');
+    Route::post('/messages/send', [ChatController::class, 'send'])->name('messages.send');
+    Route::get('/messages/get', [ChatController::class, 'getMessages'])->name('messages.get');
+    Route::get('/messages/unread-count', [ChatController::class, 'getUnreadCount'])->name('messages.unread-count');
 
     // Profile routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');

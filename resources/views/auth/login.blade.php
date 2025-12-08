@@ -6,14 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
 <body class="bg-gray-300">
-    <div class="min-h-screen flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-md w-[800px] flex overflow-hidden">
+    <div class="min-h-screen flex items-center justify-center py-4 px-4">
+        <div class="bg-white rounded-lg shadow-md w-full max-w-[800px] flex flex-col md:flex-row overflow-hidden">
             
             <!-- Left side -->
-            <div class="w-1/2 p-8">
+            <div class="w-full md:w-1/2 p-8 overflow-y-auto max-h-[90vh]">
                 <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
 
                 <form method="POST" action="{{ route('login') }}">
@@ -57,9 +58,9 @@
                             <input type="password" name="password" id="login-password" placeholder="Password"
                                    class="w-full pl-12 pr-12 h-10 bg-gray-100 rounded" required>
                             <button type="button" onclick="togglePassword('login-password', 'login-password-toggle')" 
-                                    class="absolute right-0 mr-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                    class="absolute right-0 mr-2 w-8 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none z-10 cursor-pointer"
                                     id="login-password-toggle">
-                                <i class="fas fa-eye" id="login-password-icon"></i>
+                                <i class="fas fa-eye text-lg" id="login-password-icon"></i>
                             </button>
                         </div>
                     </div>
@@ -81,15 +82,13 @@
                 </form>
             </div>
 
-            <!-- Right side - Logo (NO PADDING) -->
-            <div class="w-1/2 bg-white flex items-center justify-center p-0 !p-0">
-                <img src="/img/rj_logo.jpg" alt="RJ Logo" class="w-full h-full object-contain">
+            <!-- Right side - Logo (Responsive) -->
+            <div class="w-full md:w-1/2 bg-green-100 relative min-h-[200px] md:min-h-0">
+                <img src="/img/rj_logo.jpg" alt="RJ Logo" class="w-full h-full object-cover">
             </div>
 
         </div>
     </div>
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <script>
         function togglePassword(inputId, toggleId) {

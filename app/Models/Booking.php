@@ -18,6 +18,9 @@ class Booking extends Model
         'total_amount',
         'status',
         'event_details',
+        'meetup_date',
+        'meetup_time',
+        'communication_method',
     ];
 
     protected $casts = [
@@ -25,6 +28,8 @@ class Booking extends Model
         'event_time' => 'datetime',
         'total_amount' => 'decimal:2',
         'event_details' => 'array',
+        'meetup_date' => 'date',
+        'meetup_time' => 'datetime',
     ];
 
     /**

@@ -25,24 +25,7 @@
         <div class="flex-1 min-h-screen px-6 py-6 ml-64">
 
             <!-- Header -->
-            <div class="bg-white shadow-md rounded-xl px-6 py-4 flex justify-between items-center mb-8">
-                <div class="flex items-center space-x-2">
-                    <div>
-                    <h2 class="text-3xl font-bold" style="color: #93BFC7;">
-                        <i class="fas fa-user-shield mr-2"></i>Welcome, {{ Auth::user()->name }}
-                    </h2>
-                    <p class="text-1xl " style="color: #93BFC7;">
-                        Admin Control Panel
-                    </p>
-                </div>
-                </div>
-
-                <div class="flex items-center space-x-6 text-[#93BFC7]">
-                    <i class="fas fa-search text-xl cursor-pointer"></i>
-                    <i class="fas fa-bell text-xl cursor-pointer"></i>
-                </div>
-
-            </div>
+            @include('admin.layouts.header')
 
 
 <!-- container -->

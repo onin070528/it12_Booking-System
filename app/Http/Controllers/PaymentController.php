@@ -28,14 +28,23 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Check if booking already has a paid payment
+        // Check if booking is confirmed
+        if ($booking->status !== 'confirmed') {
+            return redirect()->route('home')
+                ->with('error', 'This booking has not been confirmed yet. Please wait for admin confirmation before making payment.');
+        }
+
+        // Check if booking already has a paid downpayment
         $existingPayment = $booking->payments()->where('status', 'paid')->first();
         if ($existingPayment) {
             return redirect()->route('payments.index')
-                ->with('error', 'This booking has already been paid.');
+                ->with('error', 'Downpayment for this booking has already been paid.');
         }
 
-        return view('payments.checkout', compact('booking'));
+        // Calculate 30% downpayment
+        $downpaymentAmount = $booking->total_amount * 0.30;
+
+        return view('payments.checkout', compact('booking', 'downpaymentAmount'));
     }
 
     /**
@@ -52,17 +61,31 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized');
         }
 
+        // Check if booking is confirmed
+        if ($booking->status !== 'confirmed') {
+            return back()->with('error', 'This booking has not been confirmed yet. Please wait for admin confirmation before making payment.');
+        }
+
+        // Check if downpayment already paid
+        $existingPayment = $booking->payments()->where('status', 'paid')->first();
+        if ($existingPayment) {
+            return back()->with('error', 'Downpayment for this booking has already been paid.');
+        }
+
         $paymentMethod = $request->payment_method;
 
-        // Create payment record
+        // Calculate 30% downpayment
+        $downpaymentAmount = $booking->total_amount * 0.30;
+
+        // Create payment record for downpayment
         $payment = Payment::create([
             'booking_id' => $booking->id,
             'user_id' => Auth::id(),
-            'amount' => $booking->total_amount,
+            'amount' => $downpaymentAmount,
             'currency' => 'PHP',
             'status' => 'pending',
             'payment_method' => $paymentMethod,
-            'description' => "Payment for {$booking->event_type} booking",
+            'description' => "30% Downpayment for {$booking->event_type} booking",
         ]);
 
         $metadata = [
@@ -80,7 +103,7 @@ class PaymentController extends Controller
         if (in_array($paymentMethod, ['gcash', 'grab_pay', 'paymaya'])) {
             // For e-wallet payments, create a source
             $sourceResponse = $this->payMongoService->createSource(
-                $booking->total_amount,
+                $downpaymentAmount,
                 'PHP',
                 $paymentMethod,
                 $metadata
@@ -99,7 +122,7 @@ class PaymentController extends Controller
         } else {
             // For card payments, create payment intent
             $intentResponse = $this->payMongoService->createPaymentIntent(
-                $booking->total_amount,
+                $downpaymentAmount,
                 'PHP',
                 $metadata
             );

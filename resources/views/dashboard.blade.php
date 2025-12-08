@@ -24,24 +24,7 @@
         <div class="flex-1 min-h-screen px-6 py-6 ml-64">
 
              <!-- Header -->
-            <div class="bg-white shadow-md rounded-xl px-6 py-4 flex justify-between items-center mb-8">
-                <div class="flex items-center space-x-2">
-                    <div>
-                        <h2 class="text-3xl font-bold" style="color: #93BFC7;">
-                            <i class="fas fa-user-shield mr-2"></i>Welcome, {{ Auth::user()->name }}
-                        </h2>
-                        <p class="text-1xl font-semibold" style="color: #93BFC7;">
-                            Welcome to RJ's Event and Styling!
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex items-center space-x-6 text-[#93BFC7]">
-                    <i class="fas fa-search text-xl cursor-pointer"></i>
-                    <i class="fas fa-bell text-xl cursor-pointer"></i>
-                </div>
-
-            </div>
+            @include('layouts.header')
                     
             <div class="flex justify-end mb-6">
                 <a href="{{ route('booking.create') }}"
@@ -57,14 +40,10 @@
                 <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
                     <div class="relative overflow-hidden">
                         <img src="/img/wedding.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Wedding Event">
-                        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                            <span class="text-xs font-semibold text-[#93BFC7]">POPULAR</span>
-                        </div>
                     </div>
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
                             <h5 class="text-2xl font-bold text-[#93BFC7]">Wedding</h5>
-                            <i class="fas fa-heart text-gray-300 hover:text-red-500 transition cursor-pointer"></i>
                         </div>
                         <p class="text-gray-600 mt-2 text-base leading-relaxed mb-5">
                             Elegant styling and complete packages for your dream wedding.
@@ -86,14 +65,10 @@
                 <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
                     <div class="relative overflow-hidden">
                         <img src="/img/birthday.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Birthday Event">
-                        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                            <span class="text-xs font-semibold text-[#93BFC7]">TRENDING</span>
-                        </div>
                     </div>
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
                             <h5 class="text-2xl font-bold text-[#93BFC7]">Birthday</h5>
-                            <i class="fas fa-heart text-gray-300 hover:text-red-500 transition cursor-pointer"></i>
                         </div>
                         <p class="text-gray-600 mt-2 text-base leading-relaxed mb-5">
                             Colorful and themed setups perfect for any birthday celebration.
@@ -115,14 +90,10 @@
                 <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
                     <div class="relative overflow-hidden">
                         <img src="/img/pageant.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Pageant Event">
-                        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                            <span class="text-xs font-semibold text-[#93BFC7]">PREMIUM</span>
-                        </div>
                     </div>
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
                             <h5 class="text-2xl font-bold text-[#93BFC7]">Pageant</h5>
-                            <i class="fas fa-heart text-gray-300 hover:text-red-500 transition cursor-pointer"></i>
                         </div>
                         <p class="text-gray-600 mt-2 text-base leading-relaxed mb-5">
                             Stylish backdrops and stage aesthetics designed for pageants.
@@ -144,14 +115,10 @@
                 <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
                     <div class="relative overflow-hidden">
                         <img src="/img/christening.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Christening Event">
-                        <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                            <span class="text-xs font-semibold text-[#93BFC7]">ELEGANT</span>
-                        </div>
                     </div>
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
                             <h5 class="text-2xl font-bold text-[#93BFC7]">Christening</h5>
-                            <i class="fas fa-heart text-gray-300 hover:text-red-500 transition cursor-pointer"></i>
                         </div>
                         <p class="text-gray-600 mt-2 text-base leading-relaxed mb-5">
                             Soft tones and charming designs perfect for christening events.
@@ -162,6 +129,31 @@
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
                             <a onclick="openModal('/img/christening.jpg', 'Christening', 'Soft tones and charming designs perfect for christening events.')"
+                               class="px-5 py-3 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all duration-300 border border-gray-200">
+                                <i class="fas fa-eye mr-2"></i>Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Debut Card -->
+                <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
+                    <div class="relative overflow-hidden">
+                        <img src="/img/debut.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Debut Event">
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h5 class="text-2xl font-bold text-[#93BFC7]">Debut</h5>
+                        </div>
+                        <p class="text-gray-600 mt-2 text-base leading-relaxed mb-5">
+                            Elegant and sophisticated styling for your memorable 18th birthday debut celebration.
+                        </p>
+                        <div class="flex gap-3 mt-4">
+                            <a href="{{ route('booking.create') }}"
+                               class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
+                                <i class="fas fa-calendar-check mr-2"></i>Book Now
+                            </a>
+                            <a onclick="openModal('/img/debut.jpg', 'Debut', 'Elegant and sophisticated styling for your memorable 18th birthday debut celebration.')"
                                class="px-5 py-3 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all duration-300 border border-gray-200">
                                 <i class="fas fa-eye mr-2"></i>Details
                             </a>

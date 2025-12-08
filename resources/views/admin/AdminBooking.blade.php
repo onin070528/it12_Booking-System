@@ -21,19 +21,8 @@
         <div class="flex-1 min-h-screen px-6 py-6 ml-64">
 
             <!-- Header -->
-            <div class="bg-white shadow-md rounded-xl px-6 py-4 flex justify-between items-center mb-8">
-                <div>
-                    <h2 class="text-3xl font-bold" style="color: #93BFC7;">
-                        <i class="fas fa-user-shield mr-2"></i>Welcome, {{ Auth::user()->name }}
-                    </h2>
-                    <p class="text-xl font-semibold" style="color: #93BFC7;">Welcome to RJ's Event and Styling!</p>
-                </div>
-
-                <div class="flex items-center space-x-6 text-[#93BFC7]">
-                    <i class="fas fa-search text-xl cursor-pointer"></i>
-                    <i class="fas fa-bell text-xl cursor-pointer"></i>
-                </div>
-            </div>
+            @php $headerSubtitle = "Welcome to RJ's Event and Styling!"; @endphp
+            @include('admin.layouts.header')
 
             <div class="flex gap-6">
 
@@ -52,13 +41,15 @@
                             <option value="wedding">Wedding</option>
                             <option value="birthday">Birthday</option>
                             <option value="debut">Debut</option>
+                            <option value="pageant">Pageant</option>
                             <option value="corporate">Corporate Event</option>
                         </select>
                         <p class="text-white text-xs mt-1 opacity-75"><span class="text-red-300">*</span> Required fields</p>
                     </div>
 
                     <!-- EVENT FORMS -->
-                    <form id="bookingForm">
+                    <form id="bookingForm" action="{{ route('booking.store') }}" method="POST">
+                        @csrf
 
                         <!-- WEDDING FORM -->
                         <div id="form_wedding" class="eventForm hidden bg-[#93BFC7] rounded-xl shadow p-6 mb-6">
@@ -68,6 +59,7 @@
                             <input type="number" id="wedding_guests" name="wedding_guests" placeholder="Number of Guests *" required min="1" class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <input type="text" id="wedding_ceremony" name="wedding_ceremony" placeholder="Ceremony Venue *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <input type="text" id="wedding_reception" name="wedding_reception" placeholder="Reception Venue *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <input type="text" id="wedding_theme" name="wedding_theme" placeholder="Theme / Motif *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <textarea id="wedding_notes" name="wedding_notes" placeholder="Additional Notes (Optional)" class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white resize-none"></textarea>
                         </div>
 
@@ -92,6 +84,18 @@
                             <input type="text" id="debut_candles" name="debut_candles" placeholder="18 Candles Participants *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <input type="text" id="debut_treasures" name="debut_treasures" placeholder="18 Treasures Participants *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <textarea id="debut_notes" name="debut_notes" placeholder="Program Notes (Optional)" class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white resize-none"></textarea>
+                        </div>
+
+                        <!-- PAGEANT FORM -->
+                        <div id="form_pageant" class="eventForm hidden bg-[#93BFC7] rounded-xl shadow p-6 mb-6">
+                            <h3 class="text-xl font-bold text-white mb-4">Pageant Details</h3>
+                            <input type="text" id="pageant_title" name="pageant_title" placeholder="Pageant Title *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <input type="text" id="pageant_venue" name="pageant_venue" placeholder="Venue *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <input type="number" id="pageant_guests" name="pageant_guests" placeholder="Number of Guests *" required min="1" class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <input type="text" id="pageant_theme" name="pageant_theme" placeholder="Theme / Motif *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <input type="number" id="pageant_contestants" name="pageant_contestants" placeholder="Number of Contestants *" required min="1" class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <input type="text" id="pageant_categories" name="pageant_categories" placeholder="Categories (e.g., Talent, Q&A, Evening Gown) *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <textarea id="pageant_notes" name="pageant_notes" placeholder="Additional Notes (Optional)" class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white resize-none"></textarea>
                         </div>
 
                         <!-- CORPORATE FORM -->
@@ -147,9 +151,6 @@
                                 <p class="text-white text-xs mt-1 opacity-75">Please select a location within General Santos City</p>
                             </div>
 
-                            <input type="text" id="theme" name="theme" placeholder="Theme *" required
-                                class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
-
                             <textarea id="request" name="request" placeholder="Special Request (Optional)"
                                 class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white resize-none"></textarea>
                         </div>
@@ -164,158 +165,192 @@
                     <div class="space-y-4 overflow-y-auto flex-1" style="max-height: calc(90vh - 200px);">
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-semibold text-sm">Event Type:</p>
-                            <p class="text-white" id="preview_event_type">-</p>
+                            <p class="text-white font-bold text-base">Event Type:</p>
+                            <p class="text-white font-semibold" id="preview_event_type">-</p>
                         </div>
 
                         <!-- Wedding Preview Fields -->
                         <div id="preview_wedding" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Bride Name:</p>
-                                <p class="text-white" id="preview_wedding_bride">-</p>
+                                <p class="text-white font-bold text-base">Bride Name:</p>
+                                <p class="text-white font-semibold" id="preview_wedding_bride">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Groom Name:</p>
-                                <p class="text-white" id="preview_wedding_groom">-</p>
+                                <p class="text-white font-bold text-base">Groom Name:</p>
+                                <p class="text-white font-semibold" id="preview_wedding_groom">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Number of Guests:</p>
-                                <p class="text-white" id="preview_wedding_guests">-</p>
+                                <p class="text-white font-bold text-base">Number of Guests:</p>
+                                <p class="text-white font-semibold" id="preview_wedding_guests">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Ceremony Venue:</p>
-                                <p class="text-white" id="preview_wedding_ceremony">-</p>
+                                <p class="text-white font-bold text-base">Ceremony Venue:</p>
+                                <p class="text-white font-semibold" id="preview_wedding_ceremony">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Reception Venue:</p>
-                                <p class="text-white" id="preview_wedding_reception">-</p>
+                                <p class="text-white font-bold text-base">Reception Venue:</p>
+                                <p class="text-white font-semibold" id="preview_wedding_reception">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Additional Notes:</p>
-                                <p class="text-white" id="preview_wedding_notes">-</p>
+                                <p class="text-white font-bold text-base">Theme / Motif:</p>
+                                <p class="text-white font-semibold" id="preview_wedding_theme">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Additional Notes:</p>
+                                <p class="text-white font-semibold" id="preview_wedding_notes">-</p>
                             </div>
                         </div>
 
                         <!-- Birthday Preview Fields -->
                         <div id="preview_birthday" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Celebrant Name:</p>
-                                <p class="text-white" id="preview_birthday_celebrant">-</p>
+                                <p class="text-white font-bold text-base">Celebrant Name:</p>
+                                <p class="text-white font-semibold" id="preview_birthday_celebrant">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Age:</p>
-                                <p class="text-white" id="preview_birthday_age">-</p>
+                                <p class="text-white font-bold text-base">Age:</p>
+                                <p class="text-white font-semibold" id="preview_birthday_age">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Venue:</p>
-                                <p class="text-white" id="preview_birthday_venue">-</p>
+                                <p class="text-white font-bold text-base">Venue:</p>
+                                <p class="text-white font-semibold" id="preview_birthday_venue">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Number of Guests:</p>
-                                <p class="text-white" id="preview_birthday_guests">-</p>
+                                <p class="text-white font-bold text-base">Number of Guests:</p>
+                                <p class="text-white font-semibold" id="preview_birthday_guests">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Theme / Motif:</p>
-                                <p class="text-white" id="preview_birthday_theme">-</p>
+                                <p class="text-white font-bold text-base">Theme / Motif:</p>
+                                <p class="text-white font-semibold" id="preview_birthday_theme">-</p>
                             </div>
                         </div>
 
                         <!-- Debut Preview Fields -->
                         <div id="preview_debut" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Debutante Name:</p>
-                                <p class="text-white" id="preview_debut_name">-</p>
+                                <p class="text-white font-bold text-base">Debutante Name:</p>
+                                <p class="text-white font-semibold" id="preview_debut_name">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Venue:</p>
-                                <p class="text-white" id="preview_debut_venue">-</p>
+                                <p class="text-white font-bold text-base">Venue:</p>
+                                <p class="text-white font-semibold" id="preview_debut_venue">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Number of Guests:</p>
-                                <p class="text-white" id="preview_debut_guests">-</p>
+                                <p class="text-white font-bold text-base">Number of Guests:</p>
+                                <p class="text-white font-semibold" id="preview_debut_guests">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Theme / Motif:</p>
-                                <p class="text-white" id="preview_debut_theme">-</p>
+                                <p class="text-white font-bold text-base">Theme / Motif:</p>
+                                <p class="text-white font-semibold" id="preview_debut_theme">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">18 Roses Participants:</p>
-                                <p class="text-white" id="preview_debut_roses">-</p>
+                                <p class="text-white font-bold text-base">18 Roses Participants:</p>
+                                <p class="text-white font-semibold" id="preview_debut_roses">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">18 Candles Participants:</p>
-                                <p class="text-white" id="preview_debut_candles">-</p>
+                                <p class="text-white font-bold text-base">18 Candles Participants:</p>
+                                <p class="text-white font-semibold" id="preview_debut_candles">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">18 Treasures Participants:</p>
-                                <p class="text-white" id="preview_debut_treasures">-</p>
+                                <p class="text-white font-bold text-base">18 Treasures Participants:</p>
+                                <p class="text-white font-semibold" id="preview_debut_treasures">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Program Notes:</p>
-                                <p class="text-white" id="preview_debut_notes">-</p>
+                                <p class="text-white font-bold text-base">Program Notes:</p>
+                                <p class="text-white font-semibold" id="preview_debut_notes">-</p>
+                            </div>
+                        </div>
+
+                        <!-- Pageant Preview Fields -->
+                        <div id="preview_pageant" class="hidden space-y-4">
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Pageant Title:</p>
+                                <p class="text-white font-semibold" id="preview_pageant_title">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Venue:</p>
+                                <p class="text-white font-semibold" id="preview_pageant_venue">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Number of Guests:</p>
+                                <p class="text-white font-semibold" id="preview_pageant_guests">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Theme / Motif:</p>
+                                <p class="text-white font-semibold" id="preview_pageant_theme">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Number of Contestants:</p>
+                                <p class="text-white font-semibold" id="preview_pageant_contestants">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Categories:</p>
+                                <p class="text-white font-semibold" id="preview_pageant_categories">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Additional Notes:</p>
+                                <p class="text-white font-semibold" id="preview_pageant_notes">-</p>
                             </div>
                         </div>
 
                         <!-- Corporate Preview Fields -->
                         <div id="preview_corporate" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Company Name:</p>
-                                <p class="text-white" id="preview_corporate_company">-</p>
+                                <p class="text-white font-bold text-base">Company Name:</p>
+                                <p class="text-white font-semibold" id="preview_corporate_company">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Event Title / Theme:</p>
-                                <p class="text-white" id="preview_corporate_title">-</p>
+                                <p class="text-white font-bold text-base">Event Title / Theme:</p>
+                                <p class="text-white font-semibold" id="preview_corporate_title">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Venue / Location:</p>
-                                <p class="text-white" id="preview_corporate_venue">-</p>
+                                <p class="text-white font-bold text-base">Venue / Location:</p>
+                                <p class="text-white font-semibold" id="preview_corporate_venue">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Number of Attendees:</p>
-                                <p class="text-white" id="preview_corporate_attendees">-</p>
+                                <p class="text-white font-bold text-base">Number of Attendees:</p>
+                                <p class="text-white font-semibold" id="preview_corporate_attendees">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Company Representative:</p>
-                                <p class="text-white" id="preview_corporate_representative">-</p>
+                                <p class="text-white font-bold text-base">Company Representative:</p>
+                                <p class="text-white font-semibold" id="preview_corporate_representative">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Contact Number:</p>
-                                <p class="text-white" id="preview_corporate_contact">-</p>
+                                <p class="text-white font-bold text-base">Contact Number:</p>
+                                <p class="text-white font-semibold" id="preview_corporate_contact">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-semibold text-sm">Event Requirements:</p>
-                                <p class="text-white" id="preview_corporate_requirements">-</p>
+                                <p class="text-white font-bold text-base">Event Requirements:</p>
+                                <p class="text-white font-semibold" id="preview_corporate_requirements">-</p>
                             </div>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-semibold text-sm">Date:</p>
-                            <p class="text-white" id="preview_date">-</p>
+                            <p class="text-white font-bold text-base">Date:</p>
+                            <p class="text-white font-semibold" id="preview_date">-</p>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-semibold text-sm">Location:</p>
-                            <p class="text-white" id="preview_location">-</p>
+                            <p class="text-white font-bold text-base">Location:</p>
+                            <p class="text-white font-semibold" id="preview_location">-</p>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-semibold text-sm">Theme:</p>
-                            <p class="text-white" id="preview_theme">-</p>
-                        </div>
-
-                        <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-semibold text-sm">Request:</p>
-                            <p class="text-white" id="preview_request">-</p>
+                            <p class="text-white font-bold text-base">Request:</p>
+                            <p class="text-white font-semibold" id="preview_request">-</p>
                         </div>
                     </div>
 
-                    <button type="submit" form="bookingForm"
+                    <button type="submit" id="submitBookingBtn" form="bookingForm"
                         class="w-full mt-6 bg-[#EEFBE8] text-[#93BFC7] font-bold py-3 rounded-lg 
-                        hover:bg-[#d4e8c8] transition-all shadow">
+                        hover:bg-[#d4e8c8] transition-all shadow cursor-pointer">
                         Submit Booking
                     </button>
                 </div>
             </div>
+
+            <!-- Toast Notification Container -->
+            <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
             <!-- Error Modal -->
             <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
@@ -341,6 +376,42 @@
 
             <!-- LOGIC -->
             <script>
+                // Toast Notification Function
+                function showToast(message, type = 'success') {
+                    const toastContainer = document.getElementById('toastContainer');
+                    const toast = document.createElement('div');
+                    
+                    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+                    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+                    
+                    toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 min-w-[300px] max-w-md transform transition-all duration-300 translate-x-full opacity-0`;
+                    toast.innerHTML = `
+                        <i class="fas ${icon} text-xl"></i>
+                        <p class="flex-1 font-medium">${message}</p>
+                        <button onclick="this.parentElement.remove()" class="text-white hover:text-gray-200">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    
+                    toastContainer.appendChild(toast);
+                    
+                    // Trigger animation
+                    setTimeout(() => {
+                        toast.classList.remove('translate-x-full', 'opacity-0');
+                        toast.classList.add('translate-x-0', 'opacity-100');
+                    }, 10);
+                    
+                    // Auto remove after 5 seconds
+                    setTimeout(() => {
+                        toast.classList.add('translate-x-full', 'opacity-0');
+                        setTimeout(() => {
+                            if (toast.parentElement) {
+                                toast.remove();
+                            }
+                        }, 300);
+                    }, 5000);
+                }
+
                 // Modal functions
                 const errorModal = document.getElementById('errorModal');
                 const modalMessage = document.getElementById('modalMessage');
@@ -431,7 +502,8 @@
                 const eventSelect = document.getElementById('event_type');
                 const forms = document.querySelectorAll('.eventForm');
                 const eventInfo = document.getElementById('event_info_container');
-                const previewSections = ['preview_wedding', 'preview_birthday', 'preview_debut', 'preview_corporate'];
+                const previewSections = ['preview_wedding', 'preview_birthday', 'preview_debut', 'preview_pageant', 'preview_corporate'];
+                const submitButton = document.getElementById('submitBookingBtn');
 
                 // Hide all preview sections
                 function hideAllPreviewSections() {
@@ -480,6 +552,9 @@
                 document.getElementById('wedding_reception')?.addEventListener('input', e =>
                     document.getElementById('preview_wedding_reception').textContent = e.target.value || '-'
                 );
+                document.getElementById('wedding_theme')?.addEventListener('input', e =>
+                    document.getElementById('preview_wedding_theme').textContent = e.target.value || '-'
+                );
                 document.getElementById('wedding_notes')?.addEventListener('input', e =>
                     document.getElementById('preview_wedding_notes').textContent = e.target.value || '-'
                 );
@@ -527,6 +602,29 @@
                     document.getElementById('preview_debut_notes').textContent = e.target.value || '-'
                 );
 
+                // Pageant form listeners
+                document.getElementById('pageant_title')?.addEventListener('input', e =>
+                    document.getElementById('preview_pageant_title').textContent = e.target.value || '-'
+                );
+                document.getElementById('pageant_venue')?.addEventListener('input', e =>
+                    document.getElementById('preview_pageant_venue').textContent = e.target.value || '-'
+                );
+                document.getElementById('pageant_guests')?.addEventListener('input', e =>
+                    document.getElementById('preview_pageant_guests').textContent = e.target.value || '-'
+                );
+                document.getElementById('pageant_theme')?.addEventListener('input', e =>
+                    document.getElementById('preview_pageant_theme').textContent = e.target.value || '-'
+                );
+                document.getElementById('pageant_contestants')?.addEventListener('input', e =>
+                    document.getElementById('preview_pageant_contestants').textContent = e.target.value || '-'
+                );
+                document.getElementById('pageant_categories')?.addEventListener('input', e =>
+                    document.getElementById('preview_pageant_categories').textContent = e.target.value || '-'
+                );
+                document.getElementById('pageant_notes')?.addEventListener('input', e =>
+                    document.getElementById('preview_pageant_notes').textContent = e.target.value || '-'
+                );
+
                 // Corporate form listeners
                 document.getElementById('corporate_company')?.addEventListener('input', e =>
                     document.getElementById('preview_corporate_company').textContent = e.target.value || '-'
@@ -559,19 +657,18 @@
                     document.getElementById('preview_location').textContent = e.target.value || '-'
                 );
 
-                document.getElementById('theme')?.addEventListener('input', e =>
-                    document.getElementById('preview_theme').textContent = e.target.value || '-'
-                );
-
                 document.getElementById('request')?.addEventListener('input', e =>
                     document.getElementById('preview_request').textContent = e.target.value || '-'
                 );
 
                 // Form validation on submit
                 const bookingForm = document.getElementById('bookingForm');
-                if (bookingForm) {
-                    bookingForm.addEventListener('submit', function(e) {
+                
+                // Function to handle form submission
+                function handleFormSubmit(e) {
+                    if (e) {
                         e.preventDefault();
+                    }
                         
                         const missingFields = [];
                         
@@ -621,7 +718,6 @@
                         // Check event info required fields
                         const dateField = document.getElementById('date');
                         const locationField = document.getElementById('location');
-                        const themeField = document.getElementById('theme');
 
                         if (dateField && !dateField.value) {
                             isValid = false;
@@ -639,15 +735,6 @@
                             locationField.classList.add('border-2', 'border-red-400');
                         } else if (locationField) {
                             locationField.classList.remove('border-2', 'border-red-400');
-                        }
-
-                        if (themeField && !themeField.value.trim()) {
-                            isValid = false;
-                            missingFields.push('Theme');
-                            if (!firstInvalidField) firstInvalidField = themeField;
-                            themeField.classList.add('border-2', 'border-red-400');
-                        } else if (themeField) {
-                            themeField.classList.remove('border-2', 'border-red-400');
                         }
 
                         // Validate location contains Gensan
@@ -673,11 +760,126 @@
                             return false;
                         }
 
-                        // If all validations pass, you can submit the form
-                        // For now, we'll just show a success message. Replace this with actual form submission logic
-                        showErrorModal('Form is valid! All required fields are filled. Ready to submit.');
-                        // Uncomment the line below when you have a form submission endpoint
-                        // this.submit();
+                        // If all validations pass, submit the form via AJAX
+                        const formData = new FormData(bookingForm);
+                        const eventType = eventSelect.value;
+                        formData.append('event_type', eventType);
+                        formData.append('date', dateField.value);
+                        formData.append('location', locationField.value);
+                        formData.append('request', document.getElementById('request').value || '');
+                        
+                        // Get theme from event-specific field
+                        let themeValue = '';
+                        if (eventType === 'wedding') {
+                            themeValue = document.getElementById('wedding_theme')?.value || '';
+                        } else if (eventType === 'birthday') {
+                            themeValue = document.getElementById('birthday_theme')?.value || '';
+                        } else if (eventType === 'debut') {
+                            themeValue = document.getElementById('debut_theme')?.value || '';
+                        } else if (eventType === 'pageant') {
+                            themeValue = document.getElementById('pageant_theme')?.value || '';
+                        } else if (eventType === 'corporate') {
+                            themeValue = document.getElementById('corporate_title')?.value || '';
+                        }
+                        formData.append('theme', themeValue);
+                        
+                        // Calculate total amount based on event type and guests
+                        let totalAmount = 50000; // Base amount
+                        
+                        // Get guest count based on event type
+                        let guestCount = 0;
+                        if (eventType === 'wedding') {
+                            guestCount = parseInt(document.getElementById('wedding_guests').value) || 0;
+                        } else if (eventType === 'birthday') {
+                            guestCount = parseInt(document.getElementById('birthday_guests').value) || 0;
+                        } else if (eventType === 'debut') {
+                            guestCount = parseInt(document.getElementById('debut_guests').value) || 0;
+                        } else if (eventType === 'pageant') {
+                            guestCount = parseInt(document.getElementById('pageant_guests').value) || 0;
+                        } else if (eventType === 'corporate') {
+                            guestCount = parseInt(document.getElementById('corporate_attendees').value) || 0;
+                        }
+                        
+                        // Calculate amount: base + (guests * 500)
+                        totalAmount = totalAmount + (guestCount * 500);
+                        formData.append('total_amount', totalAmount);
+
+                        // Show loading state
+                        const originalText = submitButton.innerHTML;
+                        submitButton.disabled = true;
+                        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+
+                        fetch('{{ route("booking.store") }}', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(async response => {
+                            const contentType = response.headers.get('content-type');
+                            
+                            if (contentType && contentType.includes('application/json')) {
+                                const data = await response.json();
+                                
+                                if (response.ok && data.success) {
+                                    // Show success toast
+                                    showToast(data.message || 'Booking submitted successfully!', 'success');
+                                    
+                                    // Reset form
+                                    bookingForm.reset();
+                                    eventSelect.value = '';
+                                    forms.forEach(form => form.classList.add('hidden'));
+                                    eventInfo.classList.add('hidden');
+                                    hideAllPreviewSections();
+                                    
+                                    // Redirect after 2 seconds
+                                    setTimeout(() => {
+                                        window.location.href = '{{ route("home") }}';
+                                    }, 2000);
+                                } else {
+                                    // Show error toast
+                                    let errorMessage = data.message || 'An error occurred. Please try again.';
+                                    
+                                    // If there are validation errors, show them
+                                    if (data.errors) {
+                                        const errorMessages = Object.values(data.errors).flat();
+                                        errorMessage = errorMessages.join(', ');
+                                    }
+                                    
+                                    showToast(errorMessage, 'error');
+                                    submitButton.disabled = false;
+                                    submitButton.innerHTML = originalText;
+                                }
+                            } else {
+                                // Handle non-JSON response (shouldn't happen, but just in case)
+                                const text = await response.text();
+                                console.error('Non-JSON response:', text);
+                                showToast('An unexpected error occurred. Please try again.', 'error');
+                                submitButton.disabled = false;
+                                submitButton.innerHTML = originalText;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('An error occurred while submitting the booking. Please check your connection and try again.', 'error');
+                            submitButton.disabled = false;
+                            submitButton.innerHTML = originalText;
+                        });
+                }
+                
+                // Attach event listeners
+                if (bookingForm) {
+                    bookingForm.addEventListener('submit', handleFormSubmit);
+                }
+                
+                // Also attach click handler to button as backup
+                if (submitButton) {
+                    submitButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        handleFormSubmit(e);
                     });
                 }
 

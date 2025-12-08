@@ -28,8 +28,7 @@
         </div>
 
         <!-- Menu -->
-        <ul class="flex flex-col px-4 space-y-1">
-
+        <ul class="flex flex-col px-4 space-y-3 flex-1">
             <!-- Admin Dashboard -->
             <li>
                 <a href="{{ route('admin.dashboard') }}"
@@ -41,7 +40,7 @@
             <!-- Bookings Management -->
             <li>
                 <a href="{{ route('admin.AdminBooking') }}"
-                   class="flex items-center {{ request()->routeIs('admin.bookings.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
+                   class="flex items-center {{ request()->routeIs('admin.AdminBooking') || request()->routeIs('admin.booking.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
                     <i class="fas fa-calendar-check mr-3"></i> Bookings Management
                 </a>
             </li>
@@ -57,7 +56,7 @@
             <!-- Payments Management -->
             <li>
                 <a href="{{ route('admin.AdminPayment') }}"
-                   class="flex items-center {{ request()->routeIs('admin.payments.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
+                   class="flex items-center {{ request()->routeIs('admin.AdminPayment') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
                     <i class="fas fa-credit-card mr-3"></i> Payments Management
                 </a>
             </li>
@@ -65,7 +64,7 @@
             <!-- Reports -->
             <li>
                 <a href="{{ route('admin.AdminReports') }}"
-                   class="flex items-center {{ request()->routeIs('admin.reports.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
+                   class="flex items-center {{ request()->routeIs('admin.AdminReports') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
                     <i class="fas fa-chart-bar mr-3"></i> Reports
                 </a>
             </li>
@@ -73,25 +72,115 @@
             <!-- Inventory -->
             <li>
                 <a href="{{ route('admin.AdminInventory') }}"
-                class="flex items-center {{ request()->routeIs('admin.settings.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
+                class="flex items-center {{ request()->routeIs('admin.AdminInventory') || request()->routeIs('admin.AdminInventory.store') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
                     <i class="fas fa-boxes mr-3"></i> Inventory
                 </a>
             </li>
 
-            <!-- Logout -->
-            <li class="mt-auto pt-5 pb-2">
-                <form action="{{ route('logout') }}" method="POST" id="logout-form">
-                    @csrf
-                    <a class="flex items-center text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-100 transition font-medium cursor-pointer"
-                       onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                        <i class="fas fa-sign-out-alt mr-3"></i> Logout
-                    </a>
-                </form>
+            <!-- Notification -->
+            <li>
+                <a href="{{ route('notifications.index') }}"
+                   class="flex items-center justify-between {{ request()->routeIs('notifications.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition relative">
+                    <div class="flex items-center">
+                        <i class="fas fa-bell mr-3"></i> Notification
+                    </div>
+                    <span id="unreadNotificationsBadge" class="hidden bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center min-w-[24px] animate-pulse"></span>
+                </a>
+            </li>
+
+            <!-- Messages -->
+            <li>
+                <a href="{{ route('admin.messages.index') }}"
+                   class="flex items-center justify-between {{ request()->routeIs('admin.messages.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition relative">
+                    <div class="flex items-center">
+                        <i class="fas fa-comments mr-3"></i> Messages
+                    </div>
+                    <span id="unreadMessagesBadge" class="hidden bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center min-w-[24px] animate-pulse"></span>
+                </a>
             </li>
 
         </ul>
 
+            <div class="mt-auto px-4 pb-6 pt-6">
+                <form action="{{ route('logout') }}" method="POST" id="logout-form">
+                    @csrf
+                    <a class="flex items-center text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-100 transition font-medium cursor-pointer"
+                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                        <i class="fas fa-sign-out-alt mr-3"></i> Logout
+                    </a>
+                </form>
+            </div>
+
+
     </div>
+
+    <script>
+        // Update unread messages count for admin (make it globally accessible)
+        window.updateUnreadMessagesCount = function() {
+            fetch('{{ route("admin.messages.unread-count") }}', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('unreadMessagesBadge');
+                if (badge) {
+                    if (data.count > 0) {
+                        badge.textContent = data.count > 99 ? '99+' : data.count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching unread count:', error));
+        };
+
+        // Update on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', updateUnreadMessagesCount);
+        } else {
+            updateUnreadMessagesCount();
+        }
+
+        // Update every 5 seconds
+        setInterval(updateUnreadMessagesCount, 5000);
+
+        // Update unread notifications count (make it globally accessible)
+        window.updateUnreadNotificationsCount = function() {
+            fetch('{{ route("notifications.unread-count") }}', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('unreadNotificationsBadge');
+                if (badge) {
+                    if (data.count > 0) {
+                        badge.textContent = data.count > 99 ? '99+' : data.count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching unread notifications count:', error));
+        };
+
+        // Update on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', updateUnreadNotificationsCount);
+        } else {
+            updateUnreadNotificationsCount();
+        }
+
+        // Update every 5 seconds
+        setInterval(updateUnreadNotificationsCount, 5000);
+    </script>
 
 </body>
 </html>

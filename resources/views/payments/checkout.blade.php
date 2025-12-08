@@ -36,9 +36,18 @@
                         <span class="font-medium">{{ $booking->location }}</span>
                     </div>
                     <div class="flex justify-between pt-2 border-t border-gray-300">
-                        <span class="text-lg font-semibold" style="color: #93BFC7;">Total Amount:</span>
-                        <span class="text-lg font-bold">₱{{ number_format($booking->total_amount, 2) }}</span>
+                        <span class="text-sm font-medium text-gray-600">Total Booking Amount:</span>
+                        <span class="text-sm font-medium">₱{{ number_format($booking->total_amount, 2) }}</span>
                     </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Downpayment (30%):</span>
+                        <span class="text-sm font-medium">₱{{ number_format($downpaymentAmount, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between pt-2 border-t-2 border-[#93BFC7]">
+                        <span class="text-lg font-semibold" style="color: #93BFC7;">Amount to Pay:</span>
+                        <span class="text-lg font-bold" style="color: #93BFC7;">₱{{ number_format($downpaymentAmount, 2) }}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">* This is a 30% downpayment. The remaining balance will be collected later.</p>
                 </div>
             </div>
 
