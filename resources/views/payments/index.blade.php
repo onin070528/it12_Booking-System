@@ -48,25 +48,56 @@
                     <th class="px-6 py-4 text-left">Payment Date</th>
                     <th class="px-6 py-4 text-left">Booking</th>
                     <th class="px-6 py-4 text-left">Payment Method</th>
-                    <th class="px-6 py-4 text-left">Amount</th>
+                    <th class="px-6 py-4 text-left">Amount Paid</th>
+                    <th class="px-6 py-4 text-left">Remaining Balance</th>
                     <th class="px-6 py-4 text-left">Status</th>
+                    <th class="px-6 py-4 text-left">Actions</th>
                 </tr>
             </thead>
 
            <tbody>
                 @forelse($payments as $payment)
+                @php
+                    $bookingId = $payment->booking->id ?? null;
+                    $balance = $bookingId && isset($bookingBalances[$bookingId]) ? $bookingBalances[$bookingId] : null;
+                @endphp
                 <tr class="bg-white font-medium text-[#93BFC7] hover:bg-gray-200 border-b border-gray-300">
                     <td class="px-6 py-4">{{ $payment->created_at->format('M d, Y') }}</td>
                     <td class="px-6 py-4">
-                        {{ $payment->booking->event_type ?? 'N/A' }}
-                        <span class="text-xs text-gray-500 block">{{ $payment->booking->event_date->format('M d, Y') ?? '' }}</span>
+                        <div>
+                            <span class="font-semibold">{{ $payment->booking->event_type ?? 'N/A' }}</span>
+                            <span class="text-xs text-gray-500 block">{{ $payment->booking->event_date->format('M d, Y') ?? '' }}</span>
+                            @if($balance)
+                            <span class="text-xs text-gray-500 block mt-1">
+                                Total: ₱{{ number_format($balance['total_amount'], 2) }}
+                            </span>
+                            @endif
+                        </div>
                     </td>
                     <td class="px-6 py-4 capitalize">{{ $payment->payment_method ?? 'N/A' }}</td>
-                    <td class="px-6 py-4">₱{{ number_format($payment->amount, 2) }}</td>
+                    <td class="px-6 py-4">
+                        <span class="font-semibold">₱{{ number_format($payment->amount, 2) }}</span>
+                        @if($payment->status === 'partial_paid')
+                        <span class="text-xs text-yellow-600 block mt-1">(Partial Payment)</span>
+                        @endif
+                    </td>
+                    <td class="px-6 py-4">
+                        @if($balance && $balance['remaining_balance'] > 0)
+                            <span class="font-semibold text-orange-600">₱{{ number_format($balance['remaining_balance'], 2) }}</span>
+                        @elseif($balance && $balance['remaining_balance'] <= 0)
+                            <span class="text-green-600 font-semibold">Fully Paid</span>
+                        @else
+                            <span class="text-gray-400">-</span>
+                        @endif
+                    </td>
                     <td class="px-6 py-4">
                         @if($payment->status === 'paid')
                             <span class="px-4 py-1 rounded-full bg-[#D4F6DF] text-green-900 font-medium inline-block">
                                 Paid
+                            </span>
+                        @elseif($payment->status === 'partial_paid')
+                            <span class="px-4 py-1 rounded-full bg-yellow-100 text-yellow-900 font-medium inline-block">
+                                Partial Paid
                             </span>
                         @elseif($payment->status === 'pending')
                             <span class="px-4 py-1 rounded-full bg-[#FDFCB1] text-yellow-900 font-medium inline-block">
@@ -86,10 +117,23 @@
                             </span>
                         @endif
                     </td>
+                    <td class="px-6 py-4">
+                        @if($payment->status === 'partial_paid' && $balance && $balance['remaining_balance'] > 0)
+                            <a href="{{ route('payment.checkout', $payment->booking) }}" 
+                               class="inline-flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-semibold">
+                                <i class="fas fa-credit-card"></i>
+                                Pay Balance
+                            </a>
+                        @elseif($payment->status === 'pending')
+                            <span class="text-xs text-gray-500">Waiting for confirmation</span>
+                        @else
+                            <span class="text-xs text-gray-400">-</span>
+                        @endif
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                    <td colspan="7" class="px-6 py-8 text-center text-gray-500">
                         No payment history found.
                     </td>
                 </tr>

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Event;
 use App\Models\Inventory;
+use App\Models\Booking;
+use Carbon\Carbon;
 
 class EventController extends Controller
 {
@@ -15,7 +17,60 @@ class EventController extends Controller
 
     public function events()
     {
-        return Event::all(); // Returns JSON for FullCalendar
+        // Get confirmed bookings and format them as calendar events
+        $confirmedBookings = Booking::where('status', 'confirmed')
+            ->with('user')
+            ->get();
+        
+        $events = [];
+        
+        // Group bookings by date to show counts
+        $bookingsByDate = $confirmedBookings->groupBy(function($booking) {
+            return $booking->event_date->format('Y-m-d');
+        });
+        
+        foreach ($bookingsByDate as $date => $bookings) {
+            $count = $bookings->count();
+            $eventType = $bookings->first()->event_type;
+            $customerName = $bookings->first()->user->name;
+            
+            // Determine color based on booking count
+            $color = $count >= 2 ? '#dc2626' : ($count == 1 ? '#f59e0b' : '#10b981'); // Red if full, orange if 1, green if available
+            
+            $events[] = [
+                'id' => 'booking-' . $date,
+                'title' => $count . '/2 Bookings - ' . ucfirst($eventType) . ' (' . $customerName . ($count > 1 ? ' +' . ($count - 1) . ' more' : '') . ')',
+                'start' => $date,
+                'end' => $date,
+                'color' => $color,
+                'extendedProps' => [
+                    'bookingCount' => $count,
+                    'maxBookings' => 2,
+                    'isFull' => $count >= 2,
+                    'bookings' => $bookings->map(function($b) {
+                        return [
+                            'id' => $b->id,
+                            'event_type' => $b->event_type,
+                            'customer' => $b->user->name,
+                            'location' => $b->location,
+                        ];
+                    })->toArray(),
+                ],
+            ];
+        }
+        
+        // Also include regular events if any
+        $regularEvents = Event::all()->map(function($event) {
+            return [
+                'id' => 'event-' . $event->id,
+                'title' => $event->title,
+                'start' => $event->start,
+                'end' => $event->end ?? $event->start,
+                'color' => '#3b82f6',
+            ];
+        })->toArray();
+        
+        return array_merge($events, $regularEvents);
     }
 
     public function store(Request $request)
@@ -37,7 +92,81 @@ class EventController extends Controller
      */
     public function adminEvents()
     {
-        return Event::all(); // Returns all events for admin to see
+        // Get confirmed bookings and format them as calendar events
+        $confirmedBookings = Booking::where('status', 'confirmed')
+            ->with('user')
+            ->get();
+        
+        $events = [];
+        
+        // Group bookings by date to show counts
+        $bookingsByDate = $confirmedBookings->groupBy(function($booking) {
+            return $booking->event_date->format('Y-m-d');
+        });
+        
+        foreach ($bookingsByDate as $date => $bookings) {
+            $count = $bookings->count();
+            $eventType = $bookings->first()->event_type;
+            $customerName = $bookings->first()->user->name;
+            
+            // Determine color based on booking count
+            $color = $count >= 2 ? '#dc2626' : ($count == 1 ? '#f59e0b' : '#10b981'); // Red if full, orange if 1, green if available
+            
+            $events[] = [
+                'id' => 'booking-' . $date,
+                'title' => $count . '/2 Bookings - ' . ucfirst($eventType) . ' (' . $customerName . ($count > 1 ? ' +' . ($count - 1) . ' more' : '') . ')',
+                'start' => $date,
+                'end' => $date,
+                'color' => $color,
+                'extendedProps' => [
+                    'bookingCount' => $count,
+                    'maxBookings' => 2,
+                    'isFull' => $count >= 2,
+                    'bookings' => $bookings->map(function($b) {
+                        return [
+                            'id' => $b->id,
+                            'event_type' => $b->event_type,
+                            'customer' => $b->user->name,
+                            'location' => $b->location,
+                        ];
+                    })->toArray(),
+                ],
+            ];
+        }
+        
+        // Also include regular events if any
+        $regularEvents = Event::all()->map(function($event) {
+            return [
+                'id' => 'event-' . $event->id,
+                'title' => $event->title,
+                'start' => $event->start,
+                'end' => $event->end ?? $event->start,
+                'color' => '#3b82f6',
+            ];
+        })->toArray();
+        
+        return array_merge($events, $regularEvents);
+    }
+    
+    /**
+     * Get booking count for a specific date
+     */
+    public function getBookingCount(Request $request)
+    {
+        $date = $request->input('date');
+        if (!$date) {
+            return response()->json(['count' => 0, 'max' => 2, 'isFull' => false]);
+        }
+        
+        $count = Booking::where('status', 'confirmed')
+            ->whereDate('event_date', $date)
+            ->count();
+        
+        return response()->json([
+            'count' => $count,
+            'max' => 2,
+            'isFull' => $count >= 2,
+        ]);
     }
 
     /**
@@ -62,7 +191,29 @@ class EventController extends Controller
      */
     public function AdminPayment()
     {
-        return view('admin.AdminPayment');
+        $payments = \App\Models\Payment::with(['booking', 'user'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        // Calculate remaining balances for each booking
+        $bookingBalances = [];
+        foreach ($payments as $payment) {
+            if ($payment->booking) {
+                $bookingId = $payment->booking->id;
+                if (!isset($bookingBalances[$bookingId])) {
+                    $totalPaid = $payment->booking->payments()
+                        ->whereIn('status', ['paid', 'partial_paid'])
+                        ->sum('amount');
+                    $bookingBalances[$bookingId] = [
+                        'total_amount' => $payment->booking->total_amount,
+                        'total_paid' => $totalPaid,
+                        'remaining_balance' => $payment->booking->total_amount - $totalPaid,
+                    ];
+                }
+            }
+        }
+
+        return view('admin.AdminPayment', compact('payments', 'bookingBalances'));
     }
 
      public function AdminReports(Request $request)

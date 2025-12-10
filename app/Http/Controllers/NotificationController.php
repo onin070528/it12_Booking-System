@@ -67,4 +67,16 @@ class NotificationController extends Controller
         
         return response()->json(['notifications' => $notifications]);
     }
+
+    /**
+     * Display a listing of notifications for admin.
+     */
+    public function adminIndex()
+    {
+        $notifications = Auth::user()->notifications()
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return view('notifications.index', compact('notifications'));
+    }
 }

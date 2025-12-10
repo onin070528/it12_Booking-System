@@ -81,10 +81,28 @@
                     });
                     const unreadClass = notif.read ? 'bg-white' : 'bg-blue-50';
                     const unreadDot = notif.read ? '' : '<span class="w-2 h-2 bg-red-500 rounded-full inline-block mr-2"></span>';
+                    const isBookingNotification = notif.type && notif.type.startsWith('booking_');
+                    const isUnread = !notif.read;
+                    
+                    // For booking notifications that are unread, redirect based on type
+                    // Payment notifications go to payments page, others go to home
+                    let href = '{{ route("notifications.index") }}';
+                    if (isBookingNotification && isUnread) {
+                        if (notif.type === 'booking_ready_for_payment') {
+                            href = '{{ route("payments.index") }}';
+                        } else {
+                            href = '{{ route("home") }}';
+                        }
+                    }
+                    
+                    // For booking notifications that are unread, prevent default and handle redirect
+                    const onClickHandler = isBookingNotification && isUnread
+                        ? `event.preventDefault(); handleBookingNotificationClick(${notif.id}, '${notif.type || ''}');`
+                        : `markNotificationAsRead(${notif.id}, '${notif.type || ''}')`;
                     
                     return `
-                        <a href="{{ route('notifications.index') }}" 
-                           onclick="markNotificationAsRead(${notif.id})"
+                        <a href="${href}" 
+                           onclick="${onClickHandler}"
                            class="block p-4 hover:bg-gray-50 transition ${unreadClass}">
                             <div class="flex items-start">
                                 <div class="flex-1">
@@ -113,7 +131,7 @@
     }
 
     // Mark notification as read
-    function markNotificationAsRead(notificationId) {
+    function markNotificationAsRead(notificationId, notificationType) {
         fetch(`/notifications/${notificationId}/read`, {
             method: 'POST',
             headers: {
@@ -131,6 +149,38 @@
                 }
                 if (typeof loadRecentNotifications === 'function') {
                     loadRecentNotifications();
+                }
+            }
+        })
+        .catch(error => console.error('Error marking notification as read:', error));
+    }
+
+    // Handle booking notification click - mark as read and redirect
+    function handleBookingNotificationClick(notificationId, notificationType) {
+        fetch(`/notifications/${notificationId}/read`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update counts
+                if (typeof updateUnreadNotificationsCount === 'function') {
+                    updateUnreadNotificationsCount();
+                }
+                // Close dropdown
+                document.getElementById('notificationDropdownMenu').classList.add('hidden');
+                // Redirect based on notification type
+                if (notificationType === 'booking_ready_for_payment') {
+                    window.location.href = '{{ route("payments.index") }}';
+                } else {
+                    // Store flag to show toast on home page
+                    sessionStorage.setItem('showCommunicationToast', 'true');
+                    window.location.href = '{{ route("home") }}';
                 }
             }
         })

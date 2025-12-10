@@ -36,7 +36,7 @@
 
                 <div class="flex items-center space-x-4">
                     <!-- Date Range Filter -->
-                    <form method="GET" action="{{ route('admin.AdminReports') }}" class="flex items-center space-x-2">
+                    <form method="GET" action="{{ route('admin.reports.index') }}" class="flex items-center space-x-2">
                         <input type="date" name="start_date" value="{{ $startDate }}" 
                             class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#93BFC7]">
                         <span class="text-gray-600">to</span>

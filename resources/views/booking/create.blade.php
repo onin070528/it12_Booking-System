@@ -116,8 +116,18 @@
                         <div id="event_info_container" class="bg-[#93BFC7] rounded-xl shadow p-6 hidden mb-6">
                             <h3 class="text-xl font-bold text-white mb-4">Event Information</h3>
 
-                            <input type="date" id="date" name="date" required
-                                class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <div class="mb-4">
+                                <input type="date" id="date" name="date" required
+                                    class="w-full mb-2 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                                <div id="dateAvailability" class="text-sm text-white opacity-90 hidden"></div>
+                                <p class="text-xs text-white opacity-75 mt-1">Maximum 2 bookings per day. Calendar shows current availability.</p>
+                            </div>
+
+                            <div class="mb-4">
+                                <input type="time" id="time" name="time" required
+                                    class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                                <p class="text-white text-xs mt-1 opacity-75">Event time</p>
+                            </div>
 
                             <div class="mb-4">
                                 <input type="text" id="location" name="location" list="gensan_locations" placeholder="Location (Gensan City only) *" required
@@ -331,6 +341,11 @@
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
+                            <p class="text-white font-bold text-base">Time:</p>
+                            <p class="text-white font-semibold" id="preview_time">-</p>
+                        </div>
+
+                        <div class="bg-white/20 p-4 rounded-lg">
                             <p class="text-white font-bold text-base">Location:</p>
                             <p class="text-white font-semibold" id="preview_location">-</p>
                         </div>
@@ -472,14 +487,58 @@
                     const minDateString = minDate.toISOString().split('T')[0];
                     dateInput.setAttribute('min', minDateString);
                     
-                    // Also prevent past dates on change
+                    // Check booking availability when date is selected
                     dateInput.addEventListener('change', function(e) {
                         const selectedDate = new Date(e.target.value);
                         if (selectedDate < minDate) {
                             showErrorModal('Please select a date at least 2 weeks from today.');
                             e.target.value = '';
                             document.getElementById('preview_date').textContent = '-';
+                            return;
                         }
+                        
+                        // Check if date is fully booked
+                        const dateStr = e.target.value;
+                        const availabilityDiv = document.getElementById('dateAvailability');
+                        
+                        fetch(`{{ route('events.booking-count') }}?date=${dateStr}`, {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.isFull) {
+                                showErrorModal('This date is fully booked (2/2 bookings). Please select another date.');
+                                e.target.value = '';
+                                document.getElementById('preview_date').textContent = '-';
+                                if (availabilityDiv) {
+                                    availabilityDiv.classList.add('hidden');
+                                }
+                            } else if (data.count > 0) {
+                                // Show availability info
+                                if (availabilityDiv) {
+                                    availabilityDiv.textContent = `⚠️ This date has ${data.count}/2 bookings. ${2 - data.count} slot(s) remaining.`;
+                                    availabilityDiv.classList.remove('hidden');
+                                    availabilityDiv.classList.add('text-yellow-200');
+                                }
+                            } else {
+                                // Date is available
+                                if (availabilityDiv) {
+                                    availabilityDiv.textContent = '✓ This date is available (0/2 bookings)';
+                                    availabilityDiv.classList.remove('hidden');
+                                    availabilityDiv.classList.remove('text-yellow-200');
+                                    availabilityDiv.classList.add('text-green-200');
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error checking booking availability:', error);
+                            if (availabilityDiv) {
+                                availabilityDiv.classList.add('hidden');
+                            }
+                        });
                     });
                 }
 
@@ -653,6 +712,20 @@
                     document.getElementById('preview_date').textContent = e.target.value || '-'
                 );
 
+                document.getElementById('time')?.addEventListener('change', e => {
+                    const timeValue = e.target.value;
+                    if (timeValue) {
+                        // Format time for display (e.g., "14:30" -> "2:30 PM")
+                        const [hours, minutes] = timeValue.split(':');
+                        const hour = parseInt(hours);
+                        const ampm = hour >= 12 ? 'PM' : 'AM';
+                        const displayHour = hour % 12 || 12;
+                        document.getElementById('preview_time').textContent = `${displayHour}:${minutes} ${ampm}`;
+                    } else {
+                        document.getElementById('preview_time').textContent = '-';
+                    }
+                });
+
                 document.getElementById('location')?.addEventListener('input', e =>
                     document.getElementById('preview_location').textContent = e.target.value || '-'
                 );
@@ -717,6 +790,7 @@
 
                         // Check event info required fields
                         const dateField = document.getElementById('date');
+                        const timeField = document.getElementById('time');
                         const locationField = document.getElementById('location');
 
                         if (dateField && !dateField.value) {
@@ -726,6 +800,15 @@
                             dateField.classList.add('border-2', 'border-red-400');
                         } else if (dateField) {
                             dateField.classList.remove('border-2', 'border-red-400');
+                        }
+
+                        if (timeField && !timeField.value) {
+                            isValid = false;
+                            missingFields.push('Time');
+                            if (!firstInvalidField) firstInvalidField = timeField;
+                            timeField.classList.add('border-2', 'border-red-400');
+                        } else if (timeField) {
+                            timeField.classList.remove('border-2', 'border-red-400');
                         }
 
                         if (locationField && !locationField.value.trim()) {
@@ -765,6 +848,7 @@
                         const eventType = eventSelect.value;
                         formData.append('event_type', eventType);
                         formData.append('date', dateField.value);
+                        formData.append('time', timeField.value);
                         formData.append('location', locationField.value);
                         formData.append('request', document.getElementById('request').value || '');
                         
@@ -883,12 +967,15 @@
                     });
                 }
 
-                // Remove error styling on input
-                document.querySelectorAll('[required]').forEach(field => {
-                    field.addEventListener('input', function() {
-                        this.classList.remove('border-2', 'border-red-400');
-                    });
-                });
+                        // Remove error styling on input
+                        document.querySelectorAll('[required]').forEach(field => {
+                            field.addEventListener('input', function() {
+                                this.classList.remove('border-2', 'border-red-400');
+                            });
+                            field.addEventListener('change', function() {
+                                this.classList.remove('border-2', 'border-red-400');
+                            });
+                        });
             </script>
 
         </div>

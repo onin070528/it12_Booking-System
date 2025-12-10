@@ -6,11 +6,11 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class AdminMiddleware
+class UserMiddleware
 {
     /**
      * Handle an incoming request.
-     * Ensures only users with 'admin' role can access admin routes.
+     * Prevents admin users from accessing regular user routes.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -23,10 +23,22 @@ class AdminMiddleware
 
         $user = auth()->user();
 
-        // Ensure user has admin role
-        if (!$user->isAdmin()) {
+        // If user is admin, redirect to admin dashboard
+        if ($user->isAdmin()) {
             // Log unauthorized access attempt
-            \Log::warning('Unauthorized admin access attempt', [
+            \Log::info('Admin attempted to access user route', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'route' => $request->path(),
+                'ip' => $request->ip(),
+            ]);
+            
+            return redirect()->route('admin.dashboard')->with('error', 'Admins cannot access user routes. Please use the admin dashboard.');
+        }
+
+        // Ensure user has 'user' role
+        if (!$user->isUser()) {
+            \Log::warning('Unauthorized user route access attempt', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'role' => $user->role,
@@ -34,12 +46,12 @@ class AdminMiddleware
                 'ip' => $request->ip(),
             ]);
             
-            abort(403, 'Unauthorized access. Admin role required.');
+            abort(403, 'Unauthorized access. User role required.');
         }
 
         // Double-check role value
-        if ($user->role !== 'admin') {
-            \Log::error('User role mismatch in AdminMiddleware', [
+        if ($user->role !== 'user') {
+            \Log::error('User role mismatch in UserMiddleware', [
                 'user_id' => $user->id,
                 'role' => $user->role,
             ]);
@@ -49,3 +61,4 @@ class AdminMiddleware
         return $next($request);
     }
 }
+

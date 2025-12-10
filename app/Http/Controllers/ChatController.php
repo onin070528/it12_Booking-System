@@ -83,16 +83,52 @@ class ChatController extends Controller
                    ->update(['read' => true, 'read_at' => now()]);
         }
         
-        // Get list of users for conversation list
+        // Get all users with their booking information
         $users = User::where('role', 'user')
-            ->where(function($query) use ($admin) {
-                $query->whereHas('sentMessages', function($q) use ($admin) {
-                    $q->where('receiver_id', $admin->id);
-                })->orWhereHas('receivedMessages', function($q) use ($admin) {
-                    $q->where('sender_id', $admin->id);
-                });
+            ->withCount([
+                'bookings as total_bookings',
+                'bookings as pending_bookings' => function($query) {
+                    $query->where('status', 'pending');
+                },
+                'bookings as confirmed_bookings' => function($query) {
+                    $query->where('status', 'confirmed');
+                }
+            ])
+            ->with(['bookings' => function($query) {
+                $query->orderBy('created_at', 'desc')->limit(1);
+            }])
+            ->get()
+            ->map(function($user) use ($admin) {
+                // Check if user has unread messages from admin
+                $unreadCount = Message::where('sender_id', $user->id)
+                    ->where('receiver_id', $admin->id)
+                    ->where('read', false)
+                    ->count();
+                
+                $user->unread_count = $unreadCount;
+                
+                // Check if user has existing conversation
+                $hasConversation = Message::where(function($query) use ($admin, $user) {
+                    $query->where('sender_id', $admin->id)
+                          ->where('receiver_id', $user->id);
+                })->orWhere(function($query) use ($admin, $user) {
+                    $query->where('sender_id', $user->id)
+                          ->where('receiver_id', $admin->id);
+                })->exists();
+                
+                $user->has_conversation = $hasConversation;
+                
+                return $user;
             })
-            ->get();
+            ->sortByDesc(function($user) {
+                // Sort by: has unread messages first, then by latest booking, then by name
+                return [
+                    $user->unread_count > 0 ? 1 : 0,
+                    $user->bookings->first() ? $user->bookings->first()->created_at->timestamp : 0,
+                    $user->name
+                ];
+            })
+            ->values();
         
         return view('admin.messages.index', compact('conversations', 'users', 'selectedUser', 'messages'));
     }

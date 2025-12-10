@@ -40,40 +40,59 @@
                 <div class="flex h-full">
                     <!-- Users List -->
                     <div class="w-1/3 border-r border-gray-200 flex flex-col">
-                        <div class="bg-[#93BFC7] px-4 py-3 border-b border-gray-200">
-                            <h3 class="text-white font-bold">Conversations</h3>
+                        <div class="bg-[#93BFC7] px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                            <h3 class="text-white font-bold">Users</h3>
+                            <button onclick="openNewMessageModal()" class="text-white hover:text-gray-200 transition-colors" title="Start New Conversation">
+                                <i class="fas fa-plus-circle text-lg"></i>
+                            </button>
                         </div>
                         <div class="flex-1 overflow-y-auto">
                             @forelse($users as $user)
-                                @php
-                                    $unreadCount = \App\Models\Message::where('sender_id', $user->id)
-                                        ->where('receiver_id', Auth::id())
-                                        ->where('read', false)
-                                        ->count();
-                                @endphp
                                 <a href="{{ route('admin.messages.index', ['user_id' => $user->id]) }}" 
-                                   class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition {{ $selectedUser && $selectedUser->id == $user->id ? 'bg-blue-50' : '' }}">
+                                   class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition {{ $selectedUser && $selectedUser->id == $user->id ? 'bg-blue-50 border-l-4 border-l-[#93BFC7]' : '' }}">
                                     <div class="flex items-center justify-between">
-                                        <div class="flex items-center space-x-3">
-                                            <div class="w-10 h-10 rounded-full bg-[#93BFC7] flex items-center justify-center">
+                                        <div class="flex items-center space-x-3 flex-1 min-w-0">
+                                            <div class="w-10 h-10 rounded-full bg-[#93BFC7] flex items-center justify-center flex-shrink-0">
                                                 <i class="fas fa-user text-white"></i>
                                             </div>
-                                            <div>
-                                                <p class="font-semibold text-gray-800">{{ $user->name }}</p>
-                                                <p class="text-sm text-gray-500">{{ $user->email }}</p>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <p class="font-semibold text-gray-800 truncate">{{ $user->name }}</p>
+                                                    @if($user->pending_bookings > 0)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200" title="Has pending bookings">
+                                                            <i class="fas fa-clock mr-1"></i>
+                                                            {{ $user->pending_bookings }}
+                                                        </span>
+                                                    @endif
+                                                    @if($user->confirmed_bookings > 0 && $user->pending_bookings == 0)
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200" title="Has confirmed bookings">
+                                                            <i class="fas fa-check-circle mr-1"></i>
+                                                            {{ $user->confirmed_bookings }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                <p class="text-xs text-gray-500 truncate">{{ $user->email }}</p>
+                                                @if($user->total_bookings > 0)
+                                                    <p class="text-xs text-gray-400 mt-0.5">
+                                                        <i class="fas fa-calendar-check mr-1"></i>
+                                                        {{ $user->total_bookings }} {{ $user->total_bookings == 1 ? 'booking' : 'bookings' }}
+                                                    </p>
+                                                @else
+                                                    <p class="text-xs text-gray-400 mt-0.5">No bookings</p>
+                                                @endif
                                             </div>
                                         </div>
-                                        @if($unreadCount > 0)
-                                            <span class="bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                                                {{ $unreadCount }}
+                                        @if($user->unread_count > 0)
+                                            <span class="bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 ml-2">
+                                                {{ $user->unread_count > 99 ? '99+' : $user->unread_count }}
                                             </span>
                                         @endif
                                     </div>
                                 </a>
                             @empty
                                 <div class="p-8 text-center text-gray-500">
-                                    <i class="fas fa-comments text-4xl mb-4"></i>
-                                    <p>No conversations yet</p>
+                                    <i class="fas fa-users text-4xl mb-4"></i>
+                                    <p>No users found</p>
                                 </div>
                             @endforelse
                         </div>
@@ -140,8 +159,11 @@
                             <div class="flex-1 flex items-center justify-center">
                                 <div class="text-center text-gray-500">
                                     <i class="fas fa-comments text-6xl mb-4"></i>
-                                    <p class="text-xl font-semibold mb-2">Select a conversation</p>
-                                    <p class="text-sm">Choose a user from the list to start chatting</p>
+                                    <p class="text-xl font-semibold mb-2">Select a user to start chatting</p>
+                                    <p class="text-sm mb-4">Choose a user from the list or start a new conversation</p>
+                                    <button onclick="openNewMessageModal()" class="bg-[#93BFC7] text-white px-6 py-2.5 rounded-lg hover:bg-[#7eaab1] transition font-semibold">
+                                        <i class="fas fa-plus-circle mr-2"></i>Start New Conversation
+                                    </button>
                                 </div>
                             </div>
                         @endif
@@ -274,6 +296,131 @@
         }
     </script>
     @endif
+
+    <!-- New Message Modal -->
+    <div id="newMessageModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 transform transition-all duration-300 scale-95 modal-content max-h-[90vh] overflow-y-auto">
+            <div class="bg-gradient-to-r from-[#93BFC7] to-[#7eaab1] rounded-t-2xl px-8 py-5 flex items-center justify-between sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                        <i class="fas fa-comments text-white text-lg"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white tracking-tight">
+                        Start New Conversation
+                    </h3>
+                </div>
+                <button onclick="closeNewMessageModal()" class="text-white hover:text-gray-200 transition-colors duration-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <input type="text" 
+                           id="userSearchInput" 
+                           placeholder="Search users by name or email..." 
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-[#93BFC7] transition-all duration-200"
+                           onkeyup="filterUsers()">
+                </div>
+                <div id="usersList" class="space-y-2 max-h-96 overflow-y-auto">
+                    @foreach($users as $user)
+                        <div class="user-item p-4 border-2 border-gray-200 rounded-lg hover:border-[#93BFC7] hover:bg-gray-50 transition-all cursor-pointer" 
+                             data-user-id="{{ $user->id }}"
+                             data-user-name="{{ strtolower($user->name) }}"
+                             data-user-email="{{ strtolower($user->email) }}"
+                             onclick="selectUserForMessage({{ $user->id }})">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3 flex-1">
+                                    <div class="w-12 h-12 rounded-full bg-[#93BFC7] flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <p class="font-semibold text-gray-800">{{ $user->name }}</p>
+                                            @if($user->pending_bookings > 0)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                                    <i class="fas fa-clock mr-1"></i>
+                                                    {{ $user->pending_bookings }} Pending
+                                                </span>
+                                            @endif
+                                            @if($user->confirmed_bookings > 0 && $user->pending_bookings == 0)
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                                                    <i class="fas fa-check-circle mr-1"></i>
+                                                    {{ $user->confirmed_bookings }} Confirmed
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <p class="text-sm text-gray-500">{{ $user->email }}</p>
+                                        @if($user->total_bookings > 0)
+                                            <p class="text-xs text-gray-400 mt-1">
+                                                <i class="fas fa-calendar-check mr-1"></i>
+                                                {{ $user->total_bookings }} {{ $user->total_bookings == 1 ? 'booking' : 'bookings' }}
+                                            </p>
+                                        @else
+                                            <p class="text-xs text-gray-400 mt-1">No bookings</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                <i class="fas fa-chevron-right text-gray-400"></i>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openNewMessageModal() {
+            const modal = document.getElementById('newMessageModal');
+            modal.classList.remove('hidden');
+            document.getElementById('userSearchInput').value = '';
+            filterUsers();
+            setTimeout(() => {
+                const modalContent = modal.querySelector('.modal-content');
+                if (modalContent) {
+                    modalContent.style.transform = 'scale(1)';
+                }
+            }, 10);
+        }
+
+        function closeNewMessageModal() {
+            const modal = document.getElementById('newMessageModal');
+            const modalContent = modal.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.style.transform = 'scale(0.95)';
+            }
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('userSearchInput').value.toLowerCase();
+            const userItems = document.querySelectorAll('.user-item');
+            
+            userItems.forEach(item => {
+                const userName = item.dataset.userName;
+                const userEmail = item.dataset.userEmail;
+                
+                if (userName.includes(searchTerm) || userEmail.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function selectUserForMessage(userId) {
+            window.location.href = '{{ route("admin.messages.index") }}?user_id=' + userId;
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('newMessageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeNewMessageModal();
+            }
+        });
+    </script>
 
 </body>
 </html>

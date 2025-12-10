@@ -25,7 +25,7 @@ class Booking extends Model
 
     protected $casts = [
         'event_date' => 'date',
-        'event_time' => 'datetime',
+        'event_time' => 'string', // TIME column returns as string (HH:MM:SS format)
         'total_amount' => 'decimal:2',
         'event_details' => 'array',
         'meetup_date' => 'date',

@@ -39,9 +39,12 @@
 
             <!-- Bookings Management -->
             <li>
-                <a href="{{ route('admin.AdminBooking') }}"
-                   class="flex items-center {{ request()->routeIs('admin.AdminBooking') || request()->routeIs('admin.booking.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
-                    <i class="fas fa-calendar-check mr-3"></i> Bookings Management
+                <a href="{{ route('admin.bookings.index') }}"
+                   class="flex items-center justify-between {{ request()->routeIs('admin.AdminBooking') || request()->routeIs('admin.bookings.*') || request()->routeIs('admin.booking.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition relative">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-check mr-3"></i> Bookings Management
+                    </div>
+                    <span id="incompleteBookingsBadge" class="hidden bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center min-w-[24px] animate-pulse"></span>
                 </a>
             </li>
 
@@ -55,32 +58,32 @@
 
             <!-- Payments Management -->
             <li>
-                <a href="{{ route('admin.AdminPayment') }}"
-                   class="flex items-center {{ request()->routeIs('admin.AdminPayment') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
+                <a href="{{ route('admin.payments.index') }}"
+                   class="flex items-center {{ request()->routeIs('admin.AdminPayment') || request()->routeIs('admin.payments.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
                     <i class="fas fa-credit-card mr-3"></i> Payments Management
                 </a>
             </li>
 
             <!-- Reports -->
             <li>
-                <a href="{{ route('admin.AdminReports') }}"
-                   class="flex items-center {{ request()->routeIs('admin.AdminReports') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
+                <a href="{{ route('admin.reports.index') }}"
+                   class="flex items-center {{ request()->routeIs('admin.AdminReports') || request()->routeIs('admin.reports.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
                     <i class="fas fa-chart-bar mr-3"></i> Reports
                 </a>
             </li>
 
             <!-- Inventory -->
             <li>
-                <a href="{{ route('admin.AdminInventory') }}"
-                class="flex items-center {{ request()->routeIs('admin.AdminInventory') || request()->routeIs('admin.AdminInventory.store') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
+                <a href="{{ route('admin.inventory.index') }}"
+                class="flex items-center {{ request()->routeIs('admin.AdminInventory') || request()->routeIs('admin.inventory.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
                     <i class="fas fa-boxes mr-3"></i> Inventory
                 </a>
             </li>
 
             <!-- Notification -->
             <li>
-                <a href="{{ route('notifications.index') }}"
-                   class="flex items-center justify-between {{ request()->routeIs('notifications.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition relative">
+                <a href="{{ route('admin.notifications.index') }}"
+                   class="flex items-center justify-between {{ request()->routeIs('admin.notifications.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition relative">
                     <div class="flex items-center">
                         <i class="fas fa-bell mr-3"></i> Notification
                     </div>
@@ -150,7 +153,7 @@
 
         // Update unread notifications count (make it globally accessible)
         window.updateUnreadNotificationsCount = function() {
-            fetch('{{ route("notifications.unread-count") }}', {
+            fetch('{{ route("admin.notifications.unread-count") }}', {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'Accept': 'application/json'
@@ -180,6 +183,39 @@
 
         // Update every 5 seconds
         setInterval(updateUnreadNotificationsCount, 5000);
+
+        // Update incomplete bookings count (make it globally accessible)
+        window.updateIncompleteBookingsCount = function() {
+            fetch('{{ route("admin.bookings.incomplete-count") }}', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('incompleteBookingsBadge');
+                if (badge) {
+                    if (data.count > 0) {
+                        badge.textContent = data.count > 99 ? '99+' : data.count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching incomplete bookings count:', error));
+        };
+
+        // Update on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', updateIncompleteBookingsCount);
+        } else {
+            updateIncompleteBookingsCount();
+        }
+
+        // Update every 5 seconds
+        setInterval(updateIncompleteBookingsCount, 5000);
     </script>
 
 </body>

@@ -39,15 +39,39 @@
                         <span class="text-sm font-medium text-gray-600">Total Booking Amount:</span>
                         <span class="text-sm font-medium">₱{{ number_format($booking->total_amount, 2) }}</span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-sm font-medium text-gray-600">Downpayment (30%):</span>
-                        <span class="text-sm font-medium">₱{{ number_format($downpaymentAmount, 2) }}</span>
-                    </div>
+                    @if(isset($isRemainingBalance) && $isRemainingBalance)
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-600">Total Paid:</span>
+                            <span class="text-sm font-medium text-green-600">₱{{ number_format($totalPaid, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-600">Remaining Balance:</span>
+                            <span class="text-sm font-medium text-orange-600">₱{{ number_format($remainingBalance, 2) }}</span>
+                        </div>
+                    @else
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-600">Downpayment (30%):</span>
+                            <span class="text-sm font-medium">₱{{ number_format($amountToPay, 2) }}</span>
+                        </div>
+                    @endif
                     <div class="flex justify-between pt-2 border-t-2 border-[#93BFC7]">
                         <span class="text-lg font-semibold" style="color: #93BFC7;">Amount to Pay:</span>
-                        <span class="text-lg font-bold" style="color: #93BFC7;">₱{{ number_format($downpaymentAmount, 2) }}</span>
+                        <span class="text-lg font-bold" style="color: #93BFC7;">₱{{ number_format($amountToPay, 2) }}</span>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2">* This is a 30% downpayment. The remaining balance will be collected later.</p>
+                    <p class="text-xs text-gray-500 mt-2">
+                        @if(isset($isRemainingBalance) && $isRemainingBalance)
+                            * This is the remaining balance payment. After this payment, your booking will be fully paid.
+                            @if(isset($daysUntilEvent))
+                                @if($daysUntilEvent >= 14)
+                                    <br><span class="text-green-600 font-semibold">✓ Payment can be made ({{ $daysUntilEvent }} days before event)</span>
+                                @else
+                                    <br><span class="text-red-600 font-semibold">⚠ Full payment must be made at least 2 weeks before event ({{ $daysUntilEvent }} days remaining)</span>
+                                @endif
+                            @endif
+                        @else
+                            * This is a 30% downpayment. The remaining balance will be collected later.
+                        @endif
+                    </p>
                 </div>
             </div>
 

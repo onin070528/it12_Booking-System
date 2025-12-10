@@ -29,7 +29,7 @@
             <div id="notificationDropdownMenu" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
                 <div class="p-4 border-b border-gray-200 flex items-center justify-between">
                     <h3 class="font-bold text-gray-800">Notifications</h3>
-                    <a href="{{ route('notifications.index') }}" class="text-sm text-[#93BFC7] hover:underline">View All</a>
+                    <a href="{{ route('admin.notifications.index') }}" class="text-sm text-[#93BFC7] hover:underline">View All</a>
                 </div>
                 <div id="navbarNotificationsList" class="divide-y divide-gray-100">
                     <div class="p-4 text-center text-gray-400">
@@ -63,7 +63,7 @@
 
     // Load notifications for navbar dropdown
     function loadNavbarNotifications() {
-        fetch('{{ route("notifications.recent") }}', {
+        fetch('{{ route("admin.notifications.recent") }}', {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -85,7 +85,7 @@
                         const unreadDot = notif.read ? '' : '<span class="w-2 h-2 bg-red-500 rounded-full inline-block mr-2"></span>';
                         
                         return `
-                            <a href="{{ route('notifications.index') }}" 
+                            <a href="{{ route('admin.notifications.index') }}" 
                                onclick="markNotificationAsRead(${notif.id})"
                                class="block p-4 hover:bg-gray-50 transition ${unreadClass}">
                                 <div class="flex items-start">
@@ -117,7 +117,7 @@
 
     // Mark notification as read
     function markNotificationAsRead(notificationId) {
-        fetch(`/notifications/${notificationId}/read`, {
+        fetch(`/admin/notifications/${notificationId}/read`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -142,7 +142,7 @@
 
     // Update navbar notification badge
     function updateNavbarNotificationBadge() {
-        fetch('{{ route("notifications.unread-count") }}', {
+        fetch('{{ route("admin.notifications.unread-count") }}', {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'

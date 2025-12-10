@@ -62,10 +62,14 @@
                                             @if($booking->status == 'pending') bg-yellow-100 text-yellow-800
                                             @elseif($booking->status == 'confirmed') bg-green-100 text-green-800
                                             @elseif($booking->status == 'approved') bg-blue-100 text-blue-800
+                                            @elseif($booking->status == 'pending_payment') bg-orange-100 text-orange-800
+                                            @elseif($booking->status == 'partial_paid') bg-yellow-100 text-yellow-800
+                                            @elseif($booking->status == 'in_design') bg-indigo-100 text-indigo-800
                                             @elseif($booking->status == 'rejected') bg-red-100 text-red-800
+                                            @elseif($booking->status == 'completed') bg-purple-100 text-purple-800
                                             @else bg-gray-100 text-gray-800
                                             @endif">
-                                            {{ ucfirst($booking->status) }}
+                                            {{ $booking->status == 'pending_payment' ? 'Pending Payment' : ($booking->status == 'partial_paid' ? 'Partial Paid' : ($booking->status == 'in_design' ? 'In Design' : ucfirst($booking->status))) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
@@ -99,6 +103,7 @@
                                                         <span class="hidden md:inline">Confirm</span>
                                                     </button>
                                                 @endif
+
 
                                             </div>
                                     </td>
@@ -158,18 +163,20 @@
     </div>
 
     <!-- View Booking Modal -->
-    <div id="viewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="bg-[#93BFC7] rounded-t-xl px-6 py-4 flex items-center justify-between">
+    <div id="viewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+            <div class="bg-[#93BFC7] rounded-t-xl px-6 py-4 flex items-center justify-between flex-shrink-0">
                 <h3 class="text-xl font-bold text-white">
                     <i class="fas fa-info-circle mr-2"></i>Booking Details
                 </h3>
-                <button onclick="closeViewModal()" class="text-white hover:text-gray-200">
+                <button onclick="closeViewModal()" class="text-white hover:text-gray-200 transition">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
-            <div class="p-6" id="bookingDetails">
-                <!-- Booking details will be loaded here -->
+            <div class="overflow-y-auto flex-1" id="bookingDetailsContainer">
+                <div class="p-6" id="bookingDetails">
+                    <!-- Booking details will be loaded here -->
+                </div>
             </div>
         </div>
     </div>
@@ -278,12 +285,169 @@
             });
         }
 
+        function markForPayment(bookingId) {
+            if (!confirm('Are you sure you want to notify the customer that their booking is ready for payment?')) {
+                return;
+            }
+
+            fetch(`/admin/booking/${bookingId}/mark-for-payment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Customer has been notified that their booking is ready for payment!');
+                    location.reload();
+                } else {
+                    alert(data.message || 'An error occurred.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while notifying the customer.');
+            });
+        }
+
+        function markPaymentAsPartialPaid(bookingId) {
+            if (!confirm('Are you sure you have received the payment? This will mark the payment as partial paid and update the booking status.')) {
+                return;
+            }
+
+            fetch(`/admin/booking/${bookingId}/mark-payment-partial-paid`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Payment marked as partial paid! Customer has been notified.');
+                    location.reload();
+                } else {
+                    alert(data.message || 'An error occurred.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while marking the payment.');
+            });
+        }
+
+        function markPaymentAsPaid(bookingId) {
+            if (!confirm('Are you sure you have received the full payment? This will mark the payment as paid. If the booking is fully paid, it will automatically move to design phase.')) {
+                return;
+            }
+
+            fetch(`/admin/booking/${bookingId}/mark-payment-paid`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message || 'An error occurred.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while marking the payment.');
+            });
+        }
+
+        function markAsInDesign(bookingId) {
+            if (!confirm('Are you sure you want to move this booking to the design phase? This indicates that the booking is fully paid and ready for design work.')) {
+                return;
+            }
+
+            fetch(`/admin/booking/${bookingId}/mark-in-design`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Booking moved to design phase! Customer has been notified.');
+                    location.reload();
+                } else {
+                    alert(data.message || 'An error occurred.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the booking status.');
+            });
+        }
+
+        function markAsCompleted(bookingId) {
+            if (!confirm('Are you sure the event was successful? This will mark the booking as completed.')) {
+                return;
+            }
+
+            fetch(`/admin/booking/${bookingId}/mark-completed`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Booking marked as completed! Customer has been notified.');
+                    location.reload();
+                } else {
+                    alert(data.message || 'An error occurred.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the booking status.');
+            });
+        }
+
         function viewBooking(bookingId) {
-            fetch(`/admin/booking/${bookingId}`)
-                .then(response => response.text())
+            fetch(`/admin/booking/${bookingId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
                 .then(html => {
                     document.getElementById('bookingDetails').innerHTML = html;
                     document.getElementById('viewModal').classList.remove('hidden');
+                    // Scroll to top of modal content
+                    document.getElementById('bookingDetailsContainer').scrollTop = 0;
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -293,7 +457,23 @@
 
         function closeViewModal() {
             document.getElementById('viewModal').classList.add('hidden');
+            // Clear content when closing
+            document.getElementById('bookingDetails').innerHTML = '';
         }
+        
+        // Close modal when clicking outside
+        document.getElementById('viewModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeViewModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !document.getElementById('viewModal').classList.contains('hidden')) {
+                closeViewModal();
+            }
+        });
     </script>
 
 </body>

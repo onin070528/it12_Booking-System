@@ -98,4 +98,12 @@ class User extends Authenticatable
     {
         return $this->receivedMessages()->where('read', false)->count();
     }
+
+    /**
+     * Get the bookings for the user.
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
 }

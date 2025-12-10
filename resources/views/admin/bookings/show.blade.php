@@ -1,20 +1,24 @@
 <div class="space-y-6">
     <!-- Booking Header -->
     <div class="bg-gradient-to-r from-[#93BFC7] to-[#7aa8b0] rounded-lg p-4 text-white">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
                 <h3 class="text-2xl font-bold mb-1">Booking #{{ $booking->id }}</h3>
                 <p class="text-sm opacity-90">Created on {{ $booking->created_at->format('F d, Y \a\t g:i A') }}</p>
             </div>
             <div class="text-right">
-                <span class="px-4 py-2 rounded-full text-sm font-bold
+                <span class="inline-block px-4 py-2 rounded-full text-sm font-bold
                     @if($booking->status == 'pending') bg-yellow-100 text-yellow-800
                     @elseif($booking->status == 'confirmed') bg-green-100 text-green-800
                     @elseif($booking->status == 'approved') bg-blue-100 text-blue-800
+                    @elseif($booking->status == 'pending_payment') bg-orange-100 text-orange-800
+                    @elseif($booking->status == 'partial_paid') bg-yellow-100 text-yellow-800
+                    @elseif($booking->status == 'in_design') bg-indigo-100 text-indigo-800
                     @elseif($booking->status == 'rejected') bg-red-100 text-red-800
+                    @elseif($booking->status == 'completed') bg-purple-100 text-purple-800
                     @else bg-gray-100 text-gray-800
                     @endif">
-                    {{ ucfirst($booking->status) }}
+                    {{ $booking->status == 'pending_payment' ? 'Pending Payment' : ($booking->status == 'partial_paid' ? 'Partial Paid' : ($booking->status == 'in_design' ? 'In Design' : ucfirst($booking->status))) }}
                 </span>
             </div>
         </div>
@@ -306,6 +310,72 @@
     </div>
     @endif
 
+    <!-- Payment Information -->
+    @php
+        $payments = $booking->payments()->orderBy('created_at', 'desc')->get();
+        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->sum('amount');
+        $remainingAmount = $booking->total_amount - $totalPaid;
+        $pendingPayment = $booking->payments()->where('status', 'pending')->first();
+        $partialPaidPayment = $booking->payments()->where('status', 'partial_paid')->first();
+    @endphp
+    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
+            <h4 class="text-lg font-bold text-gray-800 flex items-center">
+                <i class="fas fa-money-bill-wave mr-2 text-[#93BFC7]"></i>Payment Information
+            </h4>
+        </div>
+        <div class="p-6">
+            <table class="w-full mb-4">
+                <tbody class="divide-y divide-gray-100">
+                    <tr>
+                        <td class="py-3 px-4 font-semibold text-gray-700 w-1/3">Total Amount</td>
+                        <td class="py-3 px-4 text-gray-900">
+                            <span class="text-xl font-bold text-[#93BFC7]">₱{{ number_format($booking->total_amount, 2) }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 px-4 font-semibold text-gray-700">Total Paid</td>
+                        <td class="py-3 px-4 text-gray-900">
+                            <span class="text-lg font-semibold text-green-600">₱{{ number_format($totalPaid, 2) }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 px-4 font-semibold text-gray-700">Remaining Balance</td>
+                        <td class="py-3 px-4 text-gray-900">
+                            <span class="text-lg font-semibold text-orange-600">₱{{ number_format($remainingAmount, 2) }}</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            @if($payments->count() > 0)
+            <div class="mt-4">
+                <h5 class="font-semibold text-gray-700 mb-2">Payment History</h5>
+                <div class="space-y-2">
+                    @foreach($payments as $payment)
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <span class="font-medium">₱{{ number_format($payment->amount, 2) }}</span>
+                            <span class="text-sm text-gray-600 ml-2">({{ ucfirst($payment->payment_method) }})</span>
+                            <span class="text-xs text-gray-500 ml-2">{{ $payment->created_at->format('M d, Y') }}</span>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold
+                            @if($payment->status == 'paid') bg-green-100 text-green-800
+                            @elseif($payment->status == 'partial_paid') bg-yellow-100 text-yellow-800
+                            @elseif($payment->status == 'pending') bg-orange-100 text-orange-800
+                            @elseif($payment->status == 'failed') bg-red-100 text-red-800
+                            @else bg-gray-100 text-gray-800
+                            @endif">
+                            {{ $payment->status == 'partial_paid' ? 'Partial Paid' : ucfirst($payment->status) }}
+                        </span>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+        </div>
+    </div>
+
     <!-- Action Buttons -->
     <div class="flex gap-3 pt-4">
         @if($booking->status == 'pending')
@@ -342,6 +412,83 @@
                 </p>
                 <p class="text-xs text-yellow-600 mt-1">
                     Customer will choose meetup or messaging
+                </p>
+            </div>
+        @endif
+        @if(in_array($booking->status, ['confirmed', 'approved']) && $booking->status != 'pending_payment' && !$booking->payments()->where('status', 'paid')->exists())
+            <button data-booking-id="{{ $booking->id }}" 
+                    onclick="if(typeof markForPayment === 'function') markForPayment(this.dataset.bookingId)" 
+                    class="flex-1 bg-blue-500 text-white font-bold py-3 rounded-lg hover:bg-blue-600 transition flex items-center justify-center">
+                <i class="fas fa-credit-card mr-2"></i>Mark for Payment
+            </button>
+        @endif
+        @if($booking->status == 'pending_payment')
+            <div class="flex-1 bg-orange-50 border-2 border-orange-200 rounded-lg p-3 text-center">
+                <p class="text-sm text-orange-800 font-semibold">
+                    <i class="fas fa-credit-card mr-2"></i>Pending Payment
+                </p>
+                <p class="text-xs text-orange-600 mt-1">
+                    Customer has been notified to proceed with payment
+                </p>
+            </div>
+            @if($pendingPayment)
+            <button data-booking-id="{{ $booking->id }}" 
+                    onclick="if(typeof markPaymentAsPartialPaid === 'function') markPaymentAsPartialPaid(this.dataset.bookingId)" 
+                    class="flex-1 bg-yellow-500 text-white font-bold py-3 rounded-lg hover:bg-yellow-600 transition flex items-center justify-center">
+                <i class="fas fa-check-circle mr-2"></i>Mark as Partial Paid
+            </button>
+            @endif
+        @endif
+        @if($booking->status == 'partial_paid')
+            <div class="flex-1 bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3 text-center">
+                <p class="text-sm text-yellow-800 font-semibold">
+                    <i class="fas fa-money-bill-wave mr-2"></i>Partial Payment Received
+                </p>
+                <p class="text-xs text-yellow-600 mt-1">
+                    @if($remainingAmount > 0)
+                        Remaining balance: ₱{{ number_format($remainingAmount, 2) }}
+                    @else
+                        Fully Paid - Ready for Design
+                    @endif
+                </p>
+            </div>
+            @if($partialPaidPayment)
+            <button data-booking-id="{{ $booking->id }}" 
+                    onclick="if(typeof markPaymentAsPaid === 'function') markPaymentAsPaid(this.dataset.bookingId)" 
+                    class="flex-1 bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 transition flex items-center justify-center">
+                <i class="fas fa-check-circle mr-2"></i>Mark as Paid
+            </button>
+            @endif
+            @if($remainingAmount <= 0)
+            <button data-booking-id="{{ $booking->id }}" 
+                    onclick="if(typeof markAsInDesign === 'function') markAsInDesign(this.dataset.bookingId)" 
+                    class="flex-1 bg-indigo-500 text-white font-bold py-3 rounded-lg hover:bg-indigo-600 transition flex items-center justify-center">
+                <i class="fas fa-palette mr-2"></i>Move to Design Phase
+            </button>
+            @endif
+        @endif
+        @if($booking->status == 'in_design')
+            <div class="flex-1 bg-indigo-50 border-2 border-indigo-200 rounded-lg p-3 text-center">
+                <p class="text-sm text-indigo-800 font-semibold">
+                    <i class="fas fa-palette mr-2"></i>In Design Phase
+                </p>
+                <p class="text-xs text-indigo-600 mt-1">
+                    Event design is in progress
+                </p>
+            </div>
+            <button data-booking-id="{{ $booking->id }}" 
+                    onclick="if(typeof markAsCompleted === 'function') markAsCompleted(this.dataset.bookingId)" 
+                    class="flex-1 bg-purple-500 text-white font-bold py-3 rounded-lg hover:bg-purple-600 transition flex items-center justify-center">
+                <i class="fas fa-check-circle mr-2"></i>Mark Event as Successful
+            </button>
+        @endif
+        @if($booking->status == 'completed')
+            <div class="flex-1 bg-purple-50 border-2 border-purple-200 rounded-lg p-3 text-center">
+                <p class="text-sm text-purple-800 font-semibold">
+                    <i class="fas fa-check-circle mr-2"></i>Event Completed Successfully
+                </p>
+                <p class="text-xs text-purple-600 mt-1">
+                    This event has been successfully completed
                 </p>
             </div>
         @endif

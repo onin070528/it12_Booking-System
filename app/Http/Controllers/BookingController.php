@@ -21,6 +21,7 @@ class BookingController extends Controller
             $request->validate([
                 'event_type' => 'required|string',
                 'date' => 'required|date',
+                'time' => 'required|date_format:H:i',
                 'location' => 'required|string',
                 'theme' => 'required|string',
                 'request' => 'nullable|string',
@@ -31,6 +32,20 @@ class BookingController extends Controller
                 'success' => false,
                 'message' => 'Validation failed. Please check your input.',
                 'errors' => $e->errors(),
+            ], 422);
+        }
+
+        // Check if the selected date already has 2 confirmed bookings
+        $selectedDate = $request->input('date');
+        $confirmedBookingsCount = Booking::where('status', 'confirmed')
+            ->whereDate('event_date', $selectedDate)
+            ->count();
+        
+        if ($confirmedBookingsCount >= 2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This date is fully booked. Maximum 2 bookings per day allowed. Please select another date.',
+                'errors' => ['date' => ['This date is fully booked.']],
             ], 422);
         }
 
@@ -132,7 +147,7 @@ class BookingController extends Controller
                 'user_id' => Auth::id(),
                 'event_type' => $eventType,
                 'event_date' => $request->input('date'),
-                'event_time' => $request->input('time') ?? null,
+                'event_time' => $request->input('time'),
                 'location' => $request->input('location'),
                 'description' => $request->input('request'),
                 'total_amount' => $request->input('total_amount'),
@@ -331,6 +346,282 @@ class BookingController extends Controller
             'message' => $request->input('communication_method') === 'meetup' 
                 ? 'Meetup schedule saved successfully!' 
                 : 'You can now communicate with admin through the Messages section.',
+        ]);
+    }
+
+    /**
+     * Get count of incomplete bookings (not completed).
+     */
+    public function getIncompleteCount()
+    {
+        $count = Booking::where('status', '!=', 'completed')
+            ->count();
+        
+        return response()->json(['count' => $count]);
+    }
+
+    /**
+     * Mark booking as ready for payment and notify user.
+     */
+    public function markForPayment(Request $request, Booking $booking)
+    {
+        // Check if booking is already paid
+        $existingPayment = $booking->payments()->where('status', 'paid')->first();
+        if ($existingPayment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This booking already has a paid downpayment.',
+            ], 400);
+        }
+
+        // Update booking status to pending_payment
+        $booking->update([
+            'status' => 'pending_payment',
+        ]);
+
+        // Send notification to customer
+        Notification::create([
+            'user_id' => $booking->user_id,
+            'type' => 'booking_ready_for_payment',
+            'notifiable_type' => Booking::class,
+            'notifiable_id' => $booking->id,
+            'message' => "Your booking for {$booking->event_type} event on {$booking->event_date->format('F d, Y')} is ready for payment. Please proceed to make your downpayment.",
+            'read' => false,
+            'data' => [
+                'booking_id' => $booking->id,
+                'amount' => $booking->total_amount,
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking status updated to pending payment. Customer has been notified.',
+        ]);
+    }
+
+    /**
+     * Mark payment as partial_paid (admin manually confirms payment received).
+     */
+    public function markPaymentAsPartialPaid(Request $request, Booking $booking)
+    {
+        // Find the pending payment for this booking
+        $payment = $booking->payments()
+            ->where('status', 'pending')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (!$payment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No pending payment found for this booking.',
+            ], 404);
+        }
+
+        // Update payment status to partial_paid
+        $payment->update([
+            'status' => 'partial_paid',
+            'paid_at' => now(),
+        ]);
+
+        // Update booking status to partial_paid
+        $booking->update([
+            'status' => 'partial_paid',
+        ]);
+
+        // Send notification to customer
+        Notification::create([
+            'user_id' => $booking->user_id,
+            'type' => 'payment_partial_received',
+            'notifiable_type' => Booking::class,
+            'notifiable_id' => $booking->id,
+            'message' => "Your partial payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been received. Remaining balance: ₱" . number_format($booking->total_amount - $payment->amount, 2) . ".",
+            'read' => false,
+            'data' => [
+                'booking_id' => $booking->id,
+                'payment_id' => $payment->id,
+                'paid_amount' => $payment->amount,
+                'remaining_amount' => $booking->total_amount - $payment->amount,
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment marked as partial paid. Booking status updated and customer notified.',
+        ]);
+    }
+
+    /**
+     * Mark payment as paid (admin manually confirms full payment received).
+     */
+    public function markPaymentAsPaid(Request $request, Booking $booking)
+    {
+        // Find the partial_paid payment for this booking (or pending if no partial_paid exists)
+        $payment = $booking->payments()
+            ->whereIn('status', ['partial_paid', 'pending'])
+            ->orderByRaw("CASE WHEN status = 'partial_paid' THEN 0 ELSE 1 END")
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (!$payment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No partial_paid or pending payment found for this booking.',
+            ], 404);
+        }
+
+        // Update payment status to paid
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        // Refresh the booking relationship to get updated payments
+        $booking->refresh();
+
+        // Calculate total paid - include all paid payments and any remaining partial_paid payments
+        $totalPaid = $booking->payments()
+            ->whereIn('status', ['paid', 'partial_paid'])
+            ->sum('amount');
+        $remainingBalance = $booking->total_amount - $totalPaid;
+
+        // If fully paid, update booking status to in_design
+        if ($remainingBalance <= 0) {
+            $booking->update([
+                'status' => 'in_design',
+            ]);
+
+            // Send notification to customer
+            Notification::create([
+                'user_id' => $booking->user_id,
+                'type' => 'payment_full_received',
+                'notifiable_type' => Booking::class,
+                'notifiable_id' => $booking->id,
+                'message' => "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been received. Your booking is now fully paid and has moved to the design phase!",
+                'read' => false,
+                'data' => [
+                    'booking_id' => $booking->id,
+                    'payment_id' => $payment->id,
+                    'status' => 'in_design',
+                ],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment marked as paid. Booking is fully paid and moved to design phase. Customer has been notified.',
+            ]);
+        } else {
+            // Still has remaining balance, update to partial_paid
+            $booking->update([
+                'status' => 'partial_paid',
+            ]);
+
+            // Send notification to customer
+            Notification::create([
+                'user_id' => $booking->user_id,
+                'type' => 'payment_received',
+                'notifiable_type' => Booking::class,
+                'notifiable_id' => $booking->id,
+                'message' => "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been received. Remaining balance: ₱" . number_format($remainingBalance, 2) . ".",
+                'read' => false,
+                'data' => [
+                    'booking_id' => $booking->id,
+                    'payment_id' => $payment->id,
+                    'paid_amount' => $payment->amount,
+                    'remaining_amount' => $remainingBalance,
+                ],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment marked as paid. Remaining balance: ₱' . number_format($remainingBalance, 2) . '. Customer has been notified.',
+            ]);
+        }
+    }
+
+    /**
+     * Mark booking as in_design (when fully paid).
+     */
+    public function markAsInDesign(Request $request, Booking $booking)
+    {
+        // Check if booking is fully paid
+        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->sum('amount');
+        $remainingBalance = $booking->total_amount - $totalPaid;
+
+        if ($remainingBalance > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking must be fully paid before moving to design phase. Remaining balance: ₱' . number_format($remainingBalance, 2),
+            ], 400);
+        }
+
+        // Check if booking status allows this transition
+        if (!in_array($booking->status, ['partial_paid', 'pending_payment'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking status must be partial_paid or pending_payment to move to design phase.',
+            ], 400);
+        }
+
+        // Update booking status to in_design
+        $booking->update([
+            'status' => 'in_design',
+        ]);
+
+        // Send notification to customer
+        Notification::create([
+            'user_id' => $booking->user_id,
+            'type' => 'booking_in_design',
+            'notifiable_type' => Booking::class,
+            'notifiable_id' => $booking->id,
+            'message' => "Great news! Your booking #{$booking->id} for {$booking->event_type} event is now in the design phase. Our team is working on your event design.",
+            'read' => false,
+            'data' => [
+                'booking_id' => $booking->id,
+                'status' => 'in_design',
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking status updated to In Design. Customer has been notified.',
+        ]);
+    }
+
+    /**
+     * Mark booking as completed (event successful).
+     */
+    public function markAsCompleted(Request $request, Booking $booking)
+    {
+        // Check if booking status allows this transition
+        if (!in_array($booking->status, ['in_design', 'partial_paid', 'pending_payment'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking must be in design phase or have payments to mark as completed.',
+            ], 400);
+        }
+
+        // Update booking status to completed
+        $booking->update([
+            'status' => 'completed',
+        ]);
+
+        // Send notification to customer
+        Notification::create([
+            'user_id' => $booking->user_id,
+            'type' => 'booking_completed',
+            'notifiable_type' => Booking::class,
+            'notifiable_id' => $booking->id,
+            'message' => "Congratulations! Your {$booking->event_type} event on {$booking->event_date->format('F d, Y')} has been marked as successfully completed. Thank you for choosing us!",
+            'read' => false,
+            'data' => [
+                'booking_id' => $booking->id,
+                'status' => 'completed',
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking marked as completed. Customer has been notified.',
         ]);
     }
 }

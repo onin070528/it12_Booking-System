@@ -28,23 +28,41 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Check if booking is confirmed
-        if ($booking->status !== 'confirmed') {
+        // Check if booking is confirmed, approved, pending payment, or partial_paid
+        if (!in_array($booking->status, ['confirmed', 'approved', 'pending_payment', 'partial_paid'])) {
             return redirect()->route('home')
-                ->with('error', 'This booking has not been confirmed yet. Please wait for admin confirmation before making payment.');
+                ->with('error', 'This booking is not ready for payment yet. Please wait for admin confirmation.');
         }
 
-        // Check if booking already has a paid downpayment
-        $existingPayment = $booking->payments()->where('status', 'paid')->first();
-        if ($existingPayment) {
-            return redirect()->route('payments.index')
-                ->with('error', 'Downpayment for this booking has already been paid.');
+        // Calculate total paid and remaining balance
+        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->sum('amount');
+        $remainingBalance = $booking->total_amount - $totalPaid;
+
+        // If partial_paid, allow paying remaining balance
+        if ($booking->status === 'partial_paid') {
+            if ($remainingBalance <= 0) {
+                return redirect()->route('payments.index')
+                    ->with('error', 'This booking is already fully paid.');
+            }
+            $amountToPay = $remainingBalance;
+            $isRemainingBalance = true;
+        } else {
+            // Check if booking already has a paid downpayment
+            $existingPayment = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->first();
+            if ($existingPayment) {
+                return redirect()->route('payments.index')
+                    ->with('error', 'Downpayment for this booking has already been paid.');
+            }
+            // Calculate 30% downpayment
+            $amountToPay = $booking->total_amount * 0.30;
+            $isRemainingBalance = false;
         }
 
-        // Calculate 30% downpayment
-        $downpaymentAmount = $booking->total_amount * 0.30;
+        // Calculate days until event for display
+        $eventDate = \Carbon\Carbon::parse($booking->event_date);
+        $daysUntilEvent = now()->diffInDays($eventDate, false);
 
-        return view('payments.checkout', compact('booking', 'downpaymentAmount'));
+        return view('payments.checkout', compact('booking', 'amountToPay', 'isRemainingBalance', 'totalPaid', 'remainingBalance', 'daysUntilEvent'));
     }
 
     /**
@@ -53,7 +71,7 @@ class PaymentController extends Controller
     public function processPayment(Request $request, Booking $booking)
     {
         $request->validate([
-            'payment_method' => 'required|in:card,gcash,grab_pay,paymaya',
+            'payment_method' => 'required|in:card,gcash,grab_pay,paymaya,cash',
         ]);
 
         // Verify booking belongs to user
@@ -61,31 +79,80 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Check if booking is confirmed
-        if ($booking->status !== 'confirmed') {
-            return back()->with('error', 'This booking has not been confirmed yet. Please wait for admin confirmation before making payment.');
+        // Check if booking is confirmed, approved, pending payment, or partial_paid
+        if (!in_array($booking->status, ['confirmed', 'approved', 'pending_payment', 'partial_paid'])) {
+            return back()->with('error', 'This booking is not ready for payment yet. Please wait for admin confirmation.');
         }
 
-        // Check if downpayment already paid
-        $existingPayment = $booking->payments()->where('status', 'paid')->first();
-        if ($existingPayment) {
-            return back()->with('error', 'Downpayment for this booking has already been paid.');
+        // Validate payment timing - must be at least 2 weeks before event
+        $eventDate = \Carbon\Carbon::parse($booking->event_date);
+        $daysUntilEvent = now()->diffInDays($eventDate, false);
+        
+        if ($daysUntilEvent < 14) {
+            return back()->with('error', 'Full payment must be made at least 2 weeks before the event date. Your event is in ' . $daysUntilEvent . ' day(s).');
         }
 
         $paymentMethod = $request->payment_method;
 
-        // Calculate 30% downpayment
-        $downpaymentAmount = $booking->total_amount * 0.30;
+        // Calculate amount to pay
+        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->sum('amount');
+        $remainingBalance = $booking->total_amount - $totalPaid;
 
-        // Create payment record for downpayment
+        if ($booking->status === 'partial_paid') {
+            if ($remainingBalance <= 0) {
+                return back()->with('error', 'This booking is already fully paid.');
+            }
+            $paymentAmount = $remainingBalance;
+            $isRemainingBalance = true;
+        } else {
+            // Check if downpayment already paid
+            $existingPayment = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->first();
+            if ($existingPayment) {
+                return back()->with('error', 'Downpayment for this booking has already been paid.');
+            }
+            // Calculate 30% downpayment
+            $paymentAmount = $booking->total_amount * 0.30;
+            $isRemainingBalance = false;
+        }
+
+        // Handle cash payments differently
+        if ($paymentMethod === 'cash') {
+            $description = $isRemainingBalance 
+                ? "Remaining Balance (Cash) for {$booking->event_type} booking - To be paid during meetup or event"
+                : "30% Downpayment (Cash) for {$booking->event_type} booking - To be paid during meetup or event";
+            
+            // Create payment record for cash payment
+            $payment = Payment::create([
+                'booking_id' => $booking->id,
+                'user_id' => Auth::id(),
+                'amount' => $paymentAmount,
+                'currency' => 'PHP',
+                'status' => 'pending',
+                'payment_method' => 'cash',
+                'description' => $description,
+            ]);
+
+            $successMessage = $isRemainingBalance
+                ? 'Cash payment has been recorded. Please bring the remaining balance amount (₱' . number_format($paymentAmount, 2) . ') during your meetup or event.'
+                : 'Cash payment has been recorded. Please bring the downpayment amount (₱' . number_format($paymentAmount, 2) . ') during your meetup or event.';
+
+            return redirect()->route('payments.index')
+                ->with('success', $successMessage);
+        }
+
+        // Create payment record (online payments)
+        $description = $isRemainingBalance
+            ? "Remaining Balance for {$booking->event_type} booking"
+            : "30% Downpayment for {$booking->event_type} booking";
+            
         $payment = Payment::create([
             'booking_id' => $booking->id,
             'user_id' => Auth::id(),
-            'amount' => $downpaymentAmount,
+            'amount' => $paymentAmount,
             'currency' => 'PHP',
             'status' => 'pending',
             'payment_method' => $paymentMethod,
-            'description' => "30% Downpayment for {$booking->event_type} booking",
+            'description' => $description,
         ]);
 
         $metadata = [
@@ -103,7 +170,7 @@ class PaymentController extends Controller
         if (in_array($paymentMethod, ['gcash', 'grab_pay', 'paymaya'])) {
             // For e-wallet payments, create a source
             $sourceResponse = $this->payMongoService->createSource(
-                $downpaymentAmount,
+                $paymentAmount,
                 'PHP',
                 $paymentMethod,
                 $metadata
@@ -122,7 +189,7 @@ class PaymentController extends Controller
         } else {
             // For card payments, create payment intent
             $intentResponse = $this->payMongoService->createPaymentIntent(
-                $downpaymentAmount,
+                $paymentAmount,
                 'PHP',
                 $metadata
             );
@@ -272,6 +339,24 @@ class PaymentController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return view('payments.index', compact('payments'));
+        // Calculate remaining balances for each booking
+        $bookingBalances = [];
+        foreach ($payments as $payment) {
+            if ($payment->booking) {
+                $bookingId = $payment->booking->id;
+                if (!isset($bookingBalances[$bookingId])) {
+                    $totalPaid = $payment->booking->payments()
+                        ->whereIn('status', ['paid', 'partial_paid'])
+                        ->sum('amount');
+                    $bookingBalances[$bookingId] = [
+                        'total_amount' => $payment->booking->total_amount,
+                        'total_paid' => $totalPaid,
+                        'remaining_balance' => $payment->booking->total_amount - $totalPaid,
+                    ];
+                }
+            }
+        }
+
+        return view('payments.index', compact('payments', 'bookingBalances'));
     }
 }

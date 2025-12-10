@@ -17,7 +17,11 @@
 
     <div class="flex">
         <!-- Sidebar -->
-        @include('layouts.sidebar')
+        @if(request()->routeIs('admin.notifications.*'))
+            @include('admin.AdminLayouts.AdminSidebar')
+        @else
+            @include('layouts.sidebar')
+        @endif
 
         <!-- Main Content -->
         <div class="flex-1 min-h-screen px-6 py-10 ml-64">
@@ -50,16 +54,31 @@
 
                 <div class="space-y-4">
                     @forelse($notifications as $notification)
-                        <div class="bg-[#F9FAFB] rounded-lg border border-gray-200 p-4 flex items-start gap-4 hover:bg-[#F1F5F9] transition {{ $notification->read ? 'opacity-75' : '' }}">
+                        @php
+                            $isBookingNotification = str_starts_with($notification->type, 'booking_');
+                            $isUnread = !$notification->read;
+                            $isUser = !request()->routeIs('admin.notifications.*');
+                        @endphp
+                        <div 
+                            @if($isBookingNotification && $isUnread && $isUser)
+                                onclick="handleBookingNotification({{ $notification->id }}, '{{ $notification->type }}')"
+                                class="bg-[#F9FAFB] rounded-lg border border-gray-200 p-4 flex items-start gap-4 hover:bg-[#F1F5F9] transition cursor-pointer {{ $notification->read ? 'opacity-75' : '' }}"
+                            @else
+                                class="bg-[#F9FAFB] rounded-lg border border-gray-200 p-4 flex items-start gap-4 hover:bg-[#F1F5F9] transition {{ $notification->read ? 'opacity-75' : '' }}"
+                            @endif
+                        >
                             <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0
                                 @if($notification->type == 'booking_created') bg-blue-500
                                 @elseif($notification->type == 'booking_confirmed') bg-green-500
+                                @elseif($notification->type == 'booking_ready_for_payment') bg-orange-500
                                 @else bg-[#93BFC7]
                                 @endif">
                                 @if($notification->type == 'booking_created')
                                     <i class="fas fa-calendar-plus text-white text-lg"></i>
                                 @elseif($notification->type == 'booking_confirmed')
                                     <i class="fas fa-check-circle text-white text-lg"></i>
+                                @elseif($notification->type == 'booking_ready_for_payment')
+                                    <i class="fas fa-credit-card text-white text-lg"></i>
                                 @else
                                     <i class="fas fa-bell text-white text-lg"></i>
                                 @endif
@@ -72,7 +91,7 @@
                                     {{ $notification->created_at->diffForHumans() }}
                                 </p>
                             </div>
-                            @if(!$notification->read)
+                            @if(!$notification->read && (!$isBookingNotification || !$isUser))
                                 <button onclick="markAsRead({{ $notification->id }})" 
                                     class="text-blue-500 hover:text-blue-700 transition">
                                     <i class="fas fa-check"></i>
@@ -100,7 +119,11 @@
 
     <script>
         function markAsRead(notificationId) {
-            fetch(`/notifications/${notificationId}/read`, {
+            const isAdmin = {{ request()->routeIs('admin.notifications.*') ? 'true' : 'false' }};
+            const url = isAdmin 
+                ? `{{ route('admin.notifications.read', ':id') }}`.replace(':id', notificationId)
+                : `{{ route('notifications.read', ':id') }}`.replace(':id', notificationId);
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -119,12 +142,54 @@
             });
         }
 
+        function handleBookingNotification(notificationId, notificationType) {
+            // Mark notification as read first
+            const isAdmin = {{ request()->routeIs('admin.notifications.*') ? 'true' : 'false' }};
+            const url = isAdmin 
+                ? `{{ route('admin.notifications.read', ':id') }}`.replace(':id', notificationId)
+                : `{{ route('notifications.read', ':id') }}`.replace(':id', notificationId);
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to home page for booking notifications (user only)
+                    if (!isAdmin) {
+                        // If it's a payment notification, redirect to payments
+                        if (notificationType === 'booking_ready_for_payment') {
+                            window.location.href = '{{ route("payments.index") }}';
+                        } else {
+                            // Store flag to show toast on home page
+                            sessionStorage.setItem('showCommunicationToast', 'true');
+                            window.location.href = '{{ route("home") }}';
+                        }
+                    } else {
+                        location.reload();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
         function markAllAsRead() {
             if (!confirm('Mark all notifications as read?')) {
                 return;
             }
 
-            fetch('/notifications/read-all', {
+            const isAdmin = {{ request()->routeIs('admin.notifications.*') ? 'true' : 'false' }};
+            const url = isAdmin 
+                ? `{{ route('admin.notifications.read-all') }}`
+                : `{{ route('notifications.read-all') }}`;
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -275,7 +275,7 @@
             submitAddItemBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
 
             try {
-                const response = await fetch('{{ route("admin.AdminInventory.store") }}', {
+                const response = await fetch('{{ route("admin.inventory.store") }}', {
                     method: 'POST',
                     body: formData,
                     headers: {
