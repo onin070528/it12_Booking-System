@@ -113,20 +113,36 @@
                                 }
                             @endphp
                             <tr class="bg-white text-[#93BFC7] font-medium hover:bg-gray-200 border-b border-gray-300">
-                                <td class="px-6 py-4">{{ $inventory->item_name }}</td>
-                                <td class="px-6 py-4">{{ $inventory->category }}</td>
-                                <td class="px-6 py-4 font-semibold">{{ $inventory->stock }}</td>
-                                <td class="px-6 py-4">
-                                    <span class="px-4 py-1 rounded-full {{ $statusBg }} {{ $statusClass }} font-medium inline-block">
-                                        {{ $status }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <button class="text-[#93BFC7] hover:text-[#7eaab1] mr-3"><i class="fas fa-eye"></i></button>
-                                    <button class="text-yellow-500 hover:text-yellow-600 mr-3"><i class="fas fa-edit"></i></button>
-                                    <button class="text-red-500 hover:text-red-600"><i class="fas fa-trash"></i></button>
-                                </td>
-                            </tr>
+                        <td class="px-6 py-4">{{ $inventory->item_name }}</td>
+                        <td class="px-6 py-4">{{ $inventory->category }}</td>
+                        <td class="px-6 py-4 font-semibold">{{ $inventory->stock }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-4 py-1 rounded-full {{ $statusBg }} {{ $statusClass }} font-medium inline-block">
+                                {{ $status }}
+                            </span>
+                        </td>
+
+                        <td class="px-6 py-4">
+
+                            <!-- EDIT BUTTON (opens modal) -->
+                            <button 
+                                type="button"
+                                data-edit-id="{{ $inventory->inventory_id }}"
+                                class="edit-item-btn text-yellow-500 hover:text-yellow-600 mr-3">
+                                <i class="fas fa-edit"></i>
+                            </button>
+
+                            <!-- ARCHIVE BUTTON -->
+                            <button 
+                                type="button"
+                                data-archive-id="{{ $inventory->inventory_id }}"
+                                class="archive-item-btn text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-archive"></i>
+                            </button>
+
+                        </td>
+                    </tr>
+
                         @empty
                             <tr>
                                 <td colspan="5" class="px-6 py-8 text-center text-gray-500">
@@ -154,166 +170,335 @@
                 </button>
             </div>
             <form id="addItemForm" class="p-6">
-                @csrf
-                <div class="mb-4">
-                    <label for="item_name" class="block text-gray-700 font-semibold mb-2">
-                        Item Name <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="item_name" name="item_name" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent"
-                        placeholder="Enter item name">
-                </div>
+            @csrf
+            <div class="mb-4">
+                <label for="item_name" class="block text-gray-700 font-semibold mb-2">
+                    Item Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="item_name" name="item_name" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent"
+                    placeholder="Enter item name">
+            </div>
 
-                <div class="mb-4">
-                    <label for="category" class="block text-gray-700 font-semibold mb-2">
-                        Category <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="category" name="category" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent"
-                        placeholder="Enter category (e.g., Event Props, Decorations)">
-                </div>
+            <div class="mb-4">
+                <label for="category" class="block text-gray-700 font-semibold mb-2">
+                    Category <span class="text-red-500">*</span>
+                </label>
 
-                <div class="mb-6">
-                    <label for="stock" class="block text-gray-700 font-semibold mb-2">
-                        Stock / Quantity <span class="text-red-500">*</span>
-                    </label>
-                    <input type="number" id="stock" name="stock" required min="0"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent"
-                        placeholder="Enter stock quantity">
-                </div>
+                <select id="category" name="category" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent">
+                    <option value="" disabled selected>Select category</option>
+                    <option value="Event Props">Event Props</option>
+                    <option value="Decorations">Decorations</option>
+                    <option value="Styling Materials">Styling Materials</option>
+                    <option value="Furniture">Furniture</option>
+                    <option value="Lights & Effects">Lights & Effects</option>
+                </select>
+            </div>
 
-                <div class="flex space-x-3">
-                    <button type="button" id="cancelAddItem" 
-                        class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
-                        Cancel
-                    </button>
-                    <button type="submit" id="submitAddItem"
-                        class="flex-1 px-4 py-2 bg-[#93BFC7] text-white font-semibold rounded-lg hover:bg-[#7eaab1] transition">
-                        <i class="fas fa-save mr-2"></i>Add Item
-                    </button>
-                </div>
-            </form>
+            <div class="mb-6">
+                <label for="stock" class="block text-gray-700 font-semibold mb-2">
+                    Stock / Quantity <span class="text-red-500">*</span>
+                </label>
+                <input type="number" id="stock" name="stock" required min="0"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent"
+                    placeholder="Enter stock quantity">
+            </div>
+
+            <div class="flex space-x-3">
+                <button type="button" id="cancelAddItem" 
+                    class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
+                    Cancel
+                </button>
+                <button type="submit" id="submitAddItem"
+                    class="flex-1 px-4 py-2 bg-[#93BFC7] text-white font-semibold rounded-lg hover:bg-[#7eaab1] transition">
+                    <i class="fas fa-save mr-2"></i>Add Item
+                </button>
+            </div>
+        </form>
+
         </div>
     </div>
+
+                                <!-- Edit Item Modal -->
+<div id="editItemModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+        
+        <!-- Header -->
+        <div class="bg-[#93BFC7] rounded-t-xl px-6 py-4 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-white">
+                <i class="fas fa-edit mr-2"></i>Edit Item
+            </h3>
+            <button id="closeEditItemModal" class="text-white hover:text-gray-200 transition">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Edit Form -->
+        <form id="editItemForm" class="p-6">
+            @csrf
+
+            <input type="hidden" id="edit_item_id" name="id">
+
+            <div class="mb-4">
+                <label for="edit_item_name" class="block text-gray-700 font-semibold mb-2">
+                    Item Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="edit_item_name" name="item_name" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent">
+            </div>
+
+            <div class="mb-4">
+                <label for="edit_category" class="block text-gray-700 font-semibold mb-2">
+                    Category <span class="text-red-500">*</span>
+                </label>
+                <select id="edit_category" name="category" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent">
+                    <option value="Event Props">Event Props</option>
+                    <option value="Decorations">Decorations</option>
+                    <option value="Styling Materials">Styling Materials</option>
+                    <option value="Furniture">Furniture</option>
+                    <option value="Lights & Effects">Lights & Effects</option>
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label for="edit_stock" class="block text-gray-700 font-semibold mb-2">
+                    Stock <span class="text-red-500">*</span>
+                </label>
+                <input type="number" id="edit_stock" name="stock" required min="0"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent">
+            </div>
+
+            <div class="flex space-x-3">
+                <button type="button" id="cancelEditItem"
+                    class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="flex-1 px-4 py-2 bg-[#93BFC7] text-white font-semibold rounded-lg hover:bg-[#7eaab1] transition">
+                    <i class="fas fa-save mr-2"></i>Update Item
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-    <script>
-        // Toast Notification Function
-        function showToast(message, type = 'success') {
-            const toastContainer = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            
-            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
-            
-            toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 min-w-[300px] max-w-md transform transition-all duration-300 translate-x-full opacity-0`;
-            toast.innerHTML = `
-                <i class="fas ${icon} text-xl"></i>
-                <p class="flex-1 font-medium">${message}</p>
-                <button onclick="this.parentElement.remove()" class="text-white hover:text-gray-200">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            
-            toastContainer.appendChild(toast);
-            
-            // Trigger animation
-            setTimeout(() => {
-                toast.classList.remove('translate-x-full', 'opacity-0');
-                toast.classList.add('translate-x-0', 'opacity-100');
-            }, 10);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                toast.classList.add('translate-x-full', 'opacity-0');
-                setTimeout(() => {
-                    if (toast.parentElement) {
-                        toast.remove();
-                    }
-                }, 300);
-            }, 5000);
-        }
+        <script>
+/* ==========================================
+   TOAST NOTIFICATION
+========================================== */
+function showToast(message, type = 'success') {
+    const toastContainer = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
 
-        // Modal elements
-        const addItemModal = document.getElementById('addItemModal');
-        const openAddItemModalBtn = document.getElementById('openAddItemModal');
-        const closeAddItemModalBtn = document.getElementById('closeAddItemModal');
-        const cancelAddItemBtn = document.getElementById('cancelAddItem');
-        const addItemForm = document.getElementById('addItemForm');
-        const submitAddItemBtn = document.getElementById('submitAddItem');
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
 
-        // Open modal
-        openAddItemModalBtn.addEventListener('click', () => {
-            addItemModal.classList.remove('hidden');
-        });
+    toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center 
+                       space-x-3 min-w-[300px] max-w-md transform transition-all duration-300 
+                       translate-x-full opacity-0`;
+    toast.innerHTML = `
+        <i class="fas ${icon} text-xl"></i>
+        <p class="flex-1 font-medium">${message}</p>
+        <button onclick="this.parentElement.remove()" class="text-white hover:text-gray-200">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
 
-        // Close modal functions
-        function closeModal() {
-            addItemModal.classList.add('hidden');
-            addItemForm.reset();
-        }
+    toastContainer.appendChild(toast);
 
-        closeAddItemModalBtn.addEventListener('click', closeModal);
-        cancelAddItemBtn.addEventListener('click', closeModal);
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full', 'opacity-0');
+        toast.classList.add('translate-x-0', 'opacity-100');
+    }, 10);
 
-        // Close modal when clicking outside
-        addItemModal.addEventListener('click', (e) => {
-            if (e.target === addItemModal) {
-                closeModal();
+    setTimeout(() => {
+        toast.classList.add('translate-x-full', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+
+/* ==========================================
+   ADD ITEM MODAL
+========================================== */
+const addItemModal = document.getElementById('addItemModal');
+const openAddItemModalBtn = document.getElementById('openAddItemModal');
+const closeAddItemModalBtn = document.getElementById('closeAddItemModal');
+const cancelAddItemBtn = document.getElementById('cancelAddItem');
+const addItemForm = document.getElementById('addItemForm');
+const submitAddItemBtn = document.getElementById('submitAddItem');
+
+openAddItemModalBtn.addEventListener('click', () => {
+    addItemModal.classList.remove('hidden');
+});
+
+function closeAddModal() {
+    addItemModal.classList.add('hidden');
+    addItemForm.reset();
+}
+
+closeAddItemModalBtn.addEventListener('click', closeAddModal);
+cancelAddItemBtn.addEventListener('click', closeAddModal);
+
+addItemModal.addEventListener('click', (e) => {
+    if (e.target === addItemModal) closeAddModal();
+});
+
+addItemForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(addItemForm);
+    const originalText = submitAddItemBtn.innerHTML;
+
+    submitAddItemBtn.disabled = true;
+    submitAddItemBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
+
+    try {
+        const response = await fetch('{{ route("admin.inventory.store") }}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector("meta[name='csrf-token']").content
             }
         });
 
-        // Form submission
-        addItemForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(addItemForm);
-            const submitBtnText = submitAddItemBtn.innerHTML;
-            submitAddItemBtn.disabled = true;
-            submitAddItemBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
+        const data = await response.json();
 
-            try {
-                const response = await fetch('{{ route("admin.inventory.store") }}', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || formData.get('_token')
-                    }
-                });
+        if (response.ok && data.success) {
+            showToast('Item added successfully!', 'success');
+            closeAddModal();
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            showToast(data.message || 'Error adding item.', 'error');
+        }
+    } catch (error) {
+        showToast('Connection error. Try again.', 'error');
+    }
 
-                const data = await response.json();
+    submitAddItemBtn.disabled = false;
+    submitAddItemBtn.innerHTML = originalText;
+});
 
-                if (response.ok && data.success) {
-                    showToast(data.message || 'Item added successfully!', 'success');
-                    closeModal();
-                    
-                    // Reload page after 1 second to show new item
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    let errorMessage = data.message || 'An error occurred. Please try again.';
-                    
-                    if (data.errors) {
-                        const errorMessages = Object.values(data.errors).flat();
-                        errorMessage = errorMessages.join(', ');
-                    }
-                    
-                    showToast(errorMessage, 'error');
-                    submitAddItemBtn.disabled = false;
-                    submitAddItemBtn.innerHTML = submitBtnText;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showToast('An error occurred while adding the item. Please check your connection and try again.', 'error');
-                submitAddItemBtn.disabled = false;
-                submitAddItemBtn.innerHTML = submitBtnText;
+
+/* ==========================================
+   EDIT ITEM MODAL
+========================================== */
+const editItemModal = document.getElementById('editItemModal');
+const closeEditItemModalBtn = document.getElementById('closeEditItemModal');
+const cancelEditItemBtn = document.getElementById('cancelEditItem');
+const editItemForm = document.getElementById('editItemForm');
+
+// Event delegation for edit buttons
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.edit-item-btn')) {
+        const btn = e.target.closest('.edit-item-btn');
+        const id = btn.getAttribute('data-edit-id');
+        if (id) {
+            openEditModal(parseInt(id));
+        }
+    }
+    if (e.target.closest('.archive-item-btn')) {
+        const btn = e.target.closest('.archive-item-btn');
+        const id = btn.getAttribute('data-archive-id');
+        if (id) {
+            archiveItem(parseInt(id));
+        }
+    }
+});
+
+function openEditModal(id) {
+    editItemModal.classList.remove('hidden');
+
+    fetch(`/admin/inventory/${id}`, {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('edit_item_id').value = data.id;
+        document.getElementById('edit_item_name').value = data.item_name;
+        document.getElementById('edit_category').value = data.category;
+        document.getElementById('edit_stock').value = data.stock;
+    })
+    .catch(() => showToast('Failed to load item data.', 'error'));
+}
+
+function closeEditModal() {
+    editItemModal.classList.add('hidden');
+    editItemForm.reset();
+}
+
+closeEditItemModalBtn.addEventListener('click', closeEditModal);
+cancelEditItemBtn.addEventListener('click', closeEditModal);
+
+editItemModal.addEventListener('click', (e) => {
+    if (e.target === editItemModal) closeEditModal();
+});
+
+editItemForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const id = document.getElementById('edit_item_id').value;
+    const formData = new FormData(editItemForm);
+
+    try {
+        const response = await fetch(`/admin/inventory/${id}`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector("meta[name='csrf-token']").content
             }
         });
-    </script>
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showToast('Item updated successfully!', 'success');
+            closeEditModal();
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            showToast(data.message || 'Update failed.', 'error');
+        }
+    } catch (error) {
+        showToast('Connection error.', 'error');
+    }
+});
+
+
+/* ==========================================
+   ARCHIVE ITEM
+========================================== */
+function archiveItem(id) {
+    if (!confirm('Archive this item?')) return;
+
+    fetch(`/admin/inventory/${id}/archive`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector("meta[name='csrf-token']").content,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Item archived.', 'success');
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            showToast('Failed to archive.', 'error');
+        }
+    })
+    .catch(() => showToast('Server error.', 'error'));
+}
+</script>
+
 
 </body>
 </html>

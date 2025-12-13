@@ -17,8 +17,10 @@ class EventController extends Controller
 
     public function events()
     {
-        // Get confirmed bookings and format them as calendar events
-        $confirmedBookings = Booking::where('status', 'confirmed')
+        // Get active bookings (approved, confirmed) and format them as calendar events
+        // For user calendar, we only return booking data for availability badges
+        // Regular events are NOT shown to users - only availability numbers
+        $confirmedBookings = Booking::whereIn('status', ['confirmed', 'approved'])
             ->with('user')
             ->get();
         
@@ -39,9 +41,10 @@ class EventController extends Controller
             
             $events[] = [
                 'id' => 'booking-' . $date,
-                'title' => $count . '/2 Bookings - ' . ucfirst($eventType) . ' (' . $customerName . ($count > 1 ? ' +' . ($count - 1) . ' more' : '') . ')',
+                'title' => '', // Empty title - user calendar only shows badges, not event titles
                 'start' => $date,
                 'end' => $date,
+                'display' => 'none', // Hide the event title, only show badge
                 'color' => $color,
                 'extendedProps' => [
                     'bookingCount' => $count,
@@ -59,18 +62,10 @@ class EventController extends Controller
             ];
         }
         
-        // Also include regular events if any
-        $regularEvents = Event::all()->map(function($event) {
-            return [
-                'id' => 'event-' . $event->id,
-                'title' => $event->title,
-                'start' => $event->start,
-                'end' => $event->end ?? $event->start,
-                'color' => '#3b82f6',
-            ];
-        })->toArray();
+        // Do NOT include regular events for user calendar - users only see availability numbers
         
-        return array_merge($events, $regularEvents);
+        // Return JSON response for FullCalendar
+        return response()->json($events);
     }
 
     public function store(Request $request)
@@ -88,12 +83,12 @@ class EventController extends Controller
     }
 
     /**
-     * Get all events for admin (shows all user events)
+     * Get all events for admin (shows all bookings and regular events)
      */
     public function adminEvents()
     {
-        // Get confirmed bookings and format them as calendar events
-        $confirmedBookings = Booking::where('status', 'confirmed')
+        // Get active bookings (approved, confirmed) and format them as calendar events
+        $confirmedBookings = Booking::whereIn('status', ['confirmed', 'approved'])
             ->with('user')
             ->get();
         
@@ -122,6 +117,7 @@ class EventController extends Controller
                     'bookingCount' => $count,
                     'maxBookings' => 2,
                     'isFull' => $count >= 2,
+                    'isBooking' => true, // Mark as booking event
                     'bookings' => $bookings->map(function($b) {
                         return [
                             'id' => $b->id,
@@ -134,18 +130,27 @@ class EventController extends Controller
             ];
         }
         
-        // Also include regular events if any
+        // Include regular events (admin-created events) - these should display with their titles
         $regularEvents = Event::all()->map(function($event) {
+            $startDate = is_string($event->start) ? $event->start : $event->start->format('Y-m-d');
+            $endDate = $event->end ? (is_string($event->end) ? $event->end : $event->end->format('Y-m-d')) : $startDate;
+            
             return [
                 'id' => 'event-' . $event->id,
                 'title' => $event->title,
-                'start' => $event->start,
-                'end' => $event->end ?? $event->start,
+                'start' => $startDate,
+                'end' => $endDate,
                 'color' => '#3b82f6',
+                'extendedProps' => [
+                    'isBooking' => false, // Mark as regular event
+                ],
             ];
         })->toArray();
         
-        return array_merge($events, $regularEvents);
+        $allEvents = array_merge($events, $regularEvents);
+        
+        // Return JSON response for FullCalendar
+        return response()->json($allEvents);
     }
     
     /**
@@ -158,7 +163,9 @@ class EventController extends Controller
             return response()->json(['count' => 0, 'max' => 2, 'isFull' => false]);
         }
         
-        $count = Booking::where('status', 'confirmed')
+        // Count all active bookings (approved, confirmed, partial_payment, pending_payment, in_design)
+        // These are bookings that have been accepted and should count toward availability
+        $count = Booking::whereIn('status', ['confirmed', 'approved'])
             ->whereDate('event_date', $date)
             ->count();
         
@@ -174,8 +181,33 @@ class EventController extends Controller
      */
     public function adminStore(Request $request)
     {
-        $event = Event::create($request->all());
-        return response()->json($event);
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'start' => 'required|date',
+            'end' => 'nullable|date',
+        ]);
+
+        $event = Event::create([
+            'title' => $validated['title'],
+            'start' => $validated['start'],
+            'end' => $validated['end'] ?? $validated['start'],
+            'description' => $request->input('description', ''),
+        ]);
+
+        // Format response for FullCalendar - ensure dates are in Y-m-d format
+        $startDate = is_string($event->start) ? $event->start : $event->start->format('Y-m-d');
+        $endDate = $event->end ? (is_string($event->end) ? $event->end : $event->end->format('Y-m-d')) : $startDate;
+
+        return response()->json([
+            'id' => 'event-' . $event->id,
+            'title' => $event->title,
+            'start' => $startDate,
+            'end' => $endDate,
+            'color' => '#3b82f6',
+            'extendedProps' => [
+                'isBooking' => false,
+            ],
+        ]);
     }
 
     /**
@@ -202,7 +234,7 @@ class EventController extends Controller
                 $bookingId = $payment->booking->id;
                 if (!isset($bookingBalances[$bookingId])) {
                     $totalPaid = $payment->booking->payments()
-                        ->whereIn('status', ['paid', 'partial_paid'])
+                        ->whereIn('status', ['paid', 'partial_payment'])
                         ->sum('amount');
                     $bookingBalances[$bookingId] = [
                         'total_amount' => $payment->booking->total_amount,
@@ -354,6 +386,54 @@ class EventController extends Controller
             'success' => true,
             'message' => 'Item added successfully!',
             'item' => $inventory
+        ]);
+    }
+
+    /**
+     * Get a single inventory item
+     */
+    public function getInventory($id)
+    {
+        $inventory = Inventory::findOrFail($id);
+        return response()->json($inventory);
+    }
+
+    /**
+     * Update an inventory item
+     */
+    public function updateInventory(Request $request, $id)
+    {
+        $inventory = Inventory::findOrFail($id);
+
+        $validated = $request->validate([
+            'item_name' => 'required|string|max:255',
+            'category' => 'required|string|max:255',
+            'stock' => 'required|integer|min:0',
+        ]);
+
+        $inventory->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Item updated successfully!',
+            'item' => $inventory
+        ]);
+    }
+
+    /**
+     * Archive an inventory item
+     */
+    public function archiveInventory($id)
+    {
+        $inventory = Inventory::findOrFail($id);
+        
+        // You can either delete it or add a soft delete/archived flag
+        // For now, we'll delete it. If you want to keep it, add an 'archived_at' field to the migration
+        $inventory->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Item archived successfully!'
         ]);
     }
 }

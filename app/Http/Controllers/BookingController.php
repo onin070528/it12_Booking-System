@@ -35,13 +35,14 @@ class BookingController extends Controller
             ], 422);
         }
 
-        // Check if the selected date already has 2 confirmed bookings
+        // Check if the selected date already has 2 active bookings
+        // Count all active bookings (approved, confirmed, partial_payment, pending_payment, in_design)
         $selectedDate = $request->input('date');
-        $confirmedBookingsCount = Booking::where('status', 'confirmed')
+        $activeBookingsCount = Booking::whereIn('status', ['confirmed', 'approved', 'partial_payment', 'pending_payment', 'in_design'])
             ->whereDate('event_date', $selectedDate)
             ->count();
         
-        if ($confirmedBookingsCount >= 2) {
+        if ($activeBookingsCount >= 2) {
             return response()->json([
                 'success' => false,
                 'message' => 'This date is fully booked. Maximum 2 bookings per day allowed. Please select another date.',
@@ -193,11 +194,25 @@ class BookingController extends Controller
      */
     public function index()
     {
-        $bookings = Booking::with('user')
+        $bookings = Booking::with('user', 'payments')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('admin.bookings.index', compact('bookings'));
+        // Calculate payment totals for each booking
+        $bookingPayments = [];
+        foreach ($bookings as $booking) {
+            $totalPaid = $booking->payments()
+                ->whereIn('status', ['paid', 'partial_payment'])
+                ->sum('amount');
+            $remainingBalance = $booking->total_amount - $totalPaid;
+            
+            $bookingPayments[$booking->id] = [
+                'total_paid' => $totalPaid,
+                'remaining_balance' => $remainingBalance,
+            ];
+        }
+
+        return view('admin.bookings.index', compact('bookings', 'bookingPayments'));
     }
 
     /**
@@ -218,6 +233,12 @@ class BookingController extends Controller
     public function show(Booking $booking)
     {
         $booking->load('user');
+        
+        // Mark booking as viewed by admin if not already viewed
+        if (Auth::check() && Auth::user()->isAdmin() && !$booking->admin_viewed_at) {
+            $booking->update(['admin_viewed_at' => now()]);
+            $booking->refresh();
+        }
         
         // If it's an AJAX request, return the view content
         if (request()->ajax()) {
@@ -400,10 +421,18 @@ class BookingController extends Controller
     }
 
     /**
-     * Mark payment as partial_paid (admin manually confirms payment received).
+     * Mark payment as partial_payment (admin manually confirms payment received).
      */
     public function markPaymentAsPartialPaid(Request $request, Booking $booking)
     {
+        // Ensure only admins can manipulate payment status
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can manipulate payment status.',
+            ], 403);
+        }
+
         // Find the pending payment for this booking
         $payment = $booking->payments()
             ->where('status', 'pending')
@@ -417,15 +446,15 @@ class BookingController extends Controller
             ], 404);
         }
 
-        // Update payment status to partial_paid
+        // Update payment status to partial_payment
         $payment->update([
-            'status' => 'partial_paid',
+            'status' => 'partial_payment',
             'paid_at' => now(),
         ]);
 
-        // Update booking status to partial_paid
+        // Update booking status to partial_payment
         $booking->update([
-            'status' => 'partial_paid',
+            'status' => 'partial_payment',
         ]);
 
         // Send notification to customer
@@ -446,7 +475,7 @@ class BookingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment marked as partial paid. Booking status updated and customer notified.',
+            'message' => 'Payment marked as partial payment. Booking status updated and customer notified.',
         ]);
     }
 
@@ -455,17 +484,32 @@ class BookingController extends Controller
      */
     public function markPaymentAsPaid(Request $request, Booking $booking)
     {
-        // Find the partial_paid payment for this booking (or pending if no partial_paid exists)
+        // Ensure only admins can manipulate payment status
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admins can manipulate payment status.',
+            ], 403);
+        }
+
+        // Find the latest pending payment (most recent first)
         $payment = $booking->payments()
-            ->whereIn('status', ['partial_paid', 'pending'])
-            ->orderByRaw("CASE WHEN status = 'partial_paid' THEN 0 ELSE 1 END")
+            ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->first();
+        
+        // If no pending payment, try partial_payment (latest first)
+        if (!$payment) {
+            $payment = $booking->payments()
+                ->where('status', 'partial_payment')
+                ->orderBy('created_at', 'desc')
+                ->first();
+        }
 
         if (!$payment) {
             return response()->json([
                 'success' => false,
-                'message' => 'No partial_paid or pending payment found for this booking.',
+                'message' => 'No partial_payment or pending payment found for this booking.',
             ], 404);
         }
 
@@ -478,16 +522,16 @@ class BookingController extends Controller
         // Refresh the booking relationship to get updated payments
         $booking->refresh();
 
-        // Calculate total paid - include all paid payments and any remaining partial_paid payments
+        // Calculate total paid - include all paid payments and any remaining partial_payment payments
         $totalPaid = $booking->payments()
-            ->whereIn('status', ['paid', 'partial_paid'])
+            ->whereIn('status', ['paid', 'partial_payment'])
             ->sum('amount');
         $remainingBalance = $booking->total_amount - $totalPaid;
 
-        // If fully paid, update booking status to in_design
+        // If fully paid, update booking status to approved (all set, waiting for event)
         if ($remainingBalance <= 0) {
             $booking->update([
-                'status' => 'in_design',
+                'status' => 'approved',
             ]);
 
             // Send notification to customer
@@ -496,23 +540,23 @@ class BookingController extends Controller
                 'type' => 'payment_full_received',
                 'notifiable_type' => Booking::class,
                 'notifiable_id' => $booking->id,
-                'message' => "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been received. Your booking is now fully paid and has moved to the design phase!",
+                'message' => "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been received. Your booking is now fully paid and approved!",
                 'read' => false,
                 'data' => [
                     'booking_id' => $booking->id,
                     'payment_id' => $payment->id,
-                    'status' => 'in_design',
+                    'status' => 'approved',
                 ],
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Payment marked as paid. Booking is fully paid and moved to design phase. Customer has been notified.',
+                'message' => 'Payment marked as paid. Booking is fully paid and approved. Customer has been notified.',
             ]);
         } else {
-            // Still has remaining balance, update to partial_paid
+            // Still has remaining balance, update to partial_payment
             $booking->update([
-                'status' => 'partial_paid',
+                'status' => 'partial_payment',
             ]);
 
             // Send notification to customer
@@ -544,7 +588,7 @@ class BookingController extends Controller
     public function markAsInDesign(Request $request, Booking $booking)
     {
         // Check if booking is fully paid
-        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->sum('amount');
+        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_payment'])->sum('amount');
         $remainingBalance = $booking->total_amount - $totalPaid;
 
         if ($remainingBalance > 0) {
@@ -555,10 +599,10 @@ class BookingController extends Controller
         }
 
         // Check if booking status allows this transition
-        if (!in_array($booking->status, ['partial_paid', 'pending_payment'])) {
+        if (!in_array($booking->status, ['partial_payment', 'pending_payment'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Booking status must be partial_paid or pending_payment to move to design phase.',
+                'message' => 'Booking status must be partial_payment or pending_payment to move to design phase.',
             ], 400);
         }
 
@@ -593,10 +637,19 @@ class BookingController extends Controller
     public function markAsCompleted(Request $request, Booking $booking)
     {
         // Check if booking status allows this transition
-        if (!in_array($booking->status, ['in_design', 'partial_paid', 'pending_payment'])) {
+        if (!in_array($booking->status, ['approved', 'in_design', 'partial_payment', 'pending_payment'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Booking must be in design phase or have payments to mark as completed.',
+                'message' => 'Booking must be approved, in design phase, or have payments to mark as completed.',
+            ], 400);
+        }
+        
+        // Check if event date has passed
+        $eventDate = \Carbon\Carbon::parse($booking->event_date);
+        if ($eventDate->isFuture()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot mark booking as completed before the event date. Event date: ' . $booking->event_date->format('F d, Y'),
             ], 400);
         }
 

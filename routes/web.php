@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\PaymentController;
@@ -11,8 +12,10 @@ use App\Http\Controllers\ChatController;
 
 // Redirect root to login if not authenticated
 Route::get('/', function () {
-    if (auth()->check()) {
-        if (auth()->user()->isAdmin()) {
+    if (Auth::check()) {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        if ($user->isAdmin()) {
             return redirect()->route('admin.dashboard');
         }
         return redirect()->route('dashboard');
@@ -48,6 +51,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Inventory Management (renamed from AdminInventory)
     Route::get('/inventory', [EventController::class, 'AdminInventory'])->name('inventory.index');
     Route::post('/inventory', [EventController::class, 'storeInventory'])->name('inventory.store');
+    Route::get('/inventory/{id}', [EventController::class, 'getInventory'])->name('inventory.get');
+    Route::post('/inventory/{id}', [EventController::class, 'updateInventory'])->name('inventory.update');
+    Route::post('/inventory/{id}/archive', [EventController::class, 'archiveInventory'])->name('inventory.archive');
     
     // Reports (renamed from AdminReports)
     Route::get('/reports', [EventController::class, 'AdminReports'])->name('reports.index');

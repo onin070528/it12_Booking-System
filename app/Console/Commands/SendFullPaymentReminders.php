@@ -30,12 +30,12 @@ class SendFullPaymentReminders extends Command
     {
         $this->info('Checking for bookings that need full payment reminders...');
 
-        // Get bookings with partial_paid payments that are 1-2 weeks before event date
+        // Get bookings with partial_payment payments that are 1-2 weeks before event date
         $oneWeekFromNow = Carbon::now()->addWeek();
         $twoWeeksFromNow = Carbon::now()->addWeeks(2);
 
         $bookings = Booking::whereHas('payments', function($query) {
-                $query->where('status', 'partial_paid');
+                $query->where('status', 'partial_payment');
             })
             ->whereBetween('event_date', [$oneWeekFromNow->format('Y-m-d'), $twoWeeksFromNow->format('Y-m-d')])
             ->with(['user', 'payments'])
@@ -54,7 +54,7 @@ class SendFullPaymentReminders extends Command
 
             if (!$existingReminder) {
                 $daysUntilEvent = Carbon::now()->diffInDays($booking->event_date);
-                $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->sum('amount');
+                $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_payment'])->sum('amount');
                 $remainingAmount = $booking->total_amount - $totalPaid;
 
                 // Only send reminder if there's still a remaining balance

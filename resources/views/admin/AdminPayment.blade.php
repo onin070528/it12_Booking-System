@@ -83,7 +83,7 @@
                     <td class="px-6 py-4 capitalize">{{ $payment->payment_method ?? 'N/A' }}</td>
                     <td class="px-6 py-4">
                         <span class="font-semibold">₱{{ number_format($payment->amount, 2) }}</span>
-                        @if($payment->status === 'partial_paid')
+                        @if($payment->status === 'partial_payment')
                         <span class="text-xs text-yellow-600 block mt-1">(Partial Payment)</span>
                         @endif
                     </td>
@@ -101,9 +101,9 @@
                             <span class="px-4 py-1 rounded-full bg-[#D4F6DF] text-green-900 font-medium inline-block">
                                 Paid
                             </span>
-                        @elseif($payment->status === 'partial_paid')
+                        @elseif($payment->status === 'partial_payment')
                             <span class="px-4 py-1 rounded-full bg-yellow-100 text-yellow-900 font-medium inline-block">
-                                Partial Paid
+                                Partial Payment
                             </span>
                         @elseif($payment->status === 'pending')
                             <span class="px-4 py-1 rounded-full bg-[#FDFCB1] text-yellow-900 font-medium inline-block">
@@ -170,7 +170,7 @@
             <div class="bg-gradient-to-r from-[#93BFC7] to-[#7aa8b0] text-white px-6 py-4 flex items-center justify-between">
                 <h3 class="text-2xl font-bold">Booking Details</h3>
                 <button onclick="closeBookingModal()" class="text-white hover:text-gray-200 transition">
-                    <i class="fas fa-times text-2xl"></i>
+                    <i class="fas fa-times text-3xl"></i>
                 </button>
             </div>
             
@@ -184,15 +184,6 @@
             <!-- Modal Footer with Action Buttons -->
             <div id="bookingModalFooter" class="border-t border-gray-200 px-6 py-4 bg-gray-50 hidden">
                 <div class="flex justify-end gap-3">
-                    <button onclick="closeBookingModal()" 
-                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-semibold">
-                        Close
-                    </button>
-                    <button id="markReceivedBtn" onclick="markPaymentAsPartialPaid()" 
-                            class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition font-semibold hidden">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        Mark as Partial Paid
-                    </button>
                     <button id="markPaidBtn" onclick="markPaymentAsPaid()" 
                             class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold hidden">
                         <i class="fas fa-check-circle mr-2"></i>
@@ -228,7 +219,6 @@
             const modal = document.getElementById('bookingModal');
             const modalContent = document.getElementById('bookingModalContent');
             const modalFooter = document.getElementById('bookingModalFooter');
-            const markReceivedBtn = document.getElementById('markReceivedBtn');
             
             // Show modal
             modal.classList.remove('hidden');
@@ -255,12 +245,10 @@
                 modalFooter.classList.remove('hidden');
                 
                 // Hide all buttons first
-                const markReceivedBtn = document.getElementById('markReceivedBtn');
                 const markPaidBtn = document.getElementById('markPaidBtn');
                 const markInDesignBtn = document.getElementById('markInDesignBtn');
                 const markCompletedBtn = document.getElementById('markCompletedBtn');
                 
-                markReceivedBtn.classList.add('hidden');
                 markPaidBtn.classList.add('hidden');
                 markInDesignBtn.classList.add('hidden');
                 markCompletedBtn.classList.add('hidden');
@@ -270,18 +258,15 @@
                 let detectedStatus = null;
                 if (statusElement) {
                     const statusText = statusElement.textContent.trim();
-                    if (statusText.includes('Partial Paid')) detectedStatus = 'partial_paid';
+                    if (statusText.includes('Partial Payment')) detectedStatus = 'partial_payment';
                     else if (statusText.includes('In Design')) detectedStatus = 'in_design';
                     else if (statusText.includes('Completed')) detectedStatus = 'completed';
                     else if (statusText.includes('Pending Payment')) detectedStatus = 'pending_payment';
                 }
                 
                 // Show appropriate button based on payment status and booking status
-                if (paymentStatus === 'pending' || showMarkReceived) {
-                    // Show partial paid button for pending payments
-                    markReceivedBtn.classList.remove('hidden');
-                } else if (paymentStatus === 'partial_paid' || detectedStatus === 'partial_paid') {
-                    // Show paid button for partial_paid payments
+                if (paymentStatus === 'partial_payment' || detectedStatus === 'partial_payment') {
+                    // Show paid button for partial_payment payments
                     markPaidBtn.classList.remove('hidden');
                     // Also check if fully paid by looking for remaining balance
                     const remainingBalanceText = modalContent.textContent;
@@ -312,7 +297,7 @@
                 return;
             }
 
-            if (!confirm('Are you sure you have received the payment? This will mark the payment as partial paid and update the booking status.')) {
+            if (!confirm('Are you sure you have received the payment? This will mark the payment as partial payment and update the booking status.')) {
                 return;
             }
 
@@ -328,7 +313,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Payment marked as partial paid! Customer has been notified.');
+                    alert('Payment marked as partial payment! Customer has been notified.');
                     if (currentBookingId) {
                         closeBookingModal();
                     }

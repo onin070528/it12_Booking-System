@@ -45,14 +45,6 @@
                 </a>
             </li>
 
-            <!-- Calendar of Events -->
-            <li>
-                <a href="{{ route('calendar') }}"
-                   class="flex items-center {{ request()->routeIs('calendar') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
-                    <i class="fas fa-calendar mr-3"></i> Calendar of Events
-                </a>
-            </li>
-
             <!-- Create Booking -->
             <li>
                 <a href="{{ route('booking.create') }}"

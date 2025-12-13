@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inventories', function (Blueprint $table) {
-            $table->id('inventory_id');
-            $table->string('item_name');
-            $table->string('category');
-            $table->integer('stock')->default(0);
-            $table->string('status')->nullable();
+        Schema::create('events', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->date('start');
+            $table->date('end')->nullable();
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inventories');
+        Schema::dropIfExists('events');
     }
 };

@@ -106,14 +106,24 @@
                     }, 100);
                 },
                 eventDidMount: function(info) {
+                    // Hide event titles - users only see availability badges
+                    if (info.event.title === '' || info.event.display === 'none') {
+                        info.el.style.display = 'none';
+                    }
+                    
                     // Add tooltip with booking details
-                    if (info.event.extendedProps.bookingCount) {
+                    if (info.event.extendedProps && info.event.extendedProps.bookingCount) {
                         const bookings = info.event.extendedProps.bookings || [];
                         const tooltip = bookings.map(b => 
                             `${b.event_type} - ${b.customer} (${b.location})`
                         ).join('\n');
                         
-                        info.el.setAttribute('title', tooltip);
+                        // Store tooltip for badge hover
+                        const dateStr = info.event.startStr.split('T')[0];
+                        const cell = document.querySelector(`[data-booking-date="${dateStr}"]`);
+                        if (cell) {
+                            cell.setAttribute('title', tooltip);
+                        }
                     }
                 },
                 // Auto-refresh events every 30 seconds

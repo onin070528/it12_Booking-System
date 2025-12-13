@@ -12,13 +12,13 @@
                     @elseif($booking->status == 'confirmed') bg-green-100 text-green-800
                     @elseif($booking->status == 'approved') bg-blue-100 text-blue-800
                     @elseif($booking->status == 'pending_payment') bg-orange-100 text-orange-800
-                    @elseif($booking->status == 'partial_paid') bg-yellow-100 text-yellow-800
+                    @elseif($booking->status == 'partial_payment') bg-yellow-100 text-yellow-800
                     @elseif($booking->status == 'in_design') bg-indigo-100 text-indigo-800
                     @elseif($booking->status == 'rejected') bg-red-100 text-red-800
                     @elseif($booking->status == 'completed') bg-purple-100 text-purple-800
                     @else bg-gray-100 text-gray-800
                     @endif">
-                    {{ $booking->status == 'pending_payment' ? 'Pending Payment' : ($booking->status == 'partial_paid' ? 'Partial Paid' : ($booking->status == 'in_design' ? 'In Design' : ucfirst($booking->status))) }}
+                    {{ $booking->status == 'pending_payment' ? 'Pending Payment' : ($booking->status == 'partial_payment' ? 'Partial Payment' : ($booking->status == 'in_design' ? 'In Design' : ucfirst($booking->status))) }}
                 </span>
             </div>
         </div>
@@ -313,10 +313,10 @@
     <!-- Payment Information -->
     @php
         $payments = $booking->payments()->orderBy('created_at', 'desc')->get();
-        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->sum('amount');
+        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_payment'])->sum('amount');
         $remainingAmount = $booking->total_amount - $totalPaid;
         $pendingPayment = $booking->payments()->where('status', 'pending')->first();
-        $partialPaidPayment = $booking->payments()->where('status', 'partial_paid')->first();
+        $partialPaidPayment = $booking->payments()->where('status', 'partial_payment')->first();
     @endphp
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
         <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
@@ -361,12 +361,12 @@
                         </div>
                         <span class="px-3 py-1 rounded-full text-xs font-semibold
                             @if($payment->status == 'paid') bg-green-100 text-green-800
-                            @elseif($payment->status == 'partial_paid') bg-yellow-100 text-yellow-800
+                            @elseif($payment->status == 'partial_payment') bg-yellow-100 text-yellow-800
                             @elseif($payment->status == 'pending') bg-orange-100 text-orange-800
                             @elseif($payment->status == 'failed') bg-red-100 text-red-800
                             @else bg-gray-100 text-gray-800
                             @endif">
-                            {{ $payment->status == 'partial_paid' ? 'Partial Paid' : ucfirst($payment->status) }}
+                            {{ $payment->status == 'partial_payment' ? 'Partial Payment' : ucfirst($payment->status) }}
                         </span>
                     </div>
                     @endforeach
@@ -435,11 +435,11 @@
             <button data-booking-id="{{ $booking->id }}" 
                     onclick="if(typeof markPaymentAsPartialPaid === 'function') markPaymentAsPartialPaid(this.dataset.bookingId)" 
                     class="flex-1 bg-yellow-500 text-white font-bold py-3 rounded-lg hover:bg-yellow-600 transition flex items-center justify-center">
-                <i class="fas fa-check-circle mr-2"></i>Mark as Partial Paid
+                <i class="fas fa-check-circle mr-2"></i>Mark as Partial Payment
             </button>
             @endif
         @endif
-        @if($booking->status == 'partial_paid')
+        @if($booking->status == 'partial_payment')
             <div class="flex-1 bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3 text-center">
                 <p class="text-sm text-yellow-800 font-semibold">
                     <i class="fas fa-money-bill-wave mr-2"></i>Partial Payment Received

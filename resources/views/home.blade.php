@@ -161,16 +161,16 @@
                 <!-- Table -->
                 <div class="overflow-x-auto">
                     <table class="w-full bg-white">
-                        <thead class="bg-gradient-to-b from-gray-50 to-white border-b-2 border-gray-100">
+                        <thead class="bg-gradient-to-b from-gray-50 to-white border-b-2 border-gray-100 text-base text-[#93BFC7] font-bold ">
                             <tr>
-                                <th class="px-8 py-5 text-left hidden font-semibold text-gray-600 uppercase text-xs tracking-wider">Booking ID</th>
-                                <th class="px-8 py-5 text-left font-bold text-[#93BFC7] uppercase text-xs tracking-wider">Event</th>
-                                <th class="px-8 py-5 text-left font-bold text-[#93BFC7] uppercase text-xs tracking-wider">Date</th>
-                                <th class="px-8 py-5 text-left font-bold text-[#93BFC7] uppercase text-xs tracking-wider">Location</th>
-                                <th class="px-8 py-5 text-left font-bold text-[#93BFC7] uppercase text-xs tracking-wider">Amount</th>
-                                <th class="px-8 py-5 text-center font-bold text-[#93BFC7] uppercase text-xs tracking-wider">Status</th>
-                                <th class="px-8 py-5 text-center font-bold text-[#93BFC7] uppercase text-xs tracking-wider">Action</th>
-                                 <th class="px-8 py-5 text-center font-bold text-[#93BFC7] uppercase text-xs tracking-wider" id="methodColumnHeader">Method</th>
+                                <th class="px-8 py-5 text-left hidden font-semibold text-gray-600 uppercase tracking-wider">Booking ID</th>
+                                <th class="px-8 py-5 text-left  uppercase  tracking-wider">Event</th>
+                                <th class="px-8 py-5 text-left  uppercase tracking-wider">Date</th>
+                                <th class="px-8 py-5 text-left  uppercase tracking-wider">Location</th>
+                                <th class="px-8 py-5 text-left  uppercase tracking-wider">Amount</th>
+                                <th class="px-8 py-5 text-center  uppercase tracking-wider">Status</th>
+                                <th class="px-8 py-5 text-center uppercase tracking-wider">Action</th>
+                                 <th class="px-8 py-5 text-center uppercase tracking-wider" id="methodColumnHeader">Method</th>
                             </tr>
                         </thead>
 
@@ -197,7 +197,7 @@
                                         </div>
                                     </td>
                                     <td class="px-8 py-5 text-left">
-                                        <span class="font-bold text-gray-800 text-lg">₱{{ number_format($booking->total_amount, 2) }}</span>
+                                        <span class=" text-gray-800 text-lg font-medium">₱{{ number_format($booking->total_amount, 2) }}</span>
                                     </td>
                                     <td class="px-8 py-5 text-center">
                                         <span class="inline-flex items-center px-4 py-2 rounded-full text-xs font-semibold shadow-sm
@@ -205,6 +205,7 @@
                                             @elseif($booking->status == 'confirmed') bg-green-100 text-green-800 border border-green-200
                                             @elseif($booking->status == 'approved') bg-blue-100 text-blue-800 border border-blue-200
                                             @elseif($booking->status == 'pending_payment') bg-orange-100 text-orange-800 border border-orange-200
+                                            @elseif($booking->status == 'in_design') bg-indigo-100 text-indigo-800 border border-indigo-200
                                             @elseif($booking->status == 'rejected') bg-red-100 text-red-800 border border-red-200
                                             @elseif($booking->status == 'completed') bg-purple-100 text-purple-800 border border-purple-200
                                             @else bg-gray-100 text-gray-800 border border-gray-200
@@ -214,13 +215,13 @@
                                                 @elseif($booking->status == 'confirmed') bg-green-600
                                                 @elseif($booking->status == 'approved') bg-blue-600
                                             @elseif($booking->status == 'pending_payment') bg-orange-600
-                                            @elseif($booking->status == 'partial_paid') bg-yellow-600
+                                            @elseif($booking->status == 'partial_payment') bg-yellow-600
                                             @elseif($booking->status == 'in_design') bg-indigo-600
                                             @elseif($booking->status == 'rejected') bg-red-600
                                             @elseif($booking->status == 'completed') bg-purple-600
                                             @else bg-gray-600
                                             @endif"></span>
-                                            {{ $booking->status == 'pending_payment' ? 'Pending Payment' : ($booking->status == 'partial_paid' ? 'Partial Paid' : ($booking->status == 'in_design' ? 'In Design' : ucfirst($booking->status))) }}
+                                            {{ $booking->status == 'pending_payment' ? 'Pending Payment' : ($booking->status == 'partial_payment' ? 'Partial Payment' : ($booking->status == 'in_design' ? 'In Design' : ucfirst($booking->status))) }}
                                         </span>
                                     </td>
                                     <td class="px-8 py-5 text-center">
@@ -364,20 +365,6 @@
                             </div>
                         </label>
 
-                        <!-- GrabPay Option -->
-                        <label class="flex items-start p-5 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all duration-300 payment-option group">
-                            <input type="radio" name="payment_method" value="grab_pay" class="mt-1 mr-4 w-5 h-5 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2" required>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-1">
-                                    <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                                        <i class="fas fa-wallet text-purple-600 text-lg"></i>
-                                    </div>
-                                    <span class="font-bold text-gray-800 text-lg">GrabPay</span>
-                                </div>
-                                <p class="text-sm text-gray-600 ml-[3.25rem]">Pay via GrabPay wallet</p>
-                            </div>
-                        </label>
-
                         <!-- PayMaya Option -->
                         <label class="flex items-start p-5 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all duration-300 payment-option group">
                             <input type="radio" name="payment_method" value="paymaya" class="mt-1 mr-4 w-5 h-5 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2" required>
@@ -389,20 +376,6 @@
                                     <span class="font-bold text-gray-800 text-lg">PayMaya</span>
                                 </div>
                                 <p class="text-sm text-gray-600 ml-[3.25rem]">Pay via PayMaya wallet</p>
-                            </div>
-                        </label>
-
-                        <!-- Credit/Debit Card Option -->
-                        <label class="flex items-start p-5 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all duration-300 payment-option group">
-                            <input type="radio" name="payment_method" value="card" class="mt-1 mr-4 w-5 h-5 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2" required>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-1">
-                                    <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                                        <i class="fas fa-credit-card text-indigo-600 text-lg"></i>
-                                    </div>
-                                    <span class="font-bold text-gray-800 text-lg">Credit/Debit Card</span>
-                                </div>
-                                <p class="text-sm text-gray-600 ml-[3.25rem]">Visa, Mastercard, and other cards</p>
                             </div>
                         </label>
                     </div>
@@ -696,6 +669,15 @@
                     <div class="bg-gray-50 rounded-lg p-4">
                         <p class="text-sm text-gray-600 mb-2">Description</p>
                         <p class="text-gray-800">${booking.description}</p>
+                    </div>
+                    ` : ''}
+                    ${(booking.status === 'pending_payment' || booking.status === 'partial_payment') ? `
+                    <div class="flex gap-3 pt-4 border-t border-gray-200">
+                        <a href="/booking/${booking.id}/checkout" 
+                           class="flex-1 inline-flex items-center justify-center gap-2 bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-[1.02]">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Pay Now</span>
+                        </a>
                     </div>
                     ` : ''}
                 </div>

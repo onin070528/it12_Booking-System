@@ -3,7 +3,7 @@
     <div class="flex items-center space-x-2">
         <div>
             <h2 class="text-3xl font-bold" style="color: #93BFC7;">
-                <i class="fas fa-user-shield mr-2"></i>Welcome, {{ Auth::user()->name }}
+                <i class="fas fa-user-shield mr-2"></i>Welcome, {{ Auth::user()->first_name }}
             </h2>
             <p class="text-1xl font-semibold" style="color: #93BFC7;">
                 @if(isset($headerSubtitle))

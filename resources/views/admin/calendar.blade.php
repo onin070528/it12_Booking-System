@@ -82,8 +82,196 @@
         </div>
     </div>
 
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- Create Event Modal -->
+    <div id="createEventModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Create New Event</h3>
+                <button id="closeEventModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="createEventForm">
+                <div class="mb-4">
+                    <label for="eventTitle" class="block text-sm font-medium text-gray-700 mb-2">Event Title *</label>
+                    <input type="text" id="eventTitle" name="title" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent"
+                        placeholder="Enter event title">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="eventDate" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                    <input type="text" id="eventDate" readonly
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600">
+                </div>
+                
+                <div class="flex justify-end gap-3">
+                    <button type="button" id="cancelEventBtn" 
+                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" id="saveEventBtn"
+                        class="px-4 py-2 bg-[#93BFC7] text-white rounded-lg hover:bg-[#7eaab1] transition">
+                        <i class="fas fa-save mr-2"></i>Save Event
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Toast Notification Function
+            function showToast(message, type = 'success') {
+                const toastContainer = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                
+                const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+                const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+                
+                toast.className = `${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 min-w-[300px] max-w-md transform transition-all duration-300 translate-x-full opacity-0`;
+                toast.innerHTML = `
+                    <i class="fas ${icon} text-xl"></i>
+                    <p class="flex-1 font-medium">${message}</p>
+                    <button onclick="this.parentElement.remove()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                // Trigger animation
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full', 'opacity-0');
+                    toast.classList.add('translate-x-0', 'opacity-100');
+                }, 10);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    toast.classList.add('translate-x-full', 'opacity-0');
+                    setTimeout(() => {
+                        if (toast.parentElement) {
+                            toast.remove();
+                        }
+                    }, 300);
+                }, 5000);
+            }
+
+            // Modal elements
+            const createEventModal = document.getElementById('createEventModal');
+            const createEventForm = document.getElementById('createEventForm');
+            const eventTitleInput = document.getElementById('eventTitle');
+            const eventDateInput = document.getElementById('eventDate');
+            const closeEventModal = document.getElementById('closeEventModal');
+            const cancelEventBtn = document.getElementById('cancelEventBtn');
+            const saveEventBtn = document.getElementById('saveEventBtn');
+            
+            let selectedDateInfo = null;
+
+            // Modal functions
+            function openEventModal(dateInfo) {
+                selectedDateInfo = dateInfo;
+                const date = new Date(dateInfo.startStr);
+                const formattedDate = date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                eventDateInput.value = formattedDate;
+                eventTitleInput.value = '';
+                createEventModal.classList.remove('hidden');
+                eventTitleInput.focus();
+            }
+
+            function closeEventModalFunc() {
+                createEventModal.classList.add('hidden');
+                selectedDateInfo = null;
+                createEventForm.reset();
+            }
+
+            // Event listeners for modal
+            closeEventModal.addEventListener('click', closeEventModalFunc);
+            cancelEventBtn.addEventListener('click', closeEventModalFunc);
+            
+            // Close modal when clicking outside
+            createEventModal.addEventListener('click', function(e) {
+                if (e.target === createEventModal) {
+                    closeEventModalFunc();
+                }
+            });
+
+            // Form submission
+            createEventForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const title = eventTitleInput.value.trim();
+                if (!title) {
+                    showToast('Please enter an event title', 'error');
+                    return;
+                }
+
+                // Disable submit button
+                saveEventBtn.disabled = true;
+                saveEventBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+
+                fetch("{{ route('admin.events.store') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        start: selectedDateInfo.startStr,
+                        end: selectedDateInfo.endStr || selectedDateInfo.startStr
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'Failed to create event');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(event => {
+                    // Add the event to the calendar
+                    calendar.addEvent({
+                        id: event.id,
+                        title: event.title,
+                        start: event.start,
+                        end: event.end,
+                        color: event.color,
+                        extendedProps: event.extendedProps || { isBooking: false }
+                    });
+                    calendar.unselect(); // Clear the selection
+                    
+                    // Show success toast
+                    showToast('Event created successfully!', 'success');
+                    
+                    // Close modal
+                    closeEventModalFunc();
+                    
+                    // Refresh events to ensure everything is in sync
+                    calendar.refetchEvents();
+                })
+                .catch(error => {
+                    console.error('Error creating event:', error);
+                    showToast(error.message || 'Failed to create event. Please try again.', 'error');
+                })
+                .finally(() => {
+                    // Re-enable submit button
+                    saveEventBtn.disabled = false;
+                    saveEventBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save Event';
+                });
+            });
+
             var calendarEl = document.getElementById('calendar');
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
@@ -95,26 +283,7 @@
                 events: "{{ route('admin.events') }}", // fetch all events from admin route
                 selectable: true,
                 select: function(info) {
-                    let title = prompt('Enter Event Title:');
-                    if (title) {
-                        fetch("{{ route('admin.events.store') }}", {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify({
-                                title: title,
-                                start: info.startStr,
-                                end: info.endStr
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(event => {
-                            calendar.addEvent(event);
-                            calendar.refetchEvents(); // Refresh to show updated counts
-                        });
-                    }
+                    openEventModal(info);
                 },
                 editable: true,
                 eventDrop: function(info) {
@@ -130,14 +299,20 @@
                     }, 100);
                 },
                 eventDidMount: function(info) {
-                    // Add tooltip with booking details
-                    if (info.event.extendedProps.bookingCount) {
+                    // Add tooltip with booking details for booking events
+                    if (info.event.extendedProps && info.event.extendedProps.bookingCount) {
                         const bookings = info.event.extendedProps.bookings || [];
                         const tooltip = bookings.map(b => 
                             `${b.event_type} - ${b.customer} (${b.location})`
                         ).join('\n');
                         
                         info.el.setAttribute('title', tooltip);
+                    }
+                    
+                    // Regular events (admin-created) should display normally with their titles
+                    if (info.event.extendedProps && info.event.extendedProps.isBooking === false) {
+                        // Regular event - display normally
+                        info.el.style.display = 'block';
                     }
                 },
                 // Auto-refresh events every 30 seconds

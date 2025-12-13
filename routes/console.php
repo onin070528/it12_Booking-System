@@ -12,3 +12,8 @@ Artisan::command('inspire', function () {
 Schedule::command('bookings:send-full-payment-reminders')
     ->daily()
     ->at('09:00');
+
+// Schedule event completion notifications to run daily
+Schedule::command('bookings:notify-admin-event-completed')
+    ->daily()
+    ->at('10:00');

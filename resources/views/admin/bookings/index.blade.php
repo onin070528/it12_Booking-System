@@ -56,20 +56,40 @@
                                     <td class="px-6 py-4 capitalize">{{ $booking->event_type }}</td>
                                     <td class="px-6 py-4">{{ $booking->event_date->format('M d, Y') }}</td>
                                     <td class="px-6 py-4">{{ $booking->location }}</td>
-                                    <td class="px-6 py-4">₱{{ number_format($booking->total_amount, 2) }}</td>
+                                    <td class="px-6 py-4">
+                                        @php
+                                            $totalPaid = $bookingPayments[$booking->id]['total_paid'] ?? 0;
+                                            $remainingBalance = $bookingPayments[$booking->id]['remaining_balance'] ?? $booking->total_amount;
+                                        @endphp
+                                        <div class="space-y-1">
+                                            <div class="font-semibold">₱{{ number_format($booking->total_amount, 2) }}</div>
+                                            @if($totalPaid > 0)
+                                                <div class="text-xs">
+                                                    <span class="text-green-600 font-medium">Paid: ₱{{ number_format($totalPaid, 2) }}</span>
+                                                    @if($remainingBalance > 0)
+                                                        <span class="text-orange-600 font-medium block">Remaining: ₱{{ number_format($remainingBalance, 2) }}</span>
+                                                    @else
+                                                        <span class="text-green-600 font-medium block">Fully Paid</span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <div class="text-xs text-gray-500">No payment yet</div>
+                                            @endif
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <span class="px-3 py-1 rounded-full text-sm font-semibold
                                             @if($booking->status == 'pending') bg-yellow-100 text-yellow-800
                                             @elseif($booking->status == 'confirmed') bg-green-100 text-green-800
                                             @elseif($booking->status == 'approved') bg-blue-100 text-blue-800
                                             @elseif($booking->status == 'pending_payment') bg-orange-100 text-orange-800
-                                            @elseif($booking->status == 'partial_paid') bg-yellow-100 text-yellow-800
+                                            @elseif($booking->status == 'partial_payment') bg-yellow-100 text-yellow-800
                                             @elseif($booking->status == 'in_design') bg-indigo-100 text-indigo-800
                                             @elseif($booking->status == 'rejected') bg-red-100 text-red-800
                                             @elseif($booking->status == 'completed') bg-purple-100 text-purple-800
                                             @else bg-gray-100 text-gray-800
                                             @endif">
-                                            {{ $booking->status == 'pending_payment' ? 'Pending Payment' : ($booking->status == 'partial_paid' ? 'Partial Paid' : ($booking->status == 'in_design' ? 'In Design' : ucfirst($booking->status))) }}
+                                            {{ $booking->status == 'pending_payment' ? 'Pending Payment' : ($booking->status == 'partial_payment' ? 'Partial Payment' : ($booking->status == 'in_design' ? 'In Design' : ucfirst($booking->status))) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
@@ -85,25 +105,16 @@
                                                 <!-- View -->
                                                 <button 
                                                     onclick="viewBooking('{{ $booking->id }}')"
-                                                    class="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-sm hover:shadow transition-all duration-200"
+                                                    class="relative p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-sm hover:shadow transition-all duration-200"
                                                     title="View Booking"
                                                 >
                                                     <i class="fas fa-eye"></i>
+                                                    @if(!$booking->admin_viewed_at)
+                                                        <span class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                                                            1
+                                                        </span>
+                                                    @endif
                                                 </button>
-
-                                                <!-- Confirm Booking -->
-                                                @if($booking->status == 'pending')
-                                                    <button 
-                                                        data-booking-id="{{ $booking->id }}"
-                                                        onclick="confirmBooking(this.dataset.bookingId)"
-                                                        class="px-4 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white shadow-sm hover:shadow transition-all duration-200 flex items-center gap-2"
-                                                        title="Confirm Booking"
-                                                    >
-                                                        <i class="fas fa-check"></i>
-                                                        <span class="hidden md:inline">Confirm</span>
-                                                    </button>
-                                                @endif
-
 
                                             </div>
                                     </td>
@@ -177,6 +188,9 @@
                 <div class="p-6" id="bookingDetails">
                     <!-- Booking details will be loaded here -->
                 </div>
+            </div>
+            <div id="bookingModalFooter" class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex-shrink-0 hidden">
+                <!-- Footer buttons will be loaded here from booking details -->
             </div>
         </div>
     </div>
@@ -315,7 +329,7 @@
         }
 
         function markPaymentAsPartialPaid(bookingId) {
-            if (!confirm('Are you sure you have received the payment? This will mark the payment as partial paid and update the booking status.')) {
+            if (!confirm('Are you sure you have received the payment? This will mark the payment as partial payment and update the booking status.')) {
                 return;
             }
 
@@ -331,7 +345,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Payment marked as partial paid! Customer has been notified.');
+                    alert('Payment marked as partial payment! Customer has been notified.');
                     location.reload();
                 } else {
                     alert(data.message || 'An error occurred.');
@@ -444,10 +458,33 @@
                     return response.text();
                 })
                 .then(html => {
-                    document.getElementById('bookingDetails').innerHTML = html;
+                    const bookingDetails = document.getElementById('bookingDetails');
+                    bookingDetails.innerHTML = html;
+                    
+                    // Extract action buttons from the loaded content and move to footer
+                    const actionButtons = bookingDetails.querySelector('.flex.gap-3.pt-4');
+                    const modalFooter = document.getElementById('bookingModalFooter');
+                    
+                    if (actionButtons) {
+                        modalFooter.innerHTML = actionButtons.outerHTML;
+                        modalFooter.classList.remove('hidden');
+                        actionButtons.remove();
+                    } else {
+                        modalFooter.classList.add('hidden');
+                    }
+                    
                     document.getElementById('viewModal').classList.remove('hidden');
                     // Scroll to top of modal content
                     document.getElementById('bookingDetailsContainer').scrollTop = 0;
+                    
+                    // Remove the badge from the view button since booking is now viewed
+                    const viewButton = document.querySelector(`button[onclick="viewBooking('${bookingId}')"]`);
+                    if (viewButton) {
+                        const badge = viewButton.querySelector('span.absolute');
+                        if (badge) {
+                            badge.remove();
+                        }
+                    }
                 })
                 .catch(error => {
                     console.error('Error:', error);

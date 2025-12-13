@@ -77,7 +77,7 @@
                     <td class="px-6 py-4 capitalize">{{ $payment->payment_method ?? 'N/A' }}</td>
                     <td class="px-6 py-4">
                         <span class="font-semibold">₱{{ number_format($payment->amount, 2) }}</span>
-                        @if($payment->status === 'partial_paid')
+                        @if($payment->status === 'partial_payment')
                         <span class="text-xs text-yellow-600 block mt-1">(Partial Payment)</span>
                         @endif
                     </td>
@@ -95,9 +95,9 @@
                             <span class="px-4 py-1 rounded-full bg-[#D4F6DF] text-green-900 font-medium inline-block">
                                 Paid
                             </span>
-                        @elseif($payment->status === 'partial_paid')
+                        @elseif($payment->status === 'partial_payment')
                             <span class="px-4 py-1 rounded-full bg-yellow-100 text-yellow-900 font-medium inline-block">
-                                Partial Paid
+                                Partial Payment
                             </span>
                         @elseif($payment->status === 'pending')
                             <span class="px-4 py-1 rounded-full bg-[#FDFCB1] text-yellow-900 font-medium inline-block">
@@ -118,14 +118,24 @@
                         @endif
                     </td>
                     <td class="px-6 py-4">
-                        @if($payment->status === 'partial_paid' && $balance && $balance['remaining_balance'] > 0)
+                        @if($payment->status === 'partial_payment' && $balance && $balance['remaining_balance'] > 0)
                             <a href="{{ route('payment.checkout', $payment->booking) }}" 
                                class="inline-flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-semibold">
                                 <i class="fas fa-credit-card"></i>
                                 Pay Balance
                             </a>
                         @elseif($payment->status === 'pending')
-                            <span class="text-xs text-gray-500">Waiting for confirmation</span>
+                            <a href="{{ route('payment.checkout', $payment->booking) }}" 
+                               class="inline-flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-semibold">
+                                <i class="fas fa-credit-card"></i>
+                                Pay Now
+                            </a>
+                        @elseif($payment->booking && ($payment->booking->status === 'pending_payment' || $payment->booking->status === 'partial_payment'))
+                            <a href="{{ route('payment.checkout', $payment->booking) }}" 
+                               class="inline-flex items-center gap-1 bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-semibold">
+                                <i class="fas fa-credit-card"></i>
+                                Pay
+                            </a>
                         @else
                             <span class="text-xs text-gray-400">-</span>
                         @endif
@@ -142,7 +152,6 @@
         </table>
     </div>
 
-    <!-- Pagination -->
     @if($payments->hasPages())
     <div class="bg-white px-6 py-4 border-t border-gray-200">
         {{ $payments->links() }}

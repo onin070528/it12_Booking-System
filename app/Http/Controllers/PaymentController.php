@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\Notification;
+use App\Models\User;
 use App\Services\PayMongoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
@@ -28,18 +31,18 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Check if booking is confirmed, approved, pending payment, or partial_paid
-        if (!in_array($booking->status, ['confirmed', 'approved', 'pending_payment', 'partial_paid'])) {
+        // Check if booking is confirmed, approved, pending payment, or partial_payment
+        if (!in_array($booking->status, ['confirmed', 'approved', 'pending_payment', 'partial_payment'])) {
             return redirect()->route('home')
                 ->with('error', 'This booking is not ready for payment yet. Please wait for admin confirmation.');
         }
 
         // Calculate total paid and remaining balance
-        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->sum('amount');
+        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_payment'])->sum('amount');
         $remainingBalance = $booking->total_amount - $totalPaid;
 
-        // If partial_paid, allow paying remaining balance
-        if ($booking->status === 'partial_paid') {
+        // If partial_payment, allow paying remaining balance
+        if ($booking->status === 'partial_payment') {
             if ($remainingBalance <= 0) {
                 return redirect()->route('payments.index')
                     ->with('error', 'This booking is already fully paid.');
@@ -48,7 +51,7 @@ class PaymentController extends Controller
             $isRemainingBalance = true;
         } else {
             // Check if booking already has a paid downpayment
-            $existingPayment = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->first();
+            $existingPayment = $booking->payments()->whereIn('status', ['paid', 'partial_payment'])->first();
             if ($existingPayment) {
                 return redirect()->route('payments.index')
                     ->with('error', 'Downpayment for this booking has already been paid.');
@@ -71,7 +74,9 @@ class PaymentController extends Controller
     public function processPayment(Request $request, Booking $booking)
     {
         $request->validate([
-            'payment_method' => 'required|in:card,gcash,grab_pay,paymaya,cash',
+            'payment_method' => 'required|in:gcash,paymaya,cash',
+            'reference_number' => 'required_if:payment_method,paymaya,gcash|nullable|string|max:255',
+            'payment_screenshot' => 'required_if:payment_method,paymaya,gcash|nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         // Verify booking belongs to user
@@ -79,8 +84,8 @@ class PaymentController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Check if booking is confirmed, approved, pending payment, or partial_paid
-        if (!in_array($booking->status, ['confirmed', 'approved', 'pending_payment', 'partial_paid'])) {
+        // Check if booking is confirmed, approved, pending payment, or partial_payment
+        if (!in_array($booking->status, ['confirmed', 'approved', 'pending_payment', 'partial_payment'])) {
             return back()->with('error', 'This booking is not ready for payment yet. Please wait for admin confirmation.');
         }
 
@@ -95,10 +100,10 @@ class PaymentController extends Controller
         $paymentMethod = $request->payment_method;
 
         // Calculate amount to pay
-        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->sum('amount');
+        $totalPaid = $booking->payments()->whereIn('status', ['paid', 'partial_payment'])->sum('amount');
         $remainingBalance = $booking->total_amount - $totalPaid;
 
-        if ($booking->status === 'partial_paid') {
+        if ($booking->status === 'partial_payment') {
             if ($remainingBalance <= 0) {
                 return back()->with('error', 'This booking is already fully paid.');
             }
@@ -106,7 +111,7 @@ class PaymentController extends Controller
             $isRemainingBalance = true;
         } else {
             // Check if downpayment already paid
-            $existingPayment = $booking->payments()->whereIn('status', ['paid', 'partial_paid'])->first();
+            $existingPayment = $booking->payments()->whereIn('status', ['paid', 'partial_payment'])->first();
             if ($existingPayment) {
                 return back()->with('error', 'Downpayment for this booking has already been paid.');
             }
@@ -115,13 +120,13 @@ class PaymentController extends Controller
             $isRemainingBalance = false;
         }
 
-        // Handle cash payments differently
+        // Handle cash payments (no reference number or screenshot needed)
         if ($paymentMethod === 'cash') {
             $description = $isRemainingBalance 
-                ? "Remaining Balance (Cash) for {$booking->event_type} booking - To be paid during meetup or event"
-                : "30% Downpayment (Cash) for {$booking->event_type} booking - To be paid during meetup or event";
+                ? "Remaining Balance (Cash) for {$booking->event_type} booking"
+                : "30% Downpayment (Cash) for {$booking->event_type} booking";
             
-            // Create payment record for cash payment
+            // Create payment record
             $payment = Payment::create([
                 'booking_id' => $booking->id,
                 'user_id' => Auth::id(),
@@ -132,6 +137,26 @@ class PaymentController extends Controller
                 'description' => $description,
             ]);
 
+            // Notify all admins about the payment
+            $admins = User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => 'payment_submitted',
+                    'notifiable_type' => Payment::class,
+                    'notifiable_id' => $payment->id,
+                    'message' => Auth::user()->name . " has submitted a cash payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->id} ({$booking->event_type}).",
+                    'read' => false,
+                    'data' => [
+                        'booking_id' => $booking->id,
+                        'payment_id' => $payment->id,
+                        'customer_name' => Auth::user()->name,
+                        'amount' => $paymentAmount,
+                        'payment_method' => 'cash',
+                    ],
+                ]);
+            }
+
             $successMessage = $isRemainingBalance
                 ? 'Cash payment has been recorded. Please bring the remaining balance amount (₱' . number_format($paymentAmount, 2) . ') during your meetup or event.'
                 : 'Cash payment has been recorded. Please bring the downpayment amount (₱' . number_format($paymentAmount, 2) . ') during your meetup or event.';
@@ -140,78 +165,69 @@ class PaymentController extends Controller
                 ->with('success', $successMessage);
         }
 
-        // Create payment record (online payments)
-        $description = $isRemainingBalance
-            ? "Remaining Balance for {$booking->event_type} booking"
-            : "30% Downpayment for {$booking->event_type} booking";
+        // Handle PayMaya and GCash payments (require reference number and screenshot)
+        if (in_array($paymentMethod, ['paymaya', 'gcash'])) {
+            $referenceNumber = $request->input('reference_number');
+            $screenshot = $request->file('payment_screenshot');
             
-        $payment = Payment::create([
-            'booking_id' => $booking->id,
-            'user_id' => Auth::id(),
-            'amount' => $paymentAmount,
-            'currency' => 'PHP',
-            'status' => 'pending',
-            'payment_method' => $paymentMethod,
-            'description' => $description,
-        ]);
-
-        $metadata = [
-            'booking_id' => $booking->id,
-            'payment_id' => $payment->id,
-            'user_id' => Auth::id(),
-        ];
-
-        // Check if PayMongo is configured
-        if (empty(config('paymongo.secret_key')) || empty(config('paymongo.public_key'))) {
-            $payment->update(['status' => 'failed']);
-            return back()->with('error', 'Payment gateway is not configured. Please contact support.');
-        }
-
-        if (in_array($paymentMethod, ['gcash', 'grab_pay', 'paymaya'])) {
-            // For e-wallet payments, create a source
-            $sourceResponse = $this->payMongoService->createSource(
-                $paymentAmount,
-                'PHP',
-                $paymentMethod,
-                $metadata
-            );
-
-            if ($sourceResponse && isset($sourceResponse['data'])) {
-                $source = $sourceResponse['data'];
-                $payment->update([
-                    'paymongo_source_id' => $source['id'],
-                    'paymongo_response' => $sourceResponse,
-                ]);
-
-                // Redirect to payment URL
-                return redirect($source['attributes']['redirect']['checkout_url']);
+            if (!$referenceNumber || !$screenshot) {
+                return back()->with('error', 'Reference number and payment screenshot are required for ' . ucfirst($paymentMethod) . ' payments.');
             }
-        } else {
-            // For card payments, create payment intent
-            $intentResponse = $this->payMongoService->createPaymentIntent(
-                $paymentAmount,
-                'PHP',
-                $metadata
-            );
 
-            if ($intentResponse && isset($intentResponse['data'])) {
-                $intent = $intentResponse['data'];
-                $payment->update([
-                    'paymongo_payment_intent_id' => $intent['id'],
-                    'paymongo_response' => $intentResponse,
-                ]);
+            // Store screenshot
+            $screenshotPath = $screenshot->store('payment-proofs', 'public');
+            
+            $description = $isRemainingBalance 
+                ? "Remaining Balance ({$paymentMethod}) for {$booking->event_type} booking"
+                : "30% Downpayment ({$paymentMethod}) for {$booking->event_type} booking";
+            
+            // Create payment record
+            $payment = Payment::create([
+                'booking_id' => $booking->id,
+                'user_id' => Auth::id(),
+                'amount' => $paymentAmount,
+                'currency' => 'PHP',
+                'status' => 'pending',
+                'payment_method' => $paymentMethod,
+                'description' => $description,
+                'reference_number' => $referenceNumber,
+                'payment_screenshot' => $screenshotPath,
+            ]);
 
-                return view('payments.card-checkout', [
-                    'payment' => $payment,
-                    'paymentIntent' => $intent,
-                    'publicKey' => config('paymongo.public_key'),
+            // Notify all admins about the payment
+            $admins = User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'type' => 'payment_submitted',
+                    'notifiable_type' => Payment::class,
+                    'notifiable_id' => $payment->id,
+                    'message' => Auth::user()->name . " has submitted a " . ucfirst($paymentMethod) . " payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->id} ({$booking->event_type}). Reference: {$referenceNumber}",
+                    'read' => false,
+                    'data' => [
+                        'booking_id' => $booking->id,
+                        'payment_id' => $payment->id,
+                        'customer_name' => Auth::user()->name,
+                        'amount' => $paymentAmount,
+                        'payment_method' => $paymentMethod,
+                        'reference_number' => $referenceNumber,
+                    ],
                 ]);
             }
+
+            $successMessage = $isRemainingBalance
+                ? ucfirst($paymentMethod) . ' payment has been submitted. Your payment is pending admin confirmation. Reference: ' . $referenceNumber
+                : ucfirst($paymentMethod) . ' payment has been submitted. Your payment is pending admin confirmation. Reference: ' . $referenceNumber;
+
+            return redirect()->route('payments.index')
+                ->with('success', $successMessage);
         }
 
-        $payment->update(['status' => 'failed']);
-        return back()->with('error', 'Failed to initialize payment. Please try again or contact support.');
+        // This section should not be reached as all payment methods are handled above
+        // Cash, PayMaya, and GCash are all handled in their respective sections
+        return back()->with('error', 'Invalid payment method selected.');
     }
+
 
     /**
      * Handle payment return (for redirect-based payments)
@@ -346,7 +362,7 @@ class PaymentController extends Controller
                 $bookingId = $payment->booking->id;
                 if (!isset($bookingBalances[$bookingId])) {
                     $totalPaid = $payment->booking->payments()
-                        ->whereIn('status', ['paid', 'partial_paid'])
+                        ->whereIn('status', ['paid', 'partial_payment'])
                         ->sum('amount');
                     $bookingBalances[$bookingId] = [
                         'total_amount' => $payment->booking->total_amount,

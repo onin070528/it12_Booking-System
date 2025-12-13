@@ -76,7 +76,7 @@
             </div>
 
             <!-- Payment Method Selection -->
-            <form action="{{ route('payment.process', $booking) }}" method="POST" class="mt-8 space-y-6">
+            <form id="paymentForm" action="{{ route('payment.process', $booking) }}" method="POST" class="mt-8 space-y-6" enctype="multipart/form-data">
                 @csrf
                 
                 <div>
@@ -84,7 +84,7 @@
                         Select Payment Method
                     </label>
                     <div class="space-y-3">
-                        <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                        <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition payment-method-option">
                             <input type="radio" name="payment_method" value="gcash" class="mr-3" required>
                             <i class="fas fa-mobile-alt text-2xl mr-3" style="color: #93BFC7;"></i>
                             <div>
@@ -93,30 +93,21 @@
                             </div>
                         </label>
 
-                        <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                            <input type="radio" name="payment_method" value="grab_pay" class="mr-3" required>
-                            <i class="fas fa-wallet text-2xl mr-3" style="color: #93BFC7;"></i>
-                            <div>
-                                <div class="font-semibold">GrabPay</div>
-                                <div class="text-xs text-gray-500">Pay via GrabPay</div>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                        <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition payment-method-option" data-method="paymaya">
                             <input type="radio" name="payment_method" value="paymaya" class="mr-3" required>
-                            <i class="fas fa-credit-card text-2xl mr-3" style="color: #93BFC7;"></i>
+                            <i class="fas fa-wallet text-2xl mr-3" style="color: #93BFC7;"></i>
                             <div>
                                 <div class="font-semibold">PayMaya</div>
                                 <div class="text-xs text-gray-500">Pay via PayMaya</div>
                             </div>
                         </label>
 
-                        <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition">
-                            <input type="radio" name="payment_method" value="card" class="mr-3" required>
-                            <i class="fas fa-credit-card text-2xl mr-3" style="color: #93BFC7;"></i>
+                        <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition payment-method-option" data-method="cash">
+                            <input type="radio" name="payment_method" value="cash" class="mr-3" required>
+                            <i class="fas fa-money-bill-wave text-2xl mr-3" style="color: #93BFC7;"></i>
                             <div>
-                                <div class="font-semibold">Credit/Debit Card</div>
-                                <div class="text-xs text-gray-500">Visa, Mastercard, etc.</div>
+                                <div class="font-semibold">Cash</div>
+                                <div class="text-xs text-gray-500">Pay via Cash</div>
                             </div>
                         </label>
                     </div>
@@ -136,11 +127,196 @@
                     <a href="{{ route('home') }}" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 text-center font-medium transition">
                         Cancel
                     </a>
-                    <button type="submit" class="flex-1 text-white py-2 px-4 rounded-lg font-medium transition" style="background-color: #93BFC7;" onmouseover="this.style.backgroundColor='#7eaab1'" onmouseout="this.style.backgroundColor='#93BFC7'">
+                    <button type="button" id="proceedBtn" class="flex-1 text-white py-2 px-4 rounded-lg font-medium transition" style="background-color: #93BFC7;" onmouseover="this.style.backgroundColor='#7eaab1'" onmouseout="this.style.backgroundColor='#93BFC7'">
                         Proceed to Payment
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Payment Details Modal for Cash and PayMaya -->
+    <div id="paymentDetailsModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-95">
+            <div class="bg-gradient-to-r from-[#93BFC7] to-[#7eaab1] rounded-t-2xl px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white">Payment Details</h3>
+                <button onclick="closePaymentModal()" class="text-white hover:text-gray-200 transition-colors duration-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <form id="paymentDetailsForm" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Reference Number <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="reference_number" name="reference_number" required
+                        class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-[#93BFC7] transition-all duration-200"
+                        placeholder="Enter reference number">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Payment Screenshot/Proof <span class="text-red-500">*</span>
+                    </label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-[#93BFC7] transition-colors">
+                        <div class="space-y-1 text-center">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="payment_screenshot" class="relative cursor-pointer bg-white rounded-md font-medium text-[#93BFC7] hover:text-[#7eaab1] focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#93BFC7]">
+                                    <span>Upload a file</span>
+                                    <input id="payment_screenshot" name="payment_screenshot" type="file" accept="image/*" class="sr-only" required>
+                                </label>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                            <div id="filePreview" class="hidden mt-2">
+                                <img id="previewImage" src="" alt="Preview" class="max-h-32 mx-auto rounded-lg">
+                                <p id="fileName" class="text-xs text-gray-600 mt-1"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closePaymentModal()" 
+                        class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg hover:bg-gray-300 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                        class="flex-1 bg-[#93BFC7] text-white font-semibold py-2.5 rounded-lg hover:bg-[#7eaab1] transition">
+                        <i class="fas fa-check mr-2"></i>Submit Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const paymentForm = document.getElementById('paymentForm');
+        const proceedBtn = document.getElementById('proceedBtn');
+        const paymentDetailsModal = document.getElementById('paymentDetailsModal');
+        const paymentDetailsForm = document.getElementById('paymentDetailsForm');
+        const fileInput = document.getElementById('payment_screenshot');
+        const filePreview = document.getElementById('filePreview');
+        const previewImage = document.getElementById('previewImage');
+        const fileName = document.getElementById('fileName');
+        let selectedPaymentMethod = null;
+
+        // Handle payment method selection
+        document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                selectedPaymentMethod = this.value;
+            });
+        });
+
+        // Handle proceed button click
+        proceedBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const selectedMethod = document.querySelector('input[name="payment_method"]:checked');
+            
+            if (!selectedMethod) {
+                alert('Please select a payment method');
+                return;
+            }
+
+            if (selectedMethod.value === 'paymaya' || selectedMethod.value === 'gcash') {
+                // Show modal for PayMaya and GCash (requires reference number and screenshot)
+                paymentDetailsModal.classList.remove('hidden');
+                setTimeout(() => {
+                    paymentDetailsModal.querySelector('.scale-95').style.transform = 'scale(1)';
+                }, 10);
+            } else if (selectedMethod.value === 'cash') {
+                // Direct submit for Cash (no reference number needed)
+                paymentForm.submit();
+            }
+        });
+
+        // Handle file preview
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('File size must be less than 10MB');
+                    this.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    fileName.textContent = file.name;
+                    filePreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                filePreview.classList.add('hidden');
+            }
+        });
+
+        // Handle payment details form submission
+        paymentDetailsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const referenceNumber = document.getElementById('reference_number').value;
+            const screenshot = fileInput.files[0];
+            
+            if (!referenceNumber || !screenshot) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Create FormData from the main payment form
+            const formData = new FormData(paymentForm);
+            
+            // Append reference number and screenshot
+            formData.append('reference_number', referenceNumber);
+            formData.append('payment_screenshot', screenshot);
+
+            // Submit via fetch
+            fetch(paymentForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else if (response.ok) {
+                    return response.json().then(data => {
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        } else {
+                            window.location.reload();
+                        }
+                    });
+                } else {
+                    return response.json().then(data => {
+                        alert(data.message || 'An error occurred. Please try again.');
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+
+        function closePaymentModal() {
+            const modal = paymentDetailsModal.querySelector('.scale-95');
+            if (modal) {
+                modal.style.transform = 'scale(0.95)';
+            }
+            setTimeout(() => {
+                paymentDetailsModal.classList.add('hidden');
+                paymentDetailsForm.reset();
+                filePreview.classList.add('hidden');
+            }, 200);
+        }
+    </script>
         </div>
     </div>
 </body>
