@@ -7,11 +7,34 @@
     <title>Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @keyframes backgroundFade {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.25; }
+        }
+        .animated-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('{{ asset('img/login_background.jpg') }}');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.2;
+    animation: backgroundFade 6s ease-in-out infinite;
+    z-index: -1;
+}
+
+    </style>
 </head>
 
-<body class="bg-gray-300">
+<body class="bg-gray-300 relative">
+    <div class="animated-bg"></div>
     <div class="min-h-screen flex items-center justify-center py-4 px-4">
-        <div class="bg-white rounded-lg shadow-md w-full max-w-[800px] flex flex-col md:flex-row overflow-hidden">
+        <div class="bg-white rounded-lg shadow-md w-full max-w-[10
+        000px] flex flex-col md:flex-row overflow-hidden">
             
             <!-- Left side -->
             <div class="w-full md:w-1/2 p-8 overflow-y-auto max-h-[90vh]">

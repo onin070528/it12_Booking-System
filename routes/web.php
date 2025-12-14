@@ -9,8 +9,9 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\LandingController;
 
-// Redirect root to login if not authenticated
+// Landing page route - shows landing page to guests, redirects authenticated users
 Route::get('/', function () {
     if (Auth::check()) {
         /** @var \App\Models\User $user */
@@ -20,8 +21,15 @@ Route::get('/', function () {
         }
         return redirect()->route('dashboard');
     }
-    return view('auth.login');
-});
+    // Show landing page to unauthenticated users
+    return app(LandingController::class)->index();
+})->name('landing');
+
+// Contact form submission
+Route::post('/contact', [LandingController::class, 'submit'])
+    ->middleware('throttle:5,1')
+    ->name('landing.contact');
+
 
 // Admin routes - require admin role ONLY
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
