@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Booking - RJ's Event Styling</title>
+    <title>Walk-in Booking - RJ's Event Styling</title>
 
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -16,18 +16,43 @@
 <body class="font-sans bg-[#ECF4E8]">
 
     <div class="flex">
-        @include('layouts.sidebar')
+        @include('admin.AdminLayouts.AdminSidebar')
 
         <div class="flex-1 min-h-screen px-6 py-6 ml-64">
 
             <!-- Header -->
-            @php $headerSubtitle = "Welcome to RJ's Event and Styling!"; @endphp
+            @php $headerSubtitle = "Create booking for walk-in clients"; @endphp
             @include('admin.layouts.header')
 
             <div class="flex gap-6">
 
                 <!-- LEFT SIDE -->
                 <div class="flex-1">
+
+                    <!-- Client Information -->
+                    <div class="bg-[#93BFC7] rounded-xl shadow p-6 mb-6">
+                        <h3 class="text-2xl font-bold text-white mb-4">
+                            <i class="fas fa-user mr-2"></i>Client Information
+                        </h3>
+
+                        <div class="mb-4">
+                            <input type="text" id="client_name" name="client_name" placeholder="Client Full Name *" required 
+                                class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <p class="text-white text-xs mt-1 opacity-75">Full name of the walk-in client</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <input type="email" id="client_email" name="client_email" placeholder="Client Email *" required 
+                                class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <p class="text-white text-xs mt-1 opacity-75">Email address for booking confirmation</p>
+                        </div>
+
+                        <div class="mb-0">
+                            <input type="tel" id="client_phone" name="client_phone" placeholder="Client Phone Number *" required 
+                                class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <p class="text-white text-xs mt-1 opacity-75">Contact number for follow-up</p>
+                        </div>
+                    </div>
 
                     <!-- Select Event Type -->
                     <div class="bg-[#93BFC7] rounded-xl shadow p-6 mb-6">
@@ -48,8 +73,9 @@
                     </div>
 
                     <!-- EVENT FORMS -->
-                    <form id="bookingForm" action="{{ route('booking.store') }}" method="POST">
+                    <form id="bookingForm" action="{{ route('admin.booking.walk-in.store') }}" method="POST">
                         @csrf
+                        <input type="hidden" id="is_walk_in" name="is_walk_in" value="1">
 
                         <!-- WEDDING FORM -->
                         <div id="form_wedding" class="eventForm hidden bg-[#93BFC7] rounded-xl shadow p-6 mb-6">
@@ -120,6 +146,12 @@
                                 class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
 
                             <div class="mb-4">
+                                <input type="time" id="time" name="time" required
+                                    class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                                <p class="text-white text-xs mt-1 opacity-75">Event time</p>
+                            </div>
+
+                            <div class="mb-4">
                                 <input type="text" id="location" name="location" list="gensan_locations" placeholder="Location (Gensan City only) *" required
                                     class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                                 <datalist id="gensan_locations">
@@ -163,6 +195,22 @@
                     <h3 class="text-2xl font-bold text-white mb-6">Preview Booking</h3>
 
                     <div class="space-y-4 overflow-y-auto flex-1" style="max-height: calc(90vh - 200px);">
+
+                        <!-- Client Information Preview -->
+                        <div class="bg-white/20 p-4 rounded-lg">
+                            <p class="text-white font-bold text-base">Client Name:</p>
+                            <p class="text-white font-semibold" id="preview_client_name">-</p>
+                        </div>
+
+                        <div class="bg-white/20 p-4 rounded-lg">
+                            <p class="text-white font-bold text-base">Client Email:</p>
+                            <p class="text-white font-semibold" id="preview_client_email">-</p>
+                        </div>
+
+                        <div class="bg-white/20 p-4 rounded-lg">
+                            <p class="text-white font-bold text-base">Client Phone:</p>
+                            <p class="text-white font-semibold" id="preview_client_phone">-</p>
+                        </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
                             <p class="text-white font-bold text-base">Event Type:</p>
@@ -328,6 +376,11 @@
                         <div class="bg-white/20 p-4 rounded-lg">
                             <p class="text-white font-bold text-base">Date:</p>
                             <p class="text-white font-semibold" id="preview_date">-</p>
+                        </div>
+
+                        <div class="bg-white/20 p-4 rounded-lg">
+                            <p class="text-white font-bold text-base">Time:</p>
+                            <p class="text-white font-semibold" id="preview_time">-</p>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
@@ -536,6 +589,17 @@
                         eventSelect.value ? eventSelect.value.toUpperCase() : "-";
                 });
 
+                // Client information listeners
+                document.getElementById('client_name')?.addEventListener('input', e =>
+                    document.getElementById('preview_client_name').textContent = e.target.value || '-'
+                );
+                document.getElementById('client_email')?.addEventListener('input', e =>
+                    document.getElementById('preview_client_email').textContent = e.target.value || '-'
+                );
+                document.getElementById('client_phone')?.addEventListener('input', e =>
+                    document.getElementById('preview_client_phone').textContent = e.target.value || '-'
+                );
+
                 // Wedding form listeners
                 document.getElementById('wedding_bride')?.addEventListener('input', e =>
                     document.getElementById('preview_wedding_bride').textContent = e.target.value || '-'
@@ -653,6 +717,18 @@
                     document.getElementById('preview_date').textContent = e.target.value || '-'
                 );
 
+                document.getElementById('time')?.addEventListener('change', e => {
+                    if (e.target.value) {
+                        const [hours, minutes] = e.target.value.split(':');
+                        const hour = parseInt(hours);
+                        const ampm = hour >= 12 ? 'PM' : 'AM';
+                        const displayHour = hour % 12 || 12;
+                        document.getElementById('preview_time').textContent = `${displayHour}:${minutes} ${ampm}`;
+                    } else {
+                        document.getElementById('preview_time').textContent = '-';
+                    }
+                });
+
                 document.getElementById('location')?.addEventListener('input', e =>
                     document.getElementById('preview_location').textContent = e.target.value || '-'
                 );
@@ -671,6 +747,40 @@
                     }
                         
                         const missingFields = [];
+                        let isValid = true;
+                        let firstInvalidField = null;
+                        
+                        // Check client information fields
+                        const clientNameField = document.getElementById('client_name');
+                        const clientEmailField = document.getElementById('client_email');
+                        const clientPhoneField = document.getElementById('client_phone');
+
+                        if (clientNameField && !clientNameField.value.trim()) {
+                            isValid = false;
+                            missingFields.push('Client Name');
+                            if (!firstInvalidField) firstInvalidField = clientNameField;
+                            clientNameField.classList.add('border-2', 'border-red-400');
+                        } else if (clientNameField) {
+                            clientNameField.classList.remove('border-2', 'border-red-400');
+                        }
+
+                        if (clientEmailField && !clientEmailField.value.trim()) {
+                            isValid = false;
+                            missingFields.push('Client Email');
+                            if (!firstInvalidField) firstInvalidField = clientEmailField;
+                            clientEmailField.classList.add('border-2', 'border-red-400');
+                        } else if (clientEmailField) {
+                            clientEmailField.classList.remove('border-2', 'border-red-400');
+                        }
+
+                        if (clientPhoneField && !clientPhoneField.value.trim()) {
+                            isValid = false;
+                            missingFields.push('Client Phone');
+                            if (!firstInvalidField) firstInvalidField = clientPhoneField;
+                            clientPhoneField.classList.add('border-2', 'border-red-400');
+                        } else if (clientPhoneField) {
+                            clientPhoneField.classList.remove('border-2', 'border-red-400');
+                        }
                         
                         // Check if event type is selected
                         if (!eventSelect.value) {
@@ -699,8 +809,6 @@
 
                         // Check all required fields in the active event form
                         const requiredFields = activeForm.querySelectorAll('[required]');
-                        let isValid = true;
-                        let firstInvalidField = null;
 
                         requiredFields.forEach(field => {
                             if (!field.value.trim()) {
@@ -763,8 +871,16 @@
                         // If all validations pass, submit the form via AJAX
                         const formData = new FormData(bookingForm);
                         const eventType = eventSelect.value;
+                        
+                        // Add client information for walk-in booking
+                        formData.append('is_walk_in', '1');
+                        formData.append('client_name', clientNameField.value);
+                        formData.append('client_email', clientEmailField.value);
+                        formData.append('client_phone', clientPhoneField.value);
+                        
                         formData.append('event_type', eventType);
                         formData.append('date', dateField.value);
+                        formData.append('time', document.getElementById('time').value);
                         formData.append('location', locationField.value);
                         formData.append('request', document.getElementById('request').value || '');
                         
@@ -809,7 +925,7 @@
                         submitButton.disabled = true;
                         submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
 
-                        fetch('{{ route("booking.store") }}', {
+                        fetch('{{ route("admin.booking.walk-in.store") }}', {
                             method: 'POST',
                             body: formData,
                             headers: {

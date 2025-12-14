@@ -41,6 +41,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/events', [EventController::class, 'adminStore'])->name('events.store');
     Route::get('/events/booking-count', [EventController::class, 'getBookingCount'])->name('events.booking-count');
 
+    // Walk-in Booking (Create booking for walk-in clients)
+    Route::get('/booking/walk-in', [EventController::class, 'AdminBooking'])->name('booking.walk-in');
+    Route::post('/booking/walk-in', [BookingController::class, 'store'])->name('booking.walk-in.store');
+    
     // Booking Management (renamed from AdminBooking for consistency)
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/incomplete-count', [BookingController::class, 'getIncompleteCount'])->name('bookings.incomplete-count');

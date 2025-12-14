@@ -88,8 +88,26 @@
                             </div>
                             <input type="email" name="email"
                                 class="w-full pl-12 h-10 bg-gray-100 rounded"
-                                placeholder="Enter email here" required>
+                                placeholder="Enter email here" required
+                                value="{{ old('email') }}">
                         </div>
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="mb-4">
+                        <label class="block text-sm mb-1">Phone Number</label>
+                        <div class="relative flex items-center">
+                            <div class="absolute left-0 bg-[#5394D0] w-10 h-10 flex items-center justify-center rounded">
+                                <i class="fas fa-phone text-white text-xl"></i>
+                            </div>
+                            <input type="tel" name="phone"
+                                class="w-full pl-12 h-10 bg-gray-100 rounded"
+                                placeholder="09XX-XXX-XXXX" required
+                                value="{{ old('phone') }}"
+                                pattern="[0-9]{4}-[0-9]{3}-[0-9]{4}"
+                                title="Please enter phone number in format: 09XX-XXX-XXXX">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Format: 09XX-XXX-XXXX</p>
                     </div>
 
                     <!-- Password -->
@@ -214,6 +232,27 @@
                 middleInitialInput.addEventListener('input', function(e) {
                     // Limit to 1 character and convert to uppercase
                     this.value = this.value.toUpperCase().slice(0, 1);
+                });
+            }
+
+            // Phone number auto-formatting
+            const phoneInput = document.querySelector('input[name="phone"]');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function(e) {
+                    // Remove all non-digit characters
+                    let value = this.value.replace(/\D/g, '');
+                    
+                    // Limit to 11 digits
+                    value = value.slice(0, 11);
+                    
+                    // Format as XXXX-XXX-XXXX
+                    if (value.length > 7) {
+                        this.value = value.slice(0, 4) + '-' + value.slice(4, 7) + '-' + value.slice(7);
+                    } else if (value.length > 4) {
+                        this.value = value.slice(0, 4) + '-' + value.slice(4);
+                    } else {
+                        this.value = value;
+                    }
                 });
             }
         });
