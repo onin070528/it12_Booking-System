@@ -40,11 +40,19 @@
             <!-- Bookings Management -->
             <li>
                 <a href="{{ route('admin.bookings.index') }}"
-                   class="flex items-center justify-between {{ request()->routeIs('admin.AdminBooking') || request()->routeIs('admin.bookings.*') || request()->routeIs('admin.booking.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition relative">
+                   class="flex items-center justify-between {{ request()->routeIs('admin.AdminBooking') || request()->routeIs('admin.bookings.*') || request()->routeIs('admin.booking.show') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition relative">
                     <div class="flex items-center">
                         <i class="fas fa-calendar-check mr-3"></i> Bookings Management
                     </div>
                     <span id="incompleteBookingsBadge" class="hidden bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center min-w-[24px] animate-pulse"></span>
+                </a>
+            </li>
+
+            <!-- Walk-in Booking -->
+            <li>
+                <a href="{{ route('admin.booking.walk-in') }}"
+                   class="flex items-center {{ request()->routeIs('admin.booking.walk-in') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
+                    <i class="fas fa-user-plus mr-3"></i> Walk-in Booking
                 </a>
             </li>
 

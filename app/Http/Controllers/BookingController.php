@@ -26,6 +26,39 @@ class BookingController extends Controller
     public function store(Request $request)
     {
         try {
+            // Check if this is a walk-in booking from admin
+            $isWalkIn = $request->input('is_walk_in', false);
+            
+            // If walk-in, validate and handle client information
+            if ($isWalkIn && $this->isAdmin()) {
+                $request->validate([
+                    'client_name' => 'required|string|max:255',
+                    'client_email' => 'required|email|max:255',
+                    'client_phone' => 'required|string|max:20',
+                ]);
+                
+                // Find or create user for the walk-in client
+                $client = User::where('email', $request->input('client_email'))->first();
+                
+                if (!$client) {
+                    // Create a new user for the walk-in client
+                    $client = User::create([
+                        'name' => $request->input('client_name'),
+                        'email' => $request->input('client_email'),
+                        'password' => bcrypt(bin2hex(random_bytes(16))), // Random password
+                        'role' => 'user',
+                        'first_name' => explode(' ', $request->input('client_name'))[0],
+                        'last_name' => implode(' ', array_slice(explode(' ', $request->input('client_name')), 1)),
+                        'phone' => $request->input('client_phone'),
+                    ]);
+                }
+                
+                $userId = $client->id;
+            } else {
+                // Regular booking from authenticated user
+                $userId = Auth::id();
+            }
+            
             $request->validate([
                 'event_type' => 'required|string',
                 'date' => 'required|date',
@@ -169,7 +202,7 @@ class BookingController extends Controller
         try {
             // Create the booking
             $booking = Booking::create([
-                'user_id' => Auth::id(),
+                'user_id' => $userId,
                 'event_type' => $eventType,
                 'event_date' => $request->input('date'),
                 'event_time' => $request->input('time'),
@@ -180,24 +213,34 @@ class BookingController extends Controller
                 'event_details' => $eventDetails,
             ]);
 
-            // Send notification to all admins
+            // Send notification to all admins (unless it's a walk-in booking created by admin)
             $admins = User::where('role', 'admin')->get();
-            $notificationMessage = "New booking submitted by " . Auth::user()->name . " for {$eventType} event on " . $booking->event_date->format('F d, Y');
+            $notificationMessage = "New booking submitted by " . ($this->authUser()?->name ?? 'Guest') . " for {$eventType} event on " . $booking->event_date->format('F d, Y');
             $notificationData = [
                 'booking_id' => $booking->id,
-                'customer_name' => Auth::user()->name,
+                'customer_name' => $this->authUser()?->name ?? 'Guest',
                 'event_type' => $eventType,
             ];
 
             foreach ($admins as $admin) {
+                $clientName = $isWalkIn && $this->isAdmin()
+                    ? $request->input('client_name')
+                    : ($this->authUser()?->name ?? 'Guest');
+                    
                 Notification::create([
                     'user_id' => $admin->id,
                     'type' => 'booking_created',
                     'notifiable_type' => Booking::class,
                     'notifiable_id' => $booking->id,
-                    'message' => $notificationMessage,
+                    'message' => ($isWalkIn ? "Walk-in booking created for " : "New booking submitted by ") 
+                        . $clientName . " for {$eventType} event on " . $booking->event_date->format('F d, Y'),
                     'read' => false,
-                    'data' => $notificationData,
+                    'data' => [
+                        'booking_id' => $booking->id,
+                        'customer_name' => $clientName,
+                        'event_type' => $eventType,
+                        'is_walk_in' => $isWalkIn,
+                    ],
                 ]);
 
                 // Send email notification
@@ -210,13 +253,17 @@ class BookingController extends Controller
                 );
             }
 
+            $successMessage = $isWalkIn && $this->isAdmin()
+                ? 'Walk-in booking created successfully! The client will be notified.'
+                : 'Booking submitted successfully! The admin will review your booking and contact you soon.';
+
             return response()->json([
                 'success' => true,
-                'message' => 'Booking submitted successfully! The admin will review your booking and contact you soon.',
+                'message' => $successMessage,
                 'booking_id' => $booking->id,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Booking creation failed: ' . $e->getMessage());
+            Log::error('Booking creation failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while creating the booking. Please try again.',
@@ -271,7 +318,7 @@ class BookingController extends Controller
         $booking->load('user');
         
         // Mark booking as viewed by admin if not already viewed
-        if (Auth::check() && Auth::user()->isAdmin() && !$booking->admin_viewed_at) {
+        if ($this->isAdmin() && !$booking->admin_viewed_at) {
             $booking->update(['admin_viewed_at' => now()]);
             $booking->refresh();
         }
@@ -499,7 +546,7 @@ class BookingController extends Controller
     public function markPaymentAsPartialPaid(Request $request, Booking $booking)
     {
         // Ensure only admins can manipulate payment status
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (!$this->isAdmin()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. Only admins can manipulate payment status.',
@@ -571,7 +618,7 @@ class BookingController extends Controller
     public function markPaymentAsPaid(Request $request, Booking $booking)
     {
         // Ensure only admins can manipulate payment status
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (!$this->isAdmin()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. Only admins can manipulate payment status.',
@@ -762,7 +809,7 @@ class BookingController extends Controller
     public function reject(Request $request, Booking $booking)
     {
         // Ensure only admins can reject bookings
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
+        if (!$this->isAdmin()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. Only admins can reject bookings.',
@@ -821,7 +868,7 @@ class BookingController extends Controller
     public function cancel(Request $request, Booking $booking)
     {
         // Check if user is admin or booking owner
-        $isAdmin = Auth::check() && Auth::user()->isAdmin();
+        $isAdmin = $this->isAdmin();
         $isOwner = Auth::check() && $booking->user_id === Auth::id();
 
         if (!$isAdmin && !$isOwner) {
@@ -877,8 +924,8 @@ class BookingController extends Controller
             // Also notify all admins
             $admins = User::where('role', 'admin')->get();
             foreach ($admins as $admin) {
-                if ($admin->id !== Auth::id()) {
-                    $adminMessage = "Booking #{$booking->id} for {$booking->event_type} event has been cancelled by " . Auth::user()->name . ".";
+                    if ($admin->id !== Auth::id()) {
+                    $adminMessage = "Booking #{$booking->id} for {$booking->event_type} event has been cancelled by " . ($this->authUser()?->name ?? 'Admin') . ".";
                     Notification::create([
                         'user_id' => $admin->id,
                         'type' => 'booking_cancelled',

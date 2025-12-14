@@ -37,6 +37,7 @@ class RegisteredUserController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'middle_initial' => ['nullable', 'string', 'max:1'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'phone' => ['required', 'string', 'regex:/^[0-9]{4}-[0-9]{3}-[0-9]{4}$/'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -58,6 +59,7 @@ class RegisteredUserController extends Controller
             'last_name' => $request->last_name,
             'middle_initial' => $request->middle_initial ? strtoupper($request->middle_initial) : null,
             'email' => $request->email,
+            'phone' => $request->phone,
             'password' => $request->password, // The User model's 'hashed' cast will automatically hash this
         ]);
 

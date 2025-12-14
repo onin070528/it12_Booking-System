@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class UserMiddleware
@@ -17,16 +19,17 @@ class UserMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         // Check if user is authenticated
-        if (!auth()->check()) {
+        if (!Auth::check()) {
             return redirect()->route('login')->with('error', 'Please login to access this page.');
         }
 
-        $user = auth()->user();
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
 
         // If user is admin, redirect to admin dashboard
         if ($user->isAdmin()) {
             // Log unauthorized access attempt
-            \Log::info('Admin attempted to access user route', [
+            Log::info('Admin attempted to access user route', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'route' => $request->path(),
@@ -38,7 +41,7 @@ class UserMiddleware
 
         // Ensure user has 'user' role
         if (!$user->isUser()) {
-            \Log::warning('Unauthorized user route access attempt', [
+            Log::warning('Unauthorized user route access attempt', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'role' => $user->role,
@@ -51,7 +54,7 @@ class UserMiddleware
 
         // Double-check role value
         if ($user->role !== 'user') {
-            \Log::error('User role mismatch in UserMiddleware', [
+            Log::error('User role mismatch in UserMiddleware', [
                 'user_id' => $user->id,
                 'role' => $user->role,
             ]);
