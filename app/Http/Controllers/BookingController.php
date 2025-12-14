@@ -108,6 +108,24 @@ class BookingController extends Controller
                     'treasures' => $request->input('debut_treasures'),
                     'notes' => $request->input('debut_notes'),
                 ];
+            } elseif ($eventType === 'pageant') {
+                $request->validate([
+                    'pageant_title' => 'required|string',
+                    'pageant_venue' => 'required|string',
+                    'pageant_guests' => 'required|integer|min:1',
+                    'pageant_theme' => 'required|string',
+                    'pageant_contestants' => 'required|integer|min:1',
+                    'pageant_categories' => 'required|string',
+                ]);
+                $eventDetails = [
+                    'title' => $request->input('pageant_title'),
+                    'venue' => $request->input('pageant_venue'),
+                    'guests' => $request->input('pageant_guests'),
+                    'theme' => $request->input('pageant_theme'),
+                    'contestants' => $request->input('pageant_contestants'),
+                    'categories' => $request->input('pageant_categories'),
+                    'notes' => $request->input('pageant_notes'),
+                ];
             } elseif ($eventType === 'corporate') {
                 $request->validate([
                     'corporate_company' => 'required|string',

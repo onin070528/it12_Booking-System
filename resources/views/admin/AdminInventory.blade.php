@@ -72,11 +72,21 @@
 
 
 
-            <div class="overflow-x-auto rounded-xl shadow-lg">
-                    
+            <!-- Tabs -->
+            <div class="mb-4 flex gap-2">
+                <button id="activeTab" class="tab-btn active bg-[#93BFC7] text-white px-6 py-3 rounded-t-lg font-semibold shadow-md">
+                    <i class="fas fa-boxes mr-2"></i>Active Items ({{ $totalProducts }})
+                </button>
+                <button id="archivedTab" class="tab-btn bg-gray-300 text-gray-700 px-6 py-3 rounded-t-lg font-semibold shadow-md hover:bg-gray-400">
+                    <i class="fas fa-archive mr-2"></i>Archived Items ({{ $archivedCount }})
+                </button>
+            </div>
+
+            <!-- Active Items Section -->
+            <div id="activeItemsSection" class="overflow-x-auto rounded-xl shadow-lg">
                 <div class="bg-[#93BFC7] text-white px-6 py-4 rounded-t-xl shadow flex items-center text-3xl font-bold">
                     <i class="fas fa-boxes mr-3"></i>
-                    <h3>Inventory</h3>
+                    <h3>Active Inventory</h3>
 
                     <div class="justify-end ml-auto bg-white text-[#93BFC7] px-4 py-1 rounded-md shadow font-semibold hover:bg-gray-100 cursor-pointer text-sm">
                         <button id="openAddItemModal">+ Add New Item</button>
@@ -113,7 +123,7 @@
                                 }
                             @endphp
                             <tr class="bg-white text-[#93BFC7] font-medium hover:bg-gray-200 border-b border-gray-300">
-                        <td class="px-6 py-4">{{ $inventory->item_name }}</td>
+                        <td class="px-6 py-4" data-item-name="{{ $inventory->item_name }}">{{ $inventory->item_name }}</td>
                         <td class="px-6 py-4">{{ $inventory->category }}</td>
                         <td class="px-6 py-4 font-semibold">{{ $inventory->stock }}</td>
                         <td class="px-6 py-4">
@@ -136,6 +146,7 @@
                             <button 
                                 type="button"
                                 data-archive-id="{{ $inventory->inventory_id }}"
+                                data-archive-name="{{ $inventory->item_name }}"
                                 class="archive-item-btn text-gray-500 hover:text-gray-700">
                                 <i class="fas fa-archive"></i>
                             </button>
@@ -153,6 +164,78 @@
                         @endforelse
                     </tbody>
 
+                </table>
+            </div>
+
+            <!-- Archived Items Section -->
+            <div id="archivedItemsSection" class="overflow-x-auto rounded-xl shadow-lg hidden">
+                <div class="bg-gray-500 text-white px-6 py-4 rounded-t-xl shadow flex items-center text-3xl font-bold">
+                    <i class="fas fa-archive mr-3"></i>
+                    <h3>Archived Inventory</h3>
+                </div>
+
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-white text-gray-600 font-semibold hover:bg-gray-200 border-b border-gray-300">
+                            <th class="px-6 py-4 text-left">Item Name</th>
+                            <th class="px-6 py-4 text-left">Category</th>
+                            <th class="px-6 py-4 text-left">Stock</th>
+                            <th class="px-6 py-4 text-left">Status</th>
+                            <th class="px-6 py-4 text-left">Archived Date</th>
+                            <th class="px-6 py-4 text-left">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @forelse($archivedInventories as $inventory)
+                            @php
+                                $status = $inventory->status;
+                                $statusClass = '';
+                                $statusBg = '';
+                                
+                                if ($status === 'In Stock') {
+                                    $statusClass = 'text-green-900';
+                                    $statusBg = 'bg-[#D4F6DF]';
+                                } elseif ($status === 'Low Stock') {
+                                    $statusClass = 'text-yellow-900';
+                                    $statusBg = 'bg-yellow-100';
+                                } else {
+                                    $statusClass = 'text-red-900';
+                                    $statusBg = 'bg-red-100';
+                                }
+                            @endphp
+                            <tr class="bg-white text-gray-600 font-medium hover:bg-gray-200 border-b border-gray-300">
+                                <td class="px-6 py-4">{{ $inventory->item_name }}</td>
+                                <td class="px-6 py-4">{{ $inventory->category }}</td>
+                                <td class="px-6 py-4 font-semibold">{{ $inventory->stock }}</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-4 py-1 rounded-full {{ $statusBg }} {{ $statusClass }} font-medium inline-block">
+                                        {{ $status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-500">
+                                    {{ $inventory->archived_at ? $inventory->archived_at->format('M d, Y') : 'N/A' }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <!-- RESTORE BUTTON -->
+                                    <button 
+                                        type="button"
+                                        data-restore-id="{{ $inventory->inventory_id }}"
+                                        data-restore-name="{{ $inventory->item_name }}"
+                                        class="restore-item-btn text-green-500 hover:text-green-600">
+                                        <i class="fas fa-undo mr-1"></i>Restore
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                                    <i class="fas fa-archive text-4xl mb-2 block"></i>
+                                    No archived items.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -217,6 +300,76 @@
             </div>
         </form>
 
+        </div>
+    </div>
+
+    <!-- Archive Confirmation Modal -->
+    <div id="archiveItemModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            <div class="bg-orange-500 rounded-t-xl px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white">
+                    <i class="fas fa-archive mr-2"></i>Archive Item
+                </h3>
+                <button id="closeArchiveItemModal" class="text-white hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full">
+                        <i class="fas fa-exclamation-triangle text-orange-600 text-2xl"></i>
+                    </div>
+                    <p class="text-gray-700 text-center font-semibold mb-2">Are you sure you want to archive this item?</p>
+                    <p class="text-gray-600 text-center text-sm mb-4">
+                        The item "<span id="archiveItemName" class="font-semibold"></span>" will be moved to archived items. You can restore it later if needed.
+                    </p>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="button" id="cancelArchiveItem" 
+                        class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button type="button" id="confirmArchiveItem"
+                        class="flex-1 px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition">
+                        <i class="fas fa-archive mr-2"></i>Archive
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restore Confirmation Modal -->
+    <div id="restoreItemModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            <div class="bg-green-500 rounded-t-xl px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white">
+                    <i class="fas fa-undo mr-2"></i>Restore Item
+                </h3>
+                <button id="closeRestoreItemModal" class="text-white hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full">
+                        <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                    </div>
+                    <p class="text-gray-700 text-center font-semibold mb-2">Are you sure you want to restore this item?</p>
+                    <p class="text-gray-600 text-center text-sm mb-4">
+                        The item "<span id="restoreItemName" class="font-semibold"></span>" will be moved back to active inventory and will be available for use.
+                    </p>
+                </div>
+                <div class="flex space-x-3">
+                    <button type="button" id="cancelRestoreItem" 
+                        class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button type="button" id="confirmRestoreItem"
+                        class="flex-1 px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition">
+                        <i class="fas fa-undo mr-2"></i>Restore
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -407,8 +560,9 @@ document.addEventListener('click', (e) => {
     if (e.target.closest('.archive-item-btn')) {
         const btn = e.target.closest('.archive-item-btn');
         const id = btn.getAttribute('data-archive-id');
+        const itemName = btn.getAttribute('data-archive-name');
         if (id) {
-            archiveItem(parseInt(id));
+            archiveItem(parseInt(id), itemName);
         }
     }
 });
@@ -422,7 +576,9 @@ function openEditModal(id) {
     })
     .then(res => res.json())
     .then(data => {
-        document.getElementById('edit_item_id').value = data.id;
+        // Use inventory_id if available, otherwise fall back to id
+        const itemId = data.inventory_id || data.id;
+        document.getElementById('edit_item_id').value = itemId;
         document.getElementById('edit_item_name').value = data.item_name;
         document.getElementById('edit_category').value = data.category;
         document.getElementById('edit_stock').value = data.stock;
@@ -474,28 +630,212 @@ editItemForm.addEventListener('submit', async (e) => {
 
 
 /* ==========================================
-   ARCHIVE ITEM
+   ARCHIVE ITEM MODAL
 ========================================== */
-function archiveItem(id) {
-    if (!confirm('Archive this item?')) return;
+const archiveItemModal = document.getElementById('archiveItemModal');
+const closeArchiveItemModalBtn = document.getElementById('closeArchiveItemModal');
+const cancelArchiveItemBtn = document.getElementById('cancelArchiveItem');
+const confirmArchiveItemBtn = document.getElementById('confirmArchiveItem');
+let currentArchiveId = null;
+let currentArchiveItemName = '';
 
-    fetch(`/admin/inventory/${id}/archive`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector("meta[name='csrf-token']").content,
-            'X-Requested-With': 'XMLHttpRequest'
+function openArchiveModal(id, itemName) {
+    currentArchiveId = id;
+    currentArchiveItemName = itemName;
+    document.getElementById('archiveItemName').textContent = itemName;
+    archiveItemModal.classList.remove('hidden');
+}
+
+function closeArchiveModal() {
+    archiveItemModal.classList.add('hidden');
+    currentArchiveId = null;
+    currentArchiveItemName = '';
+}
+
+if (closeArchiveItemModalBtn) {
+    closeArchiveItemModalBtn.addEventListener('click', closeArchiveModal);
+}
+if (cancelArchiveItemBtn) {
+    cancelArchiveItemBtn.addEventListener('click', closeArchiveModal);
+}
+
+if (archiveItemModal) {
+    archiveItemModal.addEventListener('click', (e) => {
+        if (e.target === archiveItemModal) closeArchiveModal();
+    });
+}
+
+if (confirmArchiveItemBtn) {
+    confirmArchiveItemBtn.addEventListener('click', () => {
+        if (!currentArchiveId) return;
+        
+        // Disable button during request
+        confirmArchiveItemBtn.disabled = true;
+        confirmArchiveItemBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Archiving...';
+
+        fetch(`/admin/inventory/${currentArchiveId}/archive`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector("meta[name='csrf-token']").content,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Item archived successfully!', 'success');
+                closeArchiveModal();
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast('Failed to archive.', 'error');
+                confirmArchiveItemBtn.disabled = false;
+                confirmArchiveItemBtn.innerHTML = '<i class="fas fa-archive mr-2"></i>Archive';
+            }
+        })
+        .catch(() => {
+            showToast('Server error.', 'error');
+            confirmArchiveItemBtn.disabled = false;
+            confirmArchiveItemBtn.innerHTML = '<i class="fas fa-archive mr-2"></i>Archive';
+        });
+    });
+}
+
+function archiveItem(id, itemName = null) {
+    // Get item name from attribute or table row
+    if (!itemName) {
+        const btn = document.querySelector(`[data-archive-id="${id}"]`);
+        if (!btn) return;
+        
+        itemName = btn.getAttribute('data-archive-name') || 
+                   (btn.closest('tr')?.querySelector('td:first-child')?.textContent.trim()) || 
+                   'this item';
+    }
+    
+    openArchiveModal(id, itemName);
+}
+
+/* ==========================================
+   TAB SWITCHING
+========================================== */
+const activeTab = document.getElementById('activeTab');
+const archivedTab = document.getElementById('archivedTab');
+const activeItemsSection = document.getElementById('activeItemsSection');
+const archivedItemsSection = document.getElementById('archivedItemsSection');
+
+if (activeTab && archivedTab) {
+    activeTab.addEventListener('click', () => {
+        activeTab.classList.add('active', 'bg-[#93BFC7]', 'text-white');
+        activeTab.classList.remove('bg-gray-300', 'text-gray-700');
+        archivedTab.classList.remove('active', 'bg-[#93BFC7]', 'text-white');
+        archivedTab.classList.add('bg-gray-300', 'text-gray-700');
+        activeItemsSection.classList.remove('hidden');
+        archivedItemsSection.classList.add('hidden');
+    });
+
+    archivedTab.addEventListener('click', () => {
+        archivedTab.classList.add('active', 'bg-[#93BFC7]', 'text-white');
+        archivedTab.classList.remove('bg-gray-300', 'text-gray-700');
+        activeTab.classList.remove('active', 'bg-[#93BFC7]', 'text-white');
+        activeTab.classList.add('bg-gray-300', 'text-gray-700');
+        archivedItemsSection.classList.remove('hidden');
+        activeItemsSection.classList.add('hidden');
+    });
+}
+
+/* ==========================================
+   RESTORE ITEM MODAL
+========================================== */
+const restoreItemModal = document.getElementById('restoreItemModal');
+const closeRestoreItemModalBtn = document.getElementById('closeRestoreItemModal');
+const cancelRestoreItemBtn = document.getElementById('cancelRestoreItem');
+const confirmRestoreItemBtn = document.getElementById('confirmRestoreItem');
+let currentRestoreId = null;
+let currentRestoreItemName = '';
+
+function openRestoreModal(id, itemName) {
+    currentRestoreId = id;
+    currentRestoreItemName = itemName;
+    document.getElementById('restoreItemName').textContent = itemName;
+    restoreItemModal.classList.remove('hidden');
+}
+
+function closeRestoreModal() {
+    restoreItemModal.classList.add('hidden');
+    currentRestoreId = null;
+    currentRestoreItemName = '';
+}
+
+if (closeRestoreItemModalBtn) {
+    closeRestoreItemModalBtn.addEventListener('click', closeRestoreModal);
+}
+if (cancelRestoreItemBtn) {
+    cancelRestoreItemBtn.addEventListener('click', closeRestoreModal);
+}
+
+if (restoreItemModal) {
+    restoreItemModal.addEventListener('click', (e) => {
+        if (e.target === restoreItemModal) closeRestoreModal();
+    });
+}
+
+if (confirmRestoreItemBtn) {
+    confirmRestoreItemBtn.addEventListener('click', () => {
+        if (!currentRestoreId) return;
+        
+        // Disable button during request
+        confirmRestoreItemBtn.disabled = true;
+        confirmRestoreItemBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Restoring...';
+
+        fetch(`/admin/inventory/${currentRestoreId}/restore`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector("meta[name='csrf-token']").content,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Item restored successfully!', 'success');
+                closeRestoreModal();
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast('Failed to restore.', 'error');
+                confirmRestoreItemBtn.disabled = false;
+                confirmRestoreItemBtn.innerHTML = '<i class="fas fa-undo mr-2"></i>Restore';
+            }
+        })
+        .catch(() => {
+            showToast('Server error.', 'error');
+            confirmRestoreItemBtn.disabled = false;
+            confirmRestoreItemBtn.innerHTML = '<i class="fas fa-undo mr-2"></i>Restore';
+        });
+    });
+}
+
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.restore-item-btn')) {
+        const btn = e.target.closest('.restore-item-btn');
+        const id = btn.getAttribute('data-restore-id');
+        const itemName = btn.getAttribute('data-restore-name');
+        if (id) {
+            restoreItem(parseInt(id), itemName);
         }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Item archived.', 'success');
-            setTimeout(() => window.location.reload(), 800);
-        } else {
-            showToast('Failed to archive.', 'error');
-        }
-    })
-    .catch(() => showToast('Server error.', 'error'));
+    }
+});
+
+function restoreItem(id, itemName = null) {
+    // Get item name from attribute or table row
+    if (!itemName) {
+        const btn = document.querySelector(`[data-restore-id="${id}"]`);
+        if (!btn) return;
+        
+        itemName = btn.getAttribute('data-restore-name') || 
+                   (btn.closest('tr')?.querySelector('td:first-child')?.textContent.trim()) || 
+                   'this item';
+    }
+    
+    openRestoreModal(id, itemName);
 }
 </script>
 

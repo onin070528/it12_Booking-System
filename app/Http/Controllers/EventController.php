@@ -361,12 +361,15 @@ class EventController extends Controller
 
      public function AdminInventory()
     {
-        $inventories = Inventory::orderBy('created_at', 'desc')->get();
-        $totalProducts = Inventory::count();
-        $lowStockItems = Inventory::where('stock', '<', 10)->where('stock', '>', 0)->count();
-        $newItems = Inventory::where('created_at', '>=', now()->subDays(30))->count();
+        // Get active (non-archived) inventories
+        $inventories = Inventory::whereNull('archived_at')->orderBy('created_at', 'desc')->get();
+        $archivedInventories = Inventory::whereNotNull('archived_at')->orderBy('archived_at', 'desc')->get();
+        $totalProducts = Inventory::whereNull('archived_at')->count();
+        $lowStockItems = Inventory::whereNull('archived_at')->where('stock', '<', 10)->where('stock', '>', 0)->count();
+        $newItems = Inventory::whereNull('archived_at')->where('created_at', '>=', now()->subDays(30))->count();
+        $archivedCount = Inventory::whereNotNull('archived_at')->count();
         
-        return view('admin.AdminInventory', compact('inventories', 'totalProducts', 'lowStockItems', 'newItems'));
+        return view('admin.AdminInventory', compact('inventories', 'archivedInventories', 'totalProducts', 'lowStockItems', 'newItems', 'archivedCount'));
     }
 
     /**
@@ -394,7 +397,9 @@ class EventController extends Controller
      */
     public function getInventory($id)
     {
-        $inventory = Inventory::findOrFail($id);
+        $inventory = Inventory::where('inventory_id', $id)->firstOrFail();
+        // Return with both id and inventory_id for compatibility
+        $inventory->id = $inventory->inventory_id;
         return response()->json($inventory);
     }
 
@@ -403,7 +408,7 @@ class EventController extends Controller
      */
     public function updateInventory(Request $request, $id)
     {
-        $inventory = Inventory::findOrFail($id);
+        $inventory = Inventory::where('inventory_id', $id)->firstOrFail();
 
         $validated = $request->validate([
             'item_name' => 'required|string|max:255',
@@ -425,15 +430,32 @@ class EventController extends Controller
      */
     public function archiveInventory($id)
     {
-        $inventory = Inventory::findOrFail($id);
+        $inventory = Inventory::where('inventory_id', $id)->firstOrFail();
         
-        // You can either delete it or add a soft delete/archived flag
-        // For now, we'll delete it. If you want to keep it, add an 'archived_at' field to the migration
-        $inventory->delete();
+        // Mark as archived instead of deleting
+        $inventory->archived_at = now();
+        $inventory->save();
 
         return response()->json([
             'success' => true,
             'message' => 'Item archived successfully!'
+        ]);
+    }
+
+    /**
+     * Restore an archived inventory item
+     */
+    public function restoreInventory($id)
+    {
+        $inventory = Inventory::where('inventory_id', $id)->firstOrFail();
+        
+        // Restore by removing archived_at
+        $inventory->archived_at = null;
+        $inventory->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Item restored successfully!'
         ]);
     }
 }

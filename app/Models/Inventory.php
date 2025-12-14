@@ -13,10 +13,12 @@ class Inventory extends Model
         'category',
         'stock',
         'status',
+        'archived_at',
     ];
 
     protected $casts = [
         'stock' => 'integer',
+        'archived_at' => 'datetime',
     ];
 
     /**

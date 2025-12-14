@@ -43,7 +43,7 @@
     <div class="overflow-x-auto">
         <table class="w-full">
             <thead>
-                <tr class="bg-white text-[#93BFC7] font-semibold hover:bg-gray-200 border-b border-gray-300">
+                <tr class="bg-[#F6F6F6] text-[#93BFC7] font-semibold hover:bg-gray-200 border-b border-gray-300">
                     <th class="px-6 py-4 text-left">Payment Date</th>
                     <th class="px-6 py-4 text-left">Customer</th>
                     <th class="px-6 py-4 text-left">Booking</th>
@@ -61,7 +61,7 @@
                     $bookingId = $payment->booking->id ?? null;
                     $balance = $bookingId && isset($bookingBalances[$bookingId]) ? $bookingBalances[$bookingId] : null;
                 @endphp
-                <tr class="bg-white font-medium text-[#93BFC7] hover:bg-gray-200 border-b border-gray-300">
+                <tr class="bg-[#F6F6F6] font-medium text-[#93BFC7] hover:bg-gray-200 border-b border-gray-300">
                     <td class="px-6 py-4">{{ $payment->created_at->format('M d, Y') }}</td>
                     <td class="px-6 py-4">
                         <div>

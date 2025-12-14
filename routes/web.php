@@ -54,6 +54,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/inventory/{id}', [EventController::class, 'getInventory'])->name('inventory.get');
     Route::post('/inventory/{id}', [EventController::class, 'updateInventory'])->name('inventory.update');
     Route::post('/inventory/{id}/archive', [EventController::class, 'archiveInventory'])->name('inventory.archive');
+    Route::post('/inventory/{id}/restore', [EventController::class, 'restoreInventory'])->name('inventory.restore');
     
     // Reports (renamed from AdminReports)
     Route::get('/reports', [EventController::class, 'AdminReports'])->name('reports.index');
