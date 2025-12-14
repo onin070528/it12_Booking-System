@@ -20,6 +20,8 @@ class Payment extends Model
         'description',
         'paymongo_response',
         'paid_at',
+        'reference_number',
+        'payment_screenshot',
     ];
 
     protected $casts = [

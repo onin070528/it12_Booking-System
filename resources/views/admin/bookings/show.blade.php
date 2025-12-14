@@ -376,6 +376,20 @@
         </div>
     </div>
 
+    <!-- Print/Export Buttons (Only for Approved Bookings) -->
+    @if($booking->status == 'approved')
+    <div class="flex gap-3 pt-4 pb-4 border-t border-gray-200">
+        <button onclick="printBooking()" 
+                class="flex-1 bg-gray-600 text-white font-bold py-3 rounded-lg hover:bg-gray-700 transition flex items-center justify-center">
+            <i class="fas fa-print mr-2"></i>Print Booking
+        </button>
+        <button onclick="exportBookingToPDF()" 
+                class="flex-1 bg-red-600 text-white font-bold py-3 rounded-lg hover:bg-red-700 transition flex items-center justify-center">
+            <i class="fas fa-file-pdf mr-2"></i>Export PDF
+        </button>
+    </div>
+    @endif
+
     <!-- Action Buttons -->
     <div class="flex gap-3 pt-4">
         @if($booking->status == 'pending')

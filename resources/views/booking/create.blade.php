@@ -79,10 +79,55 @@
                             <input type="text" id="debut_name" name="debut_name" placeholder="Debutante Name *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <input type="text" id="debut_venue" name="debut_venue" placeholder="Venue *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <input type="number" id="debut_guests" name="debut_guests" placeholder="Number of Guests *" required min="1" class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
-                            <input type="text" id="debut_theme" name="debut_theme" placeholder="Theme / Motif *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
-                            <input type="text" id="debut_roses" name="debut_roses" placeholder="18 Roses Participants *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
-                            <input type="text" id="debut_candles" name="debut_candles" placeholder="18 Candles Participants *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
-                            <input type="text" id="debut_treasures" name="debut_treasures" placeholder="18 Treasures Participants *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            
+                            <!-- 18 Roses - Collapsible -->
+                            <div class="mb-4">
+                                <button type="button" onclick="toggleSection('rosesSection')" class="w-full flex items-center justify-between text-white font-semibold mb-2 px-3 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
+                                    <span>18 Roses *</span>
+                                    <i class="fas fa-chevron-down" id="rosesIcon"></i>
+                                </button>
+                                <div id="rosesSection" class="hidden grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mt-2">
+                                    @for($i = 1; $i <= 18; $i++)
+                                        <div>
+                                            <label class="text-white text-xs mb-1 block">Rose {{ $i }}</label>
+                                            <input type="text" id="debut_rose_{{ $i }}" name="debut_roses[]" placeholder="Enter name" required class="w-full px-2 py-1.5 rounded-lg focus:ring-2 focus:ring-white text-sm">
+                                        </div>
+                                    @endfor
+                                </div>
+                            </div>
+
+                            <!-- 18 Candles - Collapsible -->
+                            <div class="mb-4">
+                                <button type="button" onclick="toggleSection('candlesSection')" class="w-full flex items-center justify-between text-white font-semibold mb-2 px-3 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
+                                    <span>18 Candles *</span>
+                                    <i class="fas fa-chevron-down" id="candlesIcon"></i>
+                                </button>
+                                <div id="candlesSection" class="hidden grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mt-2">
+                                    @for($i = 1; $i <= 18; $i++)
+                                        <div>
+                                            <label class="text-white text-xs mb-1 block">Candle {{ $i }}</label>
+                                            <input type="text" id="debut_candle_{{ $i }}" name="debut_candles[]" placeholder="Enter name" required class="w-full px-2 py-1.5 rounded-lg focus:ring-2 focus:ring-white text-sm">
+                                        </div>
+                                    @endfor
+                                </div>
+                            </div>
+
+                            <!-- 18 Treasures - Collapsible -->
+                            <div class="mb-4">
+                                <button type="button" onclick="toggleSection('treasuresSection')" class="w-full flex items-center justify-between text-white font-semibold mb-2 px-3 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
+                                    <span>18 Treasures *</span>
+                                    <i class="fas fa-chevron-down" id="treasuresIcon"></i>
+                                </button>
+                                <div id="treasuresSection" class="hidden grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mt-2">
+                                    @for($i = 1; $i <= 18; $i++)
+                                        <div>
+                                            <label class="text-white text-xs mb-1 block">Treasure {{ $i }}</label>
+                                            <input type="text" id="debut_treasure_{{ $i }}" name="debut_treasures[]" placeholder="Enter name" required class="w-full px-2 py-1.5 rounded-lg focus:ring-2 focus:ring-white text-sm">
+                                        </div>
+                                    @endfor
+                                </div>
+                            </div>
+
                             <textarea id="debut_notes" name="debut_notes" placeholder="Program Notes (Optional)" class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white resize-none"></textarea>
                         </div>
 
@@ -92,9 +137,7 @@
                             <input type="text" id="pageant_title" name="pageant_title" placeholder="Pageant Title *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <input type="text" id="pageant_venue" name="pageant_venue" placeholder="Venue *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <input type="number" id="pageant_guests" name="pageant_guests" placeholder="Number of Guests *" required min="1" class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
-                            <input type="text" id="pageant_theme" name="pageant_theme" placeholder="Theme / Motif *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <input type="number" id="pageant_contestants" name="pageant_contestants" placeholder="Number of Contestants *" required min="1" class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
-                            <input type="text" id="pageant_categories" name="pageant_categories" placeholder="Categories (e.g., Talent, Q&A, Evening Gown) *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                             <textarea id="pageant_notes" name="pageant_notes" placeholder="Additional Notes (Optional)" class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white resize-none"></textarea>
                         </div>
 
@@ -250,20 +293,16 @@
                                 <p class="text-white font-semibold" id="preview_debut_guests">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Theme / Motif:</p>
-                                <p class="text-white font-semibold" id="preview_debut_theme">-</p>
+                                <p class="text-white font-bold text-base">18 Roses:</p>
+                                <p class="text-white font-semibold text-sm" id="preview_debut_roses">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">18 Roses Participants:</p>
-                                <p class="text-white font-semibold" id="preview_debut_roses">-</p>
+                                <p class="text-white font-bold text-base">18 Candles:</p>
+                                <p class="text-white font-semibold text-sm" id="preview_debut_candles">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">18 Candles Participants:</p>
-                                <p class="text-white font-semibold" id="preview_debut_candles">-</p>
-                            </div>
-                            <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">18 Treasures Participants:</p>
-                                <p class="text-white font-semibold" id="preview_debut_treasures">-</p>
+                                <p class="text-white font-bold text-base">18 Treasures:</p>
+                                <p class="text-white font-semibold text-sm" id="preview_debut_treasures">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
                                 <p class="text-white font-bold text-base">Program Notes:</p>
@@ -286,16 +325,8 @@
                                 <p class="text-white font-semibold" id="preview_pageant_guests">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Theme / Motif:</p>
-                                <p class="text-white font-semibold" id="preview_pageant_theme">-</p>
-                            </div>
-                            <div class="bg-white/20 p-4 rounded-lg">
                                 <p class="text-white font-bold text-base">Number of Contestants:</p>
                                 <p class="text-white font-semibold" id="preview_pageant_contestants">-</p>
-                            </div>
-                            <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Categories:</p>
-                                <p class="text-white font-semibold" id="preview_pageant_categories">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
                                 <p class="text-white font-bold text-base">Additional Notes:</p>
@@ -391,6 +422,27 @@
 
             <!-- LOGIC -->
             <script>
+                // Toggle collapsible sections
+                function toggleSection(sectionId) {
+                    const section = document.getElementById(sectionId);
+                    const icon = document.getElementById(sectionId.replace('Section', 'Icon'));
+                    
+                    if (section.classList.contains('hidden')) {
+                        section.classList.remove('hidden');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-down');
+                            icon.classList.add('fa-chevron-up');
+                        }
+                    } else {
+                        section.classList.add('hidden');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-up');
+                            icon.classList.add('fa-chevron-down');
+                        }
+                    }
+                }
+
+
                 // Toast Notification Function
                 function showToast(message, type = 'success') {
                     const toastContainer = document.getElementById('toastContainer');
@@ -645,21 +697,52 @@
                 document.getElementById('debut_guests')?.addEventListener('input', e =>
                     document.getElementById('preview_debut_guests').textContent = e.target.value || '-'
                 );
-                document.getElementById('debut_theme')?.addEventListener('input', e =>
-                    document.getElementById('preview_debut_theme').textContent = e.target.value || '-'
-                );
-                document.getElementById('debut_roses')?.addEventListener('input', e =>
-                    document.getElementById('preview_debut_roses').textContent = e.target.value || '-'
-                );
-                document.getElementById('debut_candles')?.addEventListener('input', e =>
-                    document.getElementById('preview_debut_candles').textContent = e.target.value || '-'
-                );
-                document.getElementById('debut_treasures')?.addEventListener('input', e =>
-                    document.getElementById('preview_debut_treasures').textContent = e.target.value || '-'
-                );
                 document.getElementById('debut_notes')?.addEventListener('input', e =>
                     document.getElementById('preview_debut_notes').textContent = e.target.value || '-'
                 );
+
+                // Update preview for 18 Roses
+                function updateDebutRosesPreview() {
+                    const roses = [];
+                    for (let i = 1; i <= 18; i++) {
+                        const input = document.getElementById(`debut_rose_${i}`);
+                        if (input && input.value.trim()) {
+                            roses.push(`${i}. ${input.value.trim()}`);
+                        }
+                    }
+                    document.getElementById('preview_debut_roses').textContent = roses.length > 0 ? roses.join(', ') : '-';
+                }
+
+                // Update preview for 18 Candles
+                function updateDebutCandlesPreview() {
+                    const candles = [];
+                    for (let i = 1; i <= 18; i++) {
+                        const input = document.getElementById(`debut_candle_${i}`);
+                        if (input && input.value.trim()) {
+                            candles.push(`${i}. ${input.value.trim()}`);
+                        }
+                    }
+                    document.getElementById('preview_debut_candles').textContent = candles.length > 0 ? candles.join(', ') : '-';
+                }
+
+                // Update preview for 18 Treasures
+                function updateDebutTreasuresPreview() {
+                    const treasures = [];
+                    for (let i = 1; i <= 18; i++) {
+                        const input = document.getElementById(`debut_treasure_${i}`);
+                        if (input && input.value.trim()) {
+                            treasures.push(`${i}. ${input.value.trim()}`);
+                        }
+                    }
+                    document.getElementById('preview_debut_treasures').textContent = treasures.length > 0 ? treasures.join(', ') : '-';
+                }
+
+                // Attach listeners to all 18 inputs
+                for (let i = 1; i <= 18; i++) {
+                    document.getElementById(`debut_rose_${i}`)?.addEventListener('input', updateDebutRosesPreview);
+                    document.getElementById(`debut_candle_${i}`)?.addEventListener('input', updateDebutCandlesPreview);
+                    document.getElementById(`debut_treasure_${i}`)?.addEventListener('input', updateDebutTreasuresPreview);
+                }
 
                 // Pageant form listeners
                 document.getElementById('pageant_title')?.addEventListener('input', e =>
@@ -671,14 +754,8 @@
                 document.getElementById('pageant_guests')?.addEventListener('input', e =>
                     document.getElementById('preview_pageant_guests').textContent = e.target.value || '-'
                 );
-                document.getElementById('pageant_theme')?.addEventListener('input', e =>
-                    document.getElementById('preview_pageant_theme').textContent = e.target.value || '-'
-                );
                 document.getElementById('pageant_contestants')?.addEventListener('input', e =>
                     document.getElementById('preview_pageant_contestants').textContent = e.target.value || '-'
-                );
-                document.getElementById('pageant_categories')?.addEventListener('input', e =>
-                    document.getElementById('preview_pageant_categories').textContent = e.target.value || '-'
                 );
                 document.getElementById('pageant_notes')?.addEventListener('input', e =>
                     document.getElementById('preview_pageant_notes').textContent = e.target.value || '-'
@@ -859,9 +936,11 @@
                         } else if (eventType === 'birthday') {
                             themeValue = document.getElementById('birthday_theme')?.value || '';
                         } else if (eventType === 'debut') {
-                            themeValue = document.getElementById('debut_theme')?.value || '';
+                            // Debut doesn't have theme field anymore
+                            themeValue = '';
                         } else if (eventType === 'pageant') {
-                            themeValue = document.getElementById('pageant_theme')?.value || '';
+                            // Pageant doesn't have theme field anymore
+                            themeValue = '';
                         } else if (eventType === 'corporate') {
                             themeValue = document.getElementById('corporate_title')?.value || '';
                         }

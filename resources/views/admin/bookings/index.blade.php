@@ -11,6 +11,9 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body class="font-sans bg-[#ECF4E8]">
@@ -36,7 +39,7 @@
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full">
-                        <thead class="bg-[#93BFC7] text-white">
+                        <thead class="bg-[#93BFC7] text-white text-lg">
                             <tr>
                                 <th class="px-6 py-4 text-left">Customer</th>
                                 <th class="px-6 py-4 text-left">Event Type</th>
@@ -50,7 +53,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-200">
                             @forelse($bookings as $booking)
-                                <tr class="hover:bg-gray-50">
+                                <tr class="hover:bg-gray-50 font-medium">
                                     <td class="px-6 py-4 hidden">{{ $booking->id }}</td>
                                     <td class="px-6 py-4">{{ $booking->user->name }}</td>
                                     <td class="px-6 py-4 capitalize">{{ $booking->event_type }}</td>
@@ -511,6 +514,126 @@
                 closeViewModal();
             }
         });
+
+        // Print Booking Function
+        function printBooking() {
+            const bookingDetails = document.getElementById('bookingDetails');
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Booking Print</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .print-header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #93BFC7; padding-bottom: 20px; }
+                        .print-header h1 { color: #93BFC7; margin: 0; }
+                        .print-section { margin-bottom: 20px; page-break-inside: avoid; }
+                        .print-section h3 { color: #93BFC7; border-bottom: 2px solid #93BFC7; padding-bottom: 5px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        table td { padding: 8px; border-bottom: 1px solid #eee; }
+                        table td:first-child { font-weight: bold; width: 30%; }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <h1>RJ's Event Styling</h1>
+                        <p>Booking Management System</p>
+                        <p>Generated: ${new Date().toLocaleString()}</p>
+                    </div>
+                    ${bookingDetails.innerHTML}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }
+
+        // Export Booking to PDF Function
+        async function exportBookingToPDF() {
+            const { jsPDF } = window.jspdf;
+            const bookingDetails = document.getElementById('bookingDetails');
+            
+            // Show loading
+            const loading = document.createElement('div');
+            loading.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:9999;';
+            loading.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating PDF...';
+            document.body.appendChild(loading);
+
+            try {
+                // Create a temporary container for PDF generation
+                const tempContainer = document.createElement('div');
+                tempContainer.style.cssText = 'position:absolute;left:-9999px;width:800px;background:white;padding:20px;';
+                tempContainer.innerHTML = `
+                    <div style="text-align:center;margin-bottom:30px;border-bottom:3px solid #93BFC7;padding-bottom:20px;">
+                        <h1 style="color:#93BFC7;margin:0;">RJ's Event Styling</h1>
+                        <p>Booking Management System</p>
+                        <p style="font-size:12px;color:#666;">Generated: ${new Date().toLocaleString()}</p>
+                    </div>
+                    ${bookingDetails.innerHTML}
+                `;
+                document.body.appendChild(tempContainer);
+
+                // Convert to canvas
+                const canvas = await html2canvas(tempContainer, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: 'white',
+                    windowWidth: tempContainer.scrollWidth,
+                    windowHeight: tempContainer.scrollHeight
+                });
+
+                // Remove temporary container
+                document.body.removeChild(tempContainer);
+
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                
+                // Create PDF
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const margin = 10;
+                const contentWidth = pdfWidth - (margin * 2);
+                const imgWidth = contentWidth;
+                const imgHeight = (canvas.height * contentWidth) / canvas.width;
+                
+                let heightLeft = imgHeight;
+                let position = margin;
+
+                // Add first page
+                pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+                heightLeft -= (pdfHeight - margin * 2);
+
+                // Add additional pages if needed
+                while (heightLeft > 0) {
+                    position = margin - (imgHeight - heightLeft);
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+                    heightLeft -= (pdfHeight - margin * 2);
+                }
+
+                // Save PDF - extract booking ID from content if possible
+                const bookingIdMatch = bookingDetails.textContent.match(/Booking #(\d+)/);
+                const bookingId = bookingIdMatch ? bookingIdMatch[1] : 'Unknown';
+                const fileName = `Booking_${bookingId}_${new Date().toISOString().split('T')[0]}.pdf`;
+                pdf.save(fileName);
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+            } finally {
+                if (document.body.contains(loading)) {
+                    document.body.removeChild(loading);
+                }
+            }
+        }
     </script>
 
 </body>

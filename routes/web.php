@@ -52,9 +52,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/booking/{booking}/mark-payment-paid', [BookingController::class, 'markPaymentAsPaid'])->name('booking.mark-payment-paid');
     Route::post('/booking/{booking}/mark-in-design', [BookingController::class, 'markAsInDesign'])->name('booking.mark-in-design');
     Route::post('/booking/{booking}/mark-completed', [BookingController::class, 'markAsCompleted'])->name('booking.mark-completed');
+    Route::post('/booking/{booking}/reject', [BookingController::class, 'reject'])->name('booking.reject');
+    Route::post('/booking/{booking}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
     
     // Payment Management (renamed from AdminPayment)
     Route::get('/payments', [EventController::class, 'AdminPayment'])->name('payments.index');
+    Route::get('/payment/{id}/details', [EventController::class, 'getPaymentDetails'])->name('payment.details');
     
     // Inventory Management (renamed from AdminInventory)
     Route::get('/inventory', [EventController::class, 'AdminInventory'])->name('inventory.index');
@@ -118,6 +121,9 @@ Route::middleware(['auth', 'user'])->group(function () {
     
     // Choose Communication Method
     Route::post('/booking/{booking}/choose-communication', [BookingController::class, 'chooseCommunicationMethod'])->name('booking.choose-communication');
+    
+    // Cancel Booking (users can cancel their own bookings)
+    Route::post('/booking/{booking}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
 
     // Payment routes
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');

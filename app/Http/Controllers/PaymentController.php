@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\PayMongoService;
+use App\Services\EmailNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -15,10 +16,12 @@ use Illuminate\Support\Facades\Storage;
 class PaymentController extends Controller
 {
     protected PayMongoService $payMongoService;
+    protected EmailNotificationService $emailNotificationService;
 
-    public function __construct(PayMongoService $payMongoService)
+    public function __construct(PayMongoService $payMongoService, EmailNotificationService $emailNotificationService)
     {
         $this->payMongoService = $payMongoService;
+        $this->emailNotificationService = $emailNotificationService;
     }
 
     /**
@@ -139,22 +142,34 @@ class PaymentController extends Controller
 
             // Notify all admins about the payment
             $admins = User::where('role', 'admin')->get();
+            $notificationMessage = Auth::user()->name . " has submitted a cash payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->id} ({$booking->event_type}).";
+            $notificationData = [
+                'booking_id' => $booking->id,
+                'payment_id' => $payment->id,
+                'customer_name' => Auth::user()->name,
+                'amount' => $paymentAmount,
+                'payment_method' => 'cash',
+            ];
+
             foreach ($admins as $admin) {
                 Notification::create([
                     'user_id' => $admin->id,
                     'type' => 'payment_submitted',
                     'notifiable_type' => Payment::class,
                     'notifiable_id' => $payment->id,
-                    'message' => Auth::user()->name . " has submitted a cash payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->id} ({$booking->event_type}).",
+                    'message' => $notificationMessage,
                     'read' => false,
-                    'data' => [
-                        'booking_id' => $booking->id,
-                        'payment_id' => $payment->id,
-                        'customer_name' => Auth::user()->name,
-                        'amount' => $paymentAmount,
-                        'payment_method' => 'cash',
-                    ],
+                    'data' => $notificationData,
                 ]);
+
+                // Send email notification
+                $this->emailNotificationService->sendNotification(
+                    $admin,
+                    'payment_submitted',
+                    $notificationMessage,
+                    $notificationData,
+                    $booking
+                );
             }
 
             $successMessage = $isRemainingBalance
@@ -196,23 +211,35 @@ class PaymentController extends Controller
 
             // Notify all admins about the payment
             $admins = User::where('role', 'admin')->get();
+            $notificationMessage = Auth::user()->name . " has submitted a " . ucfirst($paymentMethod) . " payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->id} ({$booking->event_type}). Reference: {$referenceNumber}";
+            $notificationData = [
+                'booking_id' => $booking->id,
+                'payment_id' => $payment->id,
+                'customer_name' => Auth::user()->name,
+                'amount' => $paymentAmount,
+                'payment_method' => $paymentMethod,
+                'reference_number' => $referenceNumber,
+            ];
+
             foreach ($admins as $admin) {
                 Notification::create([
                     'user_id' => $admin->id,
                     'type' => 'payment_submitted',
                     'notifiable_type' => Payment::class,
                     'notifiable_id' => $payment->id,
-                    'message' => Auth::user()->name . " has submitted a " . ucfirst($paymentMethod) . " payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->id} ({$booking->event_type}). Reference: {$referenceNumber}",
+                    'message' => $notificationMessage,
                     'read' => false,
-                    'data' => [
-                        'booking_id' => $booking->id,
-                        'payment_id' => $payment->id,
-                        'customer_name' => Auth::user()->name,
-                        'amount' => $paymentAmount,
-                        'payment_method' => $paymentMethod,
-                        'reference_number' => $referenceNumber,
-                    ],
+                    'data' => $notificationData,
                 ]);
+
+                // Send email notification
+                $this->emailNotificationService->sendNotification(
+                    $admin,
+                    'payment_submitted',
+                    $notificationMessage,
+                    $notificationData,
+                    $booking
+                );
             }
 
             $successMessage = $isRemainingBalance
@@ -262,12 +289,121 @@ class PaymentController extends Controller
                     'paymongo_response' => $sourceResponse,
                 ]);
 
+                // Get booking and send email notification
+                $booking = $payment->booking;
+                if ($booking) {
+                    // Refresh to get updated payments
+                    $booking->refresh();
+                    
+                    // Calculate total paid
+                    $totalPaid = $booking->payments()
+                        ->whereIn('status', ['paid', 'partial_payment'])
+                        ->sum('amount');
+                    $remainingBalance = $booking->total_amount - $totalPaid;
+
+                    // If fully paid, update booking status to approved
+                    if ($remainingBalance <= 0) {
+                        $booking->update(['status' => 'approved']);
+                        
+                        // Send notification to customer
+                        $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been confirmed. Your booking is now fully paid and approved!";
+                        $notificationData = [
+                            'booking_id' => $booking->id,
+                            'payment_id' => $payment->id,
+                            'status' => 'approved',
+                        ];
+
+                        Notification::create([
+                            'user_id' => $booking->user_id,
+                            'type' => 'payment_full_received',
+                            'notifiable_type' => Booking::class,
+                            'notifiable_id' => $booking->id,
+                            'message' => $notificationMessage,
+                            'read' => false,
+                            'data' => $notificationData,
+                        ]);
+
+                        // Send email notification
+                        $customer = $booking->user;
+                        $this->emailNotificationService->sendNotification(
+                            $customer,
+                            'payment_full_received',
+                            $notificationMessage,
+                            $notificationData,
+                            $booking
+                        );
+                    } else {
+                        // Partial payment - update booking status
+                        $booking->update(['status' => 'partial_payment']);
+                        
+                        // Send notification to customer
+                        $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been confirmed. Remaining balance: ₱" . number_format($remainingBalance, 2) . ".";
+                        $notificationData = [
+                            'booking_id' => $booking->id,
+                            'payment_id' => $payment->id,
+                            'paid_amount' => $payment->amount,
+                            'remaining_amount' => $remainingBalance,
+                        ];
+
+                        Notification::create([
+                            'user_id' => $booking->user_id,
+                            'type' => 'payment_received',
+                            'notifiable_type' => Booking::class,
+                            'notifiable_id' => $booking->id,
+                            'message' => $notificationMessage,
+                            'read' => false,
+                            'data' => $notificationData,
+                        ]);
+
+                        // Send email notification
+                        $customer = $booking->user;
+                        $this->emailNotificationService->sendNotification(
+                            $customer,
+                            'payment_received',
+                            $notificationMessage,
+                            $notificationData,
+                            $booking
+                        );
+                    }
+                }
+
                 return redirect()->route('payment.success');
             } elseif ($status === 'failed') {
                 $payment->update([
                     'status' => 'failed',
                     'paymongo_response' => $sourceResponse,
                 ]);
+
+                // Send notification to customer
+                $booking = $payment->booking;
+                if ($booking) {
+                    $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has failed. Please try again or contact support.";
+                    $notificationData = [
+                        'booking_id' => $booking->id,
+                        'payment_id' => $payment->id,
+                        'amount' => $payment->amount,
+                    ];
+
+                    Notification::create([
+                        'user_id' => $booking->user_id,
+                        'type' => 'payment_failed',
+                        'notifiable_type' => Payment::class,
+                        'notifiable_id' => $payment->id,
+                        'message' => $notificationMessage,
+                        'read' => false,
+                        'data' => $notificationData,
+                    ]);
+
+                    // Send email notification
+                    $customer = $booking->user;
+                    $this->emailNotificationService->sendNotification(
+                        $customer,
+                        'payment_failed',
+                        $notificationMessage,
+                        $notificationData,
+                        $booking
+                    );
+                }
 
                 return redirect()->route('payment.failed');
             }
@@ -333,10 +469,130 @@ class PaymentController extends Controller
                         'paymongo_response' => $data,
                     ]);
 
-                    // Optionally update booking status
+                    // Get booking and calculate payment totals
                     $booking = $payment->booking;
-                    if ($booking && $booking->status === 'pending') {
-                        $booking->update(['status' => 'approved']);
+                    if ($booking) {
+                        // Refresh to get updated payments
+                        $booking->refresh();
+                        
+                        // Calculate total paid
+                        $totalPaid = $booking->payments()
+                            ->whereIn('status', ['paid', 'partial_payment'])
+                            ->sum('amount');
+                        $remainingBalance = $booking->total_amount - $totalPaid;
+
+                        // If fully paid, update booking status to approved
+                        if ($remainingBalance <= 0) {
+                            $booking->update(['status' => 'approved']);
+                            
+                            // Send notification to customer
+                            $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been confirmed. Your booking is now fully paid and approved!";
+                            $notificationData = [
+                                'booking_id' => $booking->id,
+                                'payment_id' => $payment->id,
+                                'status' => 'approved',
+                            ];
+
+                            Notification::create([
+                                'user_id' => $booking->user_id,
+                                'type' => 'payment_full_received',
+                                'notifiable_type' => Booking::class,
+                                'notifiable_id' => $booking->id,
+                                'message' => $notificationMessage,
+                                'read' => false,
+                                'data' => $notificationData,
+                            ]);
+
+                            // Send email notification
+                            $customer = $booking->user;
+                            $this->emailNotificationService->sendNotification(
+                                $customer,
+                                'payment_full_received',
+                                $notificationMessage,
+                                $notificationData,
+                                $booking
+                            );
+                        } else {
+                            // Partial payment - update booking status
+                            $booking->update(['status' => 'partial_payment']);
+                            
+                            // Send notification to customer
+                            $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been confirmed. Remaining balance: ₱" . number_format($remainingBalance, 2) . ".";
+                            $notificationData = [
+                                'booking_id' => $booking->id,
+                                'payment_id' => $payment->id,
+                                'paid_amount' => $payment->amount,
+                                'remaining_amount' => $remainingBalance,
+                            ];
+
+                            Notification::create([
+                                'user_id' => $booking->user_id,
+                                'type' => 'payment_received',
+                                'notifiable_type' => Booking::class,
+                                'notifiable_id' => $booking->id,
+                                'message' => $notificationMessage,
+                                'read' => false,
+                                'data' => $notificationData,
+                            ]);
+
+                            // Send email notification
+                            $customer = $booking->user;
+                            $this->emailNotificationService->sendNotification(
+                                $customer,
+                                'payment_received',
+                                $notificationMessage,
+                                $notificationData,
+                                $booking
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        // Handle payment.failed event
+        if ($type === 'payment.failed') {
+            $attributes = $event['attributes'] ?? [];
+            $paymentIntentId = $attributes['data']['attributes']['payment_intent']['id'] ?? null;
+
+            if ($paymentIntentId) {
+                $payment = Payment::where('paymongo_payment_intent_id', $paymentIntentId)->first();
+
+                if ($payment && $payment->status === 'pending') {
+                    $payment->update([
+                        'status' => 'failed',
+                        'paymongo_response' => $data,
+                    ]);
+
+                    // Send notification to customer
+                    $booking = $payment->booking;
+                    if ($booking) {
+                        $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has failed. Please try again or contact support.";
+                        $notificationData = [
+                            'booking_id' => $booking->id,
+                            'payment_id' => $payment->id,
+                            'amount' => $payment->amount,
+                        ];
+
+                        Notification::create([
+                            'user_id' => $booking->user_id,
+                            'type' => 'payment_failed',
+                            'notifiable_type' => Payment::class,
+                            'notifiable_id' => $payment->id,
+                            'message' => $notificationMessage,
+                            'read' => false,
+                            'data' => $notificationData,
+                        ]);
+
+                        // Send email notification
+                        $customer = $booking->user;
+                        $this->emailNotificationService->sendNotification(
+                            $customer,
+                            'payment_failed',
+                            $notificationMessage,
+                            $notificationData,
+                            $booking
+                        );
                     }
                 }
             }

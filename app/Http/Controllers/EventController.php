@@ -248,22 +248,66 @@ class EventController extends Controller
         return view('admin.AdminPayment', compact('payments', 'bookingBalances'));
     }
 
+    /**
+     * Get payment details with history
+     */
+    public function getPaymentDetails($id)
+    {
+        $payment = \App\Models\Payment::with(['booking', 'user'])
+            ->findOrFail($id);
+
+        // Get all payments for this booking (payment history)
+        $paymentHistory = \App\Models\Payment::where('booking_id', $payment->booking_id)
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Calculate payment totals
+        $totalPaid = $paymentHistory->whereIn('status', ['paid', 'partial_payment'])->sum('amount');
+        $remainingBalance = $payment->booking->total_amount - $totalPaid;
+
+        if (request()->ajax()) {
+            return view('admin.payments.details', compact('payment', 'paymentHistory', 'totalPaid', 'remainingBalance'))->render();
+        }
+
+        return view('admin.payments.details', compact('payment', 'paymentHistory', 'totalPaid', 'remainingBalance'));
+    }
+
      public function AdminReports(Request $request)
     {
-        // Get date range filters
+        // Get filters
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
+        $statusFilter = $request->input('status');
+        $eventTypeFilter = $request->input('event_type');
+        $paymentMethodFilter = $request->input('payment_method');
 
-        // Booking Statistics
-        $totalBookings = \App\Models\Booking::count();
-        $pendingBookings = \App\Models\Booking::where('status', 'pending')->count();
-        $confirmedBookings = \App\Models\Booking::where('status', 'confirmed')->count();
-        $approvedBookings = \App\Models\Booking::where('status', 'approved')->count();
-        $completedBookings = \App\Models\Booking::where('status', 'completed')->count();
-        $cancelledBookings = \App\Models\Booking::where('status', 'cancelled')->count();
+        // Base queries with date range
+        $bookingQuery = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate]);
+        $paymentQuery = \App\Models\Payment::whereBetween('paid_at', [$startDate, $endDate]);
 
-        // Bookings by Event Type
-        $bookingsByType = \App\Models\Booking::selectRaw('event_type, COUNT(*) as count')
+        // Apply filters
+        if ($statusFilter) {
+            $bookingQuery->where('status', $statusFilter);
+        }
+        if ($eventTypeFilter) {
+            $bookingQuery->where('event_type', $eventTypeFilter);
+        }
+        if ($paymentMethodFilter) {
+            $paymentQuery->where('payment_method', $paymentMethodFilter);
+        }
+
+        // Booking Statistics (filtered)
+        $totalBookings = $bookingQuery->count();
+        $pendingBookings = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate])->where('status', 'pending')->count();
+        $confirmedBookings = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate])->where('status', 'confirmed')->count();
+        $approvedBookings = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate])->where('status', 'approved')->count();
+        $completedBookings = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate])->where('status', 'completed')->count();
+        $cancelledBookings = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate])->where('status', 'cancelled')->count();
+
+        // Bookings by Event Type (filtered by date range)
+        $bookingsByType = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('event_type, COUNT(*) as count')
             ->groupBy('event_type')
             ->get()
             ->map(function($item) {
@@ -273,8 +317,9 @@ class EventController extends Controller
                 ];
             });
 
-        // Bookings by Status
-        $bookingsByStatus = \App\Models\Booking::selectRaw('status, COUNT(*) as count')
+        // Bookings by Status (filtered by date range)
+        $bookingsByStatus = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->get()
             ->map(function($item) {
@@ -284,40 +329,42 @@ class EventController extends Controller
                 ];
             });
 
-        // Revenue Statistics
+        // Revenue Statistics (filtered)
         $totalRevenue = \App\Models\Payment::where('status', 'paid')->sum('amount');
+        $revenueInRange = $paymentQuery->where('status', 'paid')->sum('amount');
         $downpaymentsReceived = \App\Models\Payment::where('status', 'paid')->sum('amount');
         $pendingPayments = \App\Models\Payment::where('status', 'pending')->sum('amount');
         $totalBookingValue = \App\Models\Booking::sum('total_amount');
-        $expectedRevenue = $totalBookingValue * 0.30; // 30% downpayment expected
-
-        // Revenue by Date Range
-        $revenueInRange = \App\Models\Payment::where('status', 'paid')
-            ->whereBetween('paid_at', [$startDate, $endDate])
-            ->sum('amount');
+        $expectedRevenue = $totalBookingValue * 0.30;
 
         $bookingsInRange = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate])->count();
 
-        // Recent Payments
-        $recentPayments = \App\Models\Payment::with(['booking', 'user'])
+        // Recent Payments (filtered)
+        $recentPaymentsQuery = \App\Models\Payment::with(['booking', 'user'])
             ->where('status', 'paid')
-            ->orderBy('paid_at', 'desc')
-            ->take(10)
-            ->get();
+            ->whereBetween('paid_at', [$startDate, $endDate]);
+        
+        if ($paymentMethodFilter) {
+            $recentPaymentsQuery->where('payment_method', $paymentMethodFilter);
+        }
+        
+        $recentPayments = $recentPaymentsQuery->orderBy('paid_at', 'desc')->take(20)->get();
 
-        // Top Customers (by booking count)
-        $topCustomers = \App\Models\Booking::selectRaw('user_id, COUNT(*) as booking_count')
+        // Top Customers (filtered by date range)
+        $topCustomers = \App\Models\Booking::whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('user_id, COUNT(*) as booking_count')
             ->with('user')
             ->groupBy('user_id')
             ->orderBy('booking_count', 'desc')
             ->take(10)
             ->get();
 
-        // Monthly Revenue Trend (last 6 months)
+        // Monthly Revenue Trend (last 6 months, filtered)
         $monthlyRevenue = \App\Models\Payment::where('status', 'paid')
             ->whereNotNull('paid_at')
             ->selectRaw('DATE_FORMAT(paid_at, "%Y-%m") as month, SUM(amount) as total')
             ->where('paid_at', '>=', now()->subMonths(6))
+            ->where('paid_at', '<=', $endDate)
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -328,11 +375,17 @@ class EventController extends Controller
                 ];
             });
 
-        // Payment Methods Statistics
+        // Payment Methods Statistics (filtered by date range)
         $paymentsByMethod = \App\Models\Payment::where('status', 'paid')
+            ->whereBetween('paid_at', [$startDate, $endDate])
             ->selectRaw('payment_method, COUNT(*) as count, SUM(amount) as total')
             ->groupBy('payment_method')
             ->get();
+
+        // Get unique values for filter dropdowns
+        $allEventTypes = \App\Models\Booking::distinct()->pluck('event_type')->filter();
+        $allStatuses = \App\Models\Booking::distinct()->pluck('status')->filter();
+        $allPaymentMethods = \App\Models\Payment::distinct()->pluck('payment_method')->filter();
 
         return view('admin.AdminReports', compact(
             'totalBookings',
@@ -355,7 +408,13 @@ class EventController extends Controller
             'monthlyRevenue',
             'paymentsByMethod',
             'startDate',
-            'endDate'
+            'endDate',
+            'statusFilter',
+            'eventTypeFilter',
+            'paymentMethodFilter',
+            'allEventTypes',
+            'allStatuses',
+            'allPaymentMethods'
         ));
     }
 

@@ -11,6 +11,9 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body class="font-sans bg-[#ECF4E8]">
@@ -124,19 +127,34 @@
                         @endif
                     </td>
                     <td class="px-6 py-4">
-                        @if($payment->booking)
-                            <button data-booking-id="{{ $payment->booking->id }}" 
-                                    data-payment-status="{{ $payment->status }}"
-                                    data-show-mark-received="{{ $payment->status == 'pending' ? 1 : 0 }}"
-                                    onclick="viewBookingModalFromButton(this)" 
-                                    class="inline-flex items-center gap-1 bg-[#93BFC7] text-white px-3 py-1.5 rounded-lg hover:bg-[#7eaab1] transition text-sm font-semibold"
-                                    title="View Booking">
-                                <i class="fas fa-eye"></i>
-                                View
-                            </button>
-                        @else
-                            <span class="text-xs text-gray-400">-</span>
-                        @endif
+                        <div class="flex items-center gap-2">
+                            @if($payment->booking)
+                                <button data-payment-id="{{ $payment->id }}" 
+                                        onclick="viewPaymentDetails(this)" 
+                                        class="inline-flex items-center gap-1 bg-[#93BFC7] text-white px-3 py-1.5 rounded-lg hover:bg-[#7eaab1] transition text-sm font-semibold"
+                                        title="View Payment Details">
+                                    <i class="fas fa-eye"></i>
+                                    Payment
+                                </button>
+                                <button data-booking-id="{{ $payment->booking->id }}" 
+                                        data-payment-status="{{ $payment->status }}"
+                                        data-show-mark-received="{{ $payment->status == 'pending' ? 1 : 0 }}"
+                                        onclick="viewBookingModalFromButton(this)" 
+                                        class="inline-flex items-center gap-1 bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition text-sm font-semibold"
+                                        title="View Booking">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Booking
+                                </button>
+                            @else
+                                <button data-payment-id="{{ $payment->id }}" 
+                                        onclick="viewPaymentDetails(this)" 
+                                        class="inline-flex items-center gap-1 bg-[#93BFC7] text-white px-3 py-1.5 rounded-lg hover:bg-[#7eaab1] transition text-sm font-semibold"
+                                        title="View Payment Details">
+                                    <i class="fas fa-eye"></i>
+                                    View
+                                </button>
+                            @endif
+                        </div>
                     </td>
                 </tr>
                 @empty
@@ -163,6 +181,26 @@
         </div>
     </div>
 
+    <!-- Payment Details Modal -->
+    <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-[#93BFC7] to-[#7aa8b0] text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="text-2xl font-bold">Payment Details</h3>
+                <button onclick="closePaymentModal()" class="text-white hover:text-gray-200 transition">
+                    <i class="fas fa-times text-3xl"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <div id="paymentModalContent" class="flex-1 overflow-y-auto p-6">
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#93BFC7]"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Booking Details Modal -->
     <div id="bookingModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -183,22 +221,36 @@
             
             <!-- Modal Footer with Action Buttons -->
             <div id="bookingModalFooter" class="border-t border-gray-200 px-6 py-4 bg-gray-50 hidden">
-                <div class="flex justify-end gap-3">
-                    <button id="markPaidBtn" onclick="markPaymentAsPaid()" 
-                            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold hidden">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        Mark as Paid
-                    </button>
-                    <button id="markInDesignBtn" onclick="markAsInDesign()" 
-                            class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-semibold hidden">
-                        <i class="fas fa-palette mr-2"></i>
-                        Move to Design Phase
-                    </button>
-                    <button id="markCompletedBtn" onclick="markAsCompleted()" 
-                            class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition font-semibold hidden">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        Mark Event as Successful
-                    </button>
+                <div class="flex justify-between items-center gap-3">
+                    <!-- Print/Export Buttons (Only for Approved Bookings) -->
+                    <div id="printExportButtons" class="flex gap-3 hidden">
+                        <button onclick="printBookingFromModal()" 
+                                class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-semibold">
+                            <i class="fas fa-print mr-2"></i>Print
+                        </button>
+                        <button onclick="exportBookingToPDFFromModal()" 
+                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold">
+                            <i class="fas fa-file-pdf mr-2"></i>Export PDF
+                        </button>
+                    </div>
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end gap-3 ml-auto">
+                        <button id="markPaidBtn" onclick="markPaymentAsPaid()" 
+                                class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold hidden">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Mark as Paid
+                        </button>
+                        <button id="markInDesignBtn" onclick="markAsInDesign()" 
+                                class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-semibold hidden">
+                            <i class="fas fa-palette mr-2"></i>
+                            Move to Design Phase
+                            </button>
+                        <button id="markCompletedBtn" onclick="markAsCompleted()" 
+                                class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition font-semibold hidden">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Mark Event as Successful
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -206,6 +258,176 @@
 
     <script>
         let currentBookingId = null;
+
+        function viewPaymentDetails(button) {
+            const paymentId = parseInt(button.getAttribute('data-payment-id'));
+            const modal = document.getElementById('paymentModal');
+            const modalContent = document.getElementById('paymentModalContent');
+            
+            // Show modal
+            modal.classList.remove('hidden');
+            
+            // Show loading
+            modalContent.innerHTML = '<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#93BFC7]"></div></div>';
+            
+            // Fetch payment details
+            fetch(`/admin/payment/${paymentId}/details`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(html => {
+                modalContent.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                modalContent.innerHTML = '<div class="text-center py-8 text-red-600">An error occurred while loading payment details.</div>';
+            });
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            modal.classList.add('hidden');
+        }
+
+        // Close payment modal when clicking outside
+        document.getElementById('paymentModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePaymentModal();
+            }
+        });
+
+        // Close payment modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !document.getElementById('paymentModal').classList.contains('hidden')) {
+                closePaymentModal();
+            }
+        });
+
+        // Print Booking Function
+        function printBookingFromModal() {
+            const modalContent = document.getElementById('bookingModalContent');
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Booking #${currentBookingId} - Print</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .print-header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #93BFC7; padding-bottom: 20px; }
+                        .print-header h1 { color: #93BFC7; margin: 0; }
+                        .print-section { margin-bottom: 20px; page-break-inside: avoid; }
+                        .print-section h3 { color: #93BFC7; border-bottom: 2px solid #93BFC7; padding-bottom: 5px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        table td { padding: 8px; border-bottom: 1px solid #eee; }
+                        table td:first-child { font-weight: bold; width: 30%; }
+                        @media print {
+                            body { margin: 0; }
+                            .no-print { display: none; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <h1>RJ's Event Styling</h1>
+                        <p>Booking Management System</p>
+                        <p>Generated: ${new Date().toLocaleString()}</p>
+                    </div>
+                    ${modalContent.innerHTML}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }
+
+        // Export Booking to PDF Function
+        async function exportBookingToPDFFromModal() {
+            const { jsPDF } = window.jspdf;
+            const modalContent = document.getElementById('bookingModalContent');
+            
+            // Show loading
+            const loading = document.createElement('div');
+            loading.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.1);z-index:9999;';
+            loading.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating PDF...';
+            document.body.appendChild(loading);
+
+            try {
+                // Create a temporary container for PDF generation
+                const tempContainer = document.createElement('div');
+                tempContainer.style.cssText = 'position:absolute;left:-9999px;width:800px;background:white;padding:20px;';
+                tempContainer.innerHTML = `
+                    <div style="text-align:center;margin-bottom:30px;border-bottom:3px solid #93BFC7;padding-bottom:20px;">
+                        <h1 style="color:#93BFC7;margin:0;">RJ's Event Styling</h1>
+                        <p>Booking Management System</p>
+                        <p style="font-size:12px;color:#666;">Generated: ${new Date().toLocaleString()}</p>
+                    </div>
+                    ${modalContent.innerHTML}
+                `;
+                document.body.appendChild(tempContainer);
+
+                // Convert to canvas
+                const canvas = await html2canvas(tempContainer, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: 'white',
+                    windowWidth: tempContainer.scrollWidth,
+                    windowHeight: tempContainer.scrollHeight
+                });
+
+                // Remove temporary container
+                document.body.removeChild(tempContainer);
+
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                
+                // Create PDF
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const margin = 10;
+                const contentWidth = pdfWidth - (margin * 2);
+                const imgWidth = contentWidth;
+                const imgHeight = (canvas.height * contentWidth) / canvas.width;
+                
+                let heightLeft = imgHeight;
+                let position = margin;
+
+                // Add first page
+                pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+                heightLeft -= (pdfHeight - margin * 2);
+
+                // Add additional pages if needed
+                while (heightLeft > 0) {
+                    position = margin - (imgHeight - heightLeft);
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+                    heightLeft -= (pdfHeight - margin * 2);
+                }
+
+                // Save PDF
+                const fileName = `Booking_${currentBookingId}_${new Date().toISOString().split('T')[0]}.pdf`;
+                pdf.save(fileName);
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+            } finally {
+                if (document.body.contains(loading)) {
+                    document.body.removeChild(loading);
+                }
+            }
+        }
 
         function viewBookingModalFromButton(button) {
             const bookingId = parseInt(button.getAttribute('data-booking-id'));
@@ -264,6 +486,14 @@
                     else if (statusText.includes('Pending Payment')) detectedStatus = 'pending_payment';
                 }
                 
+                // Show print/export buttons for approved bookings
+                const printExportButtons = document.getElementById('printExportButtons');
+                if (detectedStatus === 'approved' || modalContent.textContent.includes('Status') && modalContent.querySelector('[class*="bg-blue"]')) {
+                    printExportButtons.classList.remove('hidden');
+                } else {
+                    printExportButtons.classList.add('hidden');
+                }
+
                 // Show appropriate button based on payment status and booking status
                 if (paymentStatus === 'partial_payment' || detectedStatus === 'partial_payment') {
                     // Show paid button for partial_payment payments
