@@ -33,8 +33,7 @@
 <body class="bg-gray-300 relative">
     <div class="animated-bg"></div>
     <div class="min-h-screen flex items-center justify-center py-4 px-4">
-        <div class="bg-white rounded-lg shadow-md w-full max-w-[10
-        000px] flex flex-col md:flex-row overflow-hidden">
+        <div class="bg-white rounded-lg shadow-md w-full max-w-[900px] flex flex-col md:flex-row overflow-hidden">
             
             <!-- Left side -->
             <div class="w-full md:w-1/2 p-8 overflow-y-auto max-h-[90vh]">
