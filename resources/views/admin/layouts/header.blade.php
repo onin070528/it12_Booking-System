@@ -1,6 +1,10 @@
 <!-- Admin Header with Notifications -->
 <div class="bg-white shadow-md rounded-xl px-6 py-4 flex justify-between items-center mb-8">
     <div class="flex items-center space-x-2">
+        <!-- Mobile menu button -->
+        <button id="mobileMenuBtn" class="md:hidden mr-2 p-2 rounded bg-transparent text-gray-600 hover:bg-gray-100">
+            <i class="fas fa-bars"></i>
+        </button>
         <div>
             <h2 class="text-3xl font-bold" style="color: #93BFC7;">
                 <i class="fas fa-user-shield mr-2"></i>Welcome, {{ Auth::user()->name }}
@@ -16,7 +20,17 @@
     </div>
 
     <div class="flex items-center space-x-6 text-[#93BFC7]">
-        <i class="fas fa-search text-xl cursor-pointer"></i>
+        <div class="relative" id="adminSearch">
+            <i id="openSearchBtn" class="fas fa-search text-xl cursor-pointer"></i>
+            <div id="searchBox" class="hidden absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                <div class="p-3">
+                    <input id="adminSearchInput" type="text" placeholder="Search users, bookings, events, inventory..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent" />
+                </div>
+                <div id="adminSearchResults" class="divide-y divide-gray-100 max-h-80 overflow-auto"></div>
+                <div id="adminSearchEmpty" class="p-3 text-center text-gray-500 hidden">No results</div>
+            </div>
+        </div>
         
         <!-- Notification Dropdown -->
         <div class="relative" id="notificationDropdown">
@@ -172,5 +186,104 @@
 
     // Update every 5 seconds
     setInterval(updateNavbarNotificationBadge, 5000);
+
+    // -----------------------
+    // Admin global search
+    // -----------------------
+    (function() {
+        const openBtn = document.getElementById('openSearchBtn');
+        const searchBox = document.getElementById('searchBox');
+        const searchInput = document.getElementById('adminSearchInput');
+        const resultsContainer = document.getElementById('adminSearchResults');
+        const emptyEl = document.getElementById('adminSearchEmpty');
+        let debounceTimer = null;
+
+        function openSearch() {
+            searchBox.classList.remove('hidden');
+            searchInput.focus();
+        }
+
+        function closeSearch() {
+            searchBox.classList.add('hidden');
+            resultsContainer.innerHTML = '';
+            emptyEl.classList.add('hidden');
+            searchInput.value = '';
+        }
+
+        openBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (searchBox.classList.contains('hidden')) openSearch(); else closeSearch();
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById('adminSearch');
+            if (wrap && !wrap.contains(e.target)) closeSearch();
+        });
+
+        // Debounced input handler
+        searchInput.addEventListener('input', (e) => {
+            const q = e.target.value.trim();
+            clearTimeout(debounceTimer);
+            if (q.length < 2) {
+                resultsContainer.innerHTML = '';
+                emptyEl.classList.add('hidden');
+                return;
+            }
+            debounceTimer = setTimeout(() => doSearch(q), 300);
+        });
+
+        async function doSearch(q) {
+            resultsContainer.innerHTML = '<div class="p-3 text-center text-gray-500"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+            try {
+                const res = await fetch(`{{ route('admin.search') }}?q=${encodeURIComponent(q)}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                renderResults(data.results || []);
+            } catch (err) {
+                resultsContainer.innerHTML = `<div class="p-3 text-red-500">Search failed</div>`;
+            }
+        }
+
+        function renderResults(items) {
+            resultsContainer.innerHTML = '';
+            if (!items || items.length === 0) {
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+            emptyEl.classList.add('hidden');
+            items.forEach(item => {
+                const el = document.createElement('a');
+                el.href = item.url || '#';
+                el.className = 'block p-3 hover:bg-gray-50';
+                el.innerHTML = `<div class="font-medium text-sm">${escapeHtml(item.title)}</div><div class="text-xs text-gray-500 mt-1">${escapeHtml(item.subtitle || item.type)}</div>`;
+                resultsContainer.appendChild(el);
+            });
+        }
+
+        function escapeHtml(s) {
+            if (!s) return '';
+            return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+        }
+    })();
+
+    // Mobile sidebar toggle
+    (function() {
+        const btn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.getElementById('adminSidebar');
+        if (!btn || !sidebar) return;
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            sidebar.classList.toggle('hidden');
+        });
+
+        // Close sidebar when clicking outside (mobile)
+        document.addEventListener('click', function(e) {
+            if (!sidebar.classList.contains('hidden') && !sidebar.contains(e.target) && !btn.contains(e.target)) {
+                sidebar.classList.add('hidden');
+            }
+        });
+    })();
 </script>
 

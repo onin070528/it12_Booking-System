@@ -33,6 +33,9 @@
                     </h2>
                     <p class="text-xl font-semibold" style="color: #93BFC7;">Review and manage customer bookings</p>
                 </div>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('admin.bookings.archived') }}" class="bg-[#93BFC7] px-4 py-2 rounded-lg font-sm text-white hover:bg-gray-200">Archived Bookings</a>
+                </div>
             </div>
 
             <!-- Bookings Table -->
@@ -205,30 +208,91 @@
         }
         
         function confirmBooking(bookingId) {
-            if (!confirm('Are you sure you want to confirm this booking? The customer will be notified and can proceed with payment.')) {
-                return;
-            }
+            showConfirm({
+                title: 'Confirm Booking',
+                message: 'Are you sure you want to confirm this booking? The customer will be notified and can proceed with payment.',
+                confirmText: 'Confirm',
+                onConfirm: () => {
+                    fetch(`/admin/booking/${bookingId}/confirm`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('Booking confirmed successfully!', 'success');
+                            setTimeout(() => location.reload(), 900);
+                        } else {
+                            showToast(data.message || 'An error occurred.', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while confirming the booking.', 'error');
+                    });
+                }
+            });
+        }
 
-            fetch(`/admin/booking/${bookingId}/confirm`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'X-Requested-With': 'XMLHttpRequest'
+        function cancelBooking(bookingId) {
+            showConfirm({
+                title: 'Cancel Booking',
+                message: 'Are you sure you want to cancel this booking? This will notify the customer and cannot be undone.',
+                confirmText: 'Cancel Booking',
+                onConfirm: () => {
+                    fetch(`/admin/booking/${bookingId}/cancel`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('Booking cancelled. Notifications have been sent.', 'success');
+                            setTimeout(() => location.reload(), 900);
+                        } else {
+                            showToast(data.message || 'An error occurred while cancelling the booking.', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while cancelling the booking.', 'error');
+                    });
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Booking confirmed successfully!');
-                    location.reload();
-                } else {
-                    alert(data.message || 'An error occurred.');
+            });
+        }
+
+        function archiveBooking(bookingId) {
+            showConfirm({
+                title: 'Archive Booking',
+                message: 'Archive this booking? It will be moved to archived bookings list.',
+                confirmText: 'Archive',
+                onConfirm: () => {
+                    fetch(`/admin/booking/${bookingId}/archive`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success) {
+                            showToast('Booking archived.', 'success');
+                            setTimeout(() => location.reload(), 800);
+                        } else {
+                            showToast(d.message || 'Error archiving booking', 'error');
+                        }
+                    }).catch(e => { console.error(e); showToast('Error archiving booking', 'error'); });
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while confirming the booking.');
             });
         }
 
@@ -274,33 +338,7 @@
             });
         }
 
-        function confirmBooking(bookingId) {
-            if (!confirm('Are you sure you want to confirm this booking? The customer will be notified and can proceed with payment.')) {
-                return;
-            }
-
-            fetch(`/admin/booking/${bookingId}/confirm`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Booking confirmed successfully!');
-                    location.reload();
-                } else {
-                    alert(data.message || 'An error occurred.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while confirming the booking.');
-            });
-        }
+        
 
         function markForPayment(bookingId) {
             if (!confirm('Are you sure you want to notify the customer that their booking is ready for payment?')) {
@@ -634,7 +672,79 @@
                 }
             }
         }
+        
+        /* Confirmation modal and toast helpers */
+        function showConfirm({title = 'Confirm', message = '', confirmText = 'OK', onConfirm = null}) {
+            // Create modal if not exists
+            let modal = document.getElementById('actionConfirmModal');
+            if (!modal) return alert(message);
+
+            modal.querySelector('.confirm-title').textContent = title;
+            modal.querySelector('.confirm-message').textContent = message;
+            const confirmBtn = modal.querySelector('.confirm-action-btn');
+            confirmBtn.textContent = confirmText;
+
+            // Remove previous handlers
+            const newConfirm = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+
+            newConfirm.addEventListener('click', function() {
+                modal.classList.add('hidden');
+                if (typeof onConfirm === 'function') onConfirm();
+            });
+
+            // Cancel button
+            modal.querySelector('.confirm-cancel-btn').onclick = function() {
+                modal.classList.add('hidden');
+            };
+
+            modal.classList.remove('hidden');
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return alert(message);
+
+            const toast = document.createElement('div');
+            toast.className = `max-w-sm w-full bg-white shadow-lg rounded-md pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden mb-3`;
+            toast.style.borderLeft = type === 'success' ? '4px solid #16a34a' : (type === 'error' ? '4px solid #dc2626' : '4px solid #2563eb');
+            toast.innerHTML = `
+                <div class="p-3">
+                    <div class="text-sm font-medium text-gray-900">${type === 'success' ? 'Success' : (type === 'error' ? 'Error' : 'Notice')}</div>
+                    <div class="mt-1 text-sm text-gray-700">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
     </script>
+
+<!-- Confirm Modal -->
+<div id="actionConfirmModal" class="fixed inset-0 bg-black bg-opacity-40 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4">
+        <div class="bg-[#93BFC7] rounded-t-xl px-6 py-4 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-white confirm-title">Confirm</h3>
+            <button onclick="document.getElementById('actionConfirmModal').classList.add('hidden')" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <p class="confirm-message text-gray-800"></p>
+            <div class="mt-6 flex justify-end gap-3">
+                <button class="confirm-cancel-btn bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">Cancel</button>
+                <button class="confirm-action-btn bg-[#93BFC7] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#7aa8b0]">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-6 right-6 z-60 flex flex-col items-end"></div>
 
 </body>
 </html>

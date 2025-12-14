@@ -277,7 +277,9 @@ class BookingController extends Controller
      */
     public function index()
     {
+        // Only fetch bookings that are not archived
         $bookings = Booking::with('user', 'payments')
+            ->whereNull('archived_at')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -1056,5 +1058,53 @@ class BookingController extends Controller
             'success' => true,
             'message' => 'Booking marked as completed. Customer has been notified.',
         ]);
+    }
+
+    /**
+     * Archive a booking (mark as archived_at)
+     */
+    public function archive(Request $request, Booking $booking)
+    {
+        // Only admins should archive bookings
+        if (!$this->isAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        if ($booking->archived_at) {
+            return response()->json(['success' => false, 'message' => 'Booking already archived.'], 400);
+        }
+
+        $booking->archived_at = now();
+        $booking->save();
+
+        return response()->json(['success' => true, 'message' => 'Booking archived.']);
+    }
+
+    /**
+     * Restore an archived booking
+     */
+    public function restore(Request $request, Booking $booking)
+    {
+        if (!$this->isAdmin()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        if (!$booking->archived_at) {
+            return response()->json(['success' => false, 'message' => 'Booking is not archived.'], 400);
+        }
+
+        $booking->archived_at = null;
+        $booking->save();
+
+        return response()->json(['success' => true, 'message' => 'Booking restored.']);
+    }
+
+    /**
+     * Show archived bookings list for admin
+     */
+    public function archivedIndex()
+    {
+        $bookings = Booking::with('user')->whereNotNull('archived_at')->orderBy('archived_at', 'desc')->get();
+        return view('admin.bookings.archived', compact('bookings'));
     }
 }

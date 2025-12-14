@@ -23,7 +23,7 @@
         @include('admin.AdminLayouts.AdminSidebar')
 
         <!-- Main Content -->
-        <div class="flex-1 min-h-screen px-6 py-6 ml-64">
+        <div class="flex-1 min-h-screen px-4 py-6 ml-0 md:ml-64 md:px-6">
             
         <!-- Header -->
             @include('admin.layouts.header')
@@ -82,6 +82,8 @@
                     </div>
                 </div>
             </div>
+        
+           
 
             <!-- Booking Status Cards -->
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
@@ -121,17 +123,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-xs font-medium mb-1">Completed</p>
-                            <h3 class="text-2xl font-bold text-purple-600">{{ $completedBookings }}</h3>
-                        </div>
-                        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-trophy text-purple-600 text-lg"></i>
-                        </div>
-                    </div>
-                </div>
+
 
                 <div class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition">
                     <div class="flex items-center justify-between">
@@ -160,6 +152,18 @@
 
             <!-- Charts Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="col-span-1 lg:col-span-2 flex items-center justify-end gap-3 mb-2">
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-600">From</label>
+                        <input type="date" id="chartStart" class="px-3 py-2 border rounded-lg">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-600">To</label>
+                        <input type="date" id="chartEnd" class="px-3 py-2 border rounded-lg">
+                    </div>
+                    <button id="chartFilterBtn" class="px-4 py-2 bg-[#93BFC7] text-white rounded-lg">Filter</button>
+                    <button id="chartResetBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">Reset</button>
+                </div>
                 <!-- Bookings by Event Type Chart -->
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h3 class="text-xl font-bold mb-4" style="color: #93BFC7;">
@@ -194,8 +198,10 @@
             <!-- Recent Users Table -->
             <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
                 <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-xl font-bold" style="color: #93BFC7;">
-                        <i class="fas fa-list mr-2"></i>Recent Users
+                    <h3 class="text-xl font-bold flex items-center" style="color: #93BFC7;">
+                        <i class="fas fa-list mr-2"></i>
+                        <span>Recent Users</span>
+                        <span class="ml-3 inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-gray-100 text-sm text-gray-700">{{ $recentUsers->count() }}</span>
                     </h3>
                 </div>
                 <div class="overflow-x-auto">
@@ -234,12 +240,12 @@
                                     {{ $user->created_at->format('M d, Y') }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <button class="text-[#93BFC7] hover:text-[#7eaab1] mr-3">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="text-red-600 hover:text-red-900">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <div class="flex items-center space-x-3">
+                                        <button type="button" data-user-id="{{ $user->id }}" class="view-user-btn text-[#93BFC7] hover:text-[#7eaab1]">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <!-- archive removed -->
+                                    </div>
                                 </td>
                             </tr>
                             @empty
@@ -302,6 +308,15 @@
          style="display: none;"></div>
 
     <script>
+        // Helper: update Chart.js chart with new labels/data
+        function updateChart(chart, labels, data) {
+            if (!chart) return;
+            chart.data.labels = labels;
+            if (chart.data.datasets && chart.data.datasets[0]) {
+                chart.data.datasets[0].data = data;
+            }
+            chart.update();
+        }
         // Prepare data for charts
         const chartDataEl = document.getElementById('chart-data');
         const bookingsByTypeLabels = JSON.parse(chartDataEl.getAttribute('data-bookings-type-labels'));
@@ -313,8 +328,8 @@
 
         // Bookings by Event Type Chart
         const bookingsByTypeCtx = document.getElementById('bookingsByTypeChart');
-        if (bookingsByTypeCtx) {
-            new Chart(bookingsByTypeCtx.getContext('2d'), {
+            if (bookingsByTypeCtx) {
+            window.bookingsByTypeChart = new Chart(bookingsByTypeCtx.getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: bookingsByTypeLabels,
@@ -342,10 +357,14 @@
             });
         }
 
+        // Archive removed from dashboard
+
+        // Restore/archiving UI removed from dashboard
+
         // Bookings by Status Chart
         const bookingsByStatusCtx = document.getElementById('bookingsByStatusChart');
         if (bookingsByStatusCtx) {
-            new Chart(bookingsByStatusCtx.getContext('2d'), {
+            window.bookingsByStatusChart = new Chart(bookingsByStatusCtx.getContext('2d'), {
                 type: 'pie',
                 data: {
                     labels: bookingsByStatusLabels,
@@ -375,7 +394,7 @@
         // Monthly Revenue Trend Chart
         const monthlyRevenueCtx = document.getElementById('monthlyRevenueChart');
         if (monthlyRevenueCtx) {
-            new Chart(monthlyRevenueCtx.getContext('2d'), {
+            window.monthlyRevenueChart = new Chart(monthlyRevenueCtx.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: monthlyRevenueLabels,
@@ -409,6 +428,132 @@
                 }
             });
         }
+
+        // Fetch and apply filtered chart data from server
+        async function fetchAndApplyChartData(startDate, endDate) {
+            // Build query
+            const params = new URLSearchParams();
+            if (startDate) params.set('start_date', startDate);
+            if (endDate) params.set('end_date', endDate);
+
+            try {
+                const res = await fetch(`/admin/dashboard/charts?${params.toString()}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!res.ok) throw new Error('Network response was not ok');
+                const payload = await res.json();
+
+                // Update charts if they exist
+                if (window.bookingsByTypeChart) {
+                    updateChart(window.bookingsByTypeChart, payload.bookingsByType.labels, payload.bookingsByType.data);
+                }
+                if (window.bookingsByStatusChart) {
+                    updateChart(window.bookingsByStatusChart, payload.bookingsByStatus.labels, payload.bookingsByStatus.data);
+                }
+                if (window.monthlyRevenueChart) {
+                    updateChart(window.monthlyRevenueChart, payload.monthlyRevenue.labels, payload.monthlyRevenue.data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch chart data', err);
+            }
+        }
+
+        // Initialize global chart references so update function can access them
+        window.bookingsByTypeChart = window.bookingsByTypeChart || null;
+        window.bookingsByStatusChart = window.bookingsByStatusChart || null;
+        window.monthlyRevenueChart = window.monthlyRevenueChart || null;
+
+        // Attach filter handlers
+        document.getElementById('chartFilterBtn').addEventListener('click', function() {
+            const start = document.getElementById('chartStart').value;
+            const end = document.getElementById('chartEnd').value;
+            fetchAndApplyChartData(start, end);
+        });
+
+        document.getElementById('chartResetBtn').addEventListener('click', function() {
+            document.getElementById('chartStart').value = '';
+            document.getElementById('chartEnd').value = '';
+            fetchAndApplyChartData('', '');
+        });
+    </script>
+
+    <!-- User Detail Modal -->
+    <div id="userModal" class="fixed inset-0 z-60 hidden items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
+            <div class="flex items-center justify-between px-4 py-3 border-b">
+                <h3 class="text-lg font-semibold">User Details</h3>
+                <button id="closeUserModal" class="text-gray-600 hover:text-gray-800">&times;</button>
+            </div>
+                <div class="p-4" id="userModalBody">
+                <div class="mb-2"><strong>Name:</strong> <span id="modalUserName"></span></div>
+                <div class="mb-2"><strong>Email:</strong> <span id="modalUserEmail"></span></div>
+                <div class="mb-2"><strong>Contact:</strong> <span id="modalUserPhone"></span></div>
+                <div class="mb-2"><strong>Role:</strong> <span id="modalUserRole"></span></div>
+                <div class="mb-2"><strong>Joined:</strong> <span id="modalUserJoined"></span></div>
+                <div class="mb-2"><strong>Archived At:</strong> <span id="modalUserArchived"></span></div>
+            </div>
+            <div class="px-4 py-3 border-t text-right">
+                <button id="modalCloseBtn" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modal handlers for viewing user details
+        function openUserModal(userId) {
+            const modal = document.getElementById('userModal');
+            const nameEl = document.getElementById('modalUserName');
+            const emailEl = document.getElementById('modalUserEmail');
+            const roleEl = document.getElementById('modalUserRole');
+            const joinedEl = document.getElementById('modalUserJoined');
+            const archivedEl = document.getElementById('modalUserArchived');
+
+            // Clear
+            nameEl.textContent = 'Loading...';
+            emailEl.textContent = '';
+            roleEl.textContent = '';
+            joinedEl.textContent = '';
+            archivedEl.textContent = '';
+
+            fetch(`/admin/users/${userId}/data`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).then(res => res.json()).then(data => {
+                nameEl.textContent = data.name || '';
+                emailEl.textContent = data.email || '';
+                document.getElementById('modalUserPhone').textContent = data.phone || 'N/A';
+                roleEl.textContent = data.role || '';
+                joinedEl.textContent = data.created_at ? new Date(data.created_at).toLocaleString() : '';
+                archivedEl.textContent = data.archived_at ? new Date(data.archived_at).toLocaleString() : 'N/A';
+            }).catch(() => {
+                nameEl.textContent = 'Failed to load';
+            });
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeUserModal() {
+            const modal = document.getElementById('userModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('userModal');
+            if (!modal) return;
+            if (!modal.classList.contains('hidden') && e.target.id === 'userModal') {
+                closeUserModal();
+            }
+        });
+
+        document.getElementById('closeUserModal').addEventListener('click', closeUserModal);
+        document.getElementById('modalCloseBtn').addEventListener('click', closeUserModal);
+
+        // Attach view button handlers
+        document.querySelectorAll('.view-user-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-user-id');
+                if (id) openUserModal(id);
+            });
+        });
     </script>
 
 </body>

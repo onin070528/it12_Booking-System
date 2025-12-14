@@ -399,6 +399,20 @@
                 <i class="fas fa-check mr-2"></i>Confirm Booking
             </button>
         @endif
+        @if(!in_array($booking->status, ['cancelled', 'completed']))
+            <button data-booking-id="{{ $booking->id }}"
+                    onclick="if(typeof cancelBooking === 'function') cancelBooking(this.dataset.bookingId)"
+                    class="flex-1 bg-red-500 text-white font-bold py-3 rounded-lg hover:bg-red-600 transition flex items-center justify-center">
+                <i class="fas fa-times mr-2"></i>Cancel Booking
+            </button>
+        @endif
+        @if(!$booking->archived_at)
+            <button data-booking-id="{{ $booking->id }}"
+                    onclick="if(typeof archiveBooking === 'function') archiveBooking(this.dataset.bookingId)"
+                    class="flex-1 bg-gray-500 text-white font-bold py-3 rounded-lg hover:bg-gray-600 transition flex items-center justify-center">
+                <i class="fas fa-archive mr-2"></i>Archive
+            </button>
+        @endif
         @if($booking->status == 'confirmed' && $booking->communication_method == 'meetup' && $booking->meetup_date)
             <div class="flex-1 bg-blue-50 border-2 border-blue-200 rounded-lg p-3 text-center">
                 <p class="text-sm text-blue-800 font-semibold">

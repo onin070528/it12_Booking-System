@@ -34,6 +34,8 @@ Route::post('/contact', [LandingController::class, 'submit'])
 // Admin routes - require admin role ONLY
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\AdminController::class, 'dashboard'])->name('dashboard');
+    // Charts data endpoint for dashboard filters
+    Route::get('/dashboard/charts', [App\Http\Controllers\AdminController::class, 'chartsData'])->name('dashboard.charts');
    
     Route::get('/calendar', [EventController::class, 'adminCalendar'])->name('calendar');
    
@@ -58,6 +60,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/booking/{booking}/mark-completed', [BookingController::class, 'markAsCompleted'])->name('booking.mark-completed');
     Route::post('/booking/{booking}/reject', [BookingController::class, 'reject'])->name('booking.reject');
     Route::post('/booking/{booking}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
+    Route::post('/booking/{booking}/archive', [BookingController::class, 'archive'])->name('booking.archive');
+    Route::post('/booking/{booking}/restore', [BookingController::class, 'restore'])->name('booking.restore');
+    Route::get('/bookings/archived', [BookingController::class, 'archivedIndex'])->name('bookings.archived');
     
     // Payment Management (renamed from AdminPayment)
     Route::get('/payments', [EventController::class, 'AdminPayment'])->name('payments.index');
@@ -100,6 +105,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/AdminReports', function() {
         return redirect()->route('admin.reports.index');
     })->name('AdminReports');
+    
+    // Admin global search
+    Route::get('/search', [App\Http\Controllers\AdminController::class, 'search'])->name('search');
+    
+    // Admin user management (view and archive)
+    Route::get('/users/{user}/data', [App\Http\Controllers\AdminController::class, 'userData'])->name('users.data');
+    Route::get('/users', [App\Http\Controllers\AdminController::class, 'usersIndex'])->name('users.index');
+    Route::get('/users/{user}', [App\Http\Controllers\AdminController::class, 'showUser'])->name('users.show');
+    Route::post('/users/{user}/archive', [App\Http\Controllers\AdminController::class, 'archiveUser'])->name('users.archive');
+    Route::post('/users/{user}/restore', [App\Http\Controllers\AdminController::class, 'restoreUser'])->name('users.restore');
 });
 
 // User routes - require authentication and user role ONLY (admins cannot access)

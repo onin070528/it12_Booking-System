@@ -279,7 +279,7 @@
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
                 },
-                events: "{{ route('admin.events') }}", // fetch all events from admin route
+                // events option removed to avoid duplicate fetching — use eventSources below
                 selectable: true,
                 select: function(info) {
                     openEventModal(info);

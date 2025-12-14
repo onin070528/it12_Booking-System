@@ -15,7 +15,7 @@
 
 <body class="bg-gray-100">
 
-    <div class="fixed top-0 left-0 w-64 h-screen bg-[#E3F4E4] py-6 flex flex-col shadow-[4px_0_20px_rgba(0,0,0,0.08)] z-10">
+    <div id="adminSidebar" class="hidden md:flex fixed top-0 left-0 w-64 h-screen bg-[#E3F4E4] py-6 flex-col shadow-[4px_0_20px_rgba(0,0,0,0.08)] z-50">
 
         <!-- Logo + Title -->
         <div class="flex items-center justify-center gap-3 px-4 mb-10">

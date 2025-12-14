@@ -17,6 +17,7 @@ class Booking extends Model
         'description',
         'total_amount',
         'status',
+        'archived_at',
         'event_details',
         'meetup_date',
         'meetup_time',
@@ -30,6 +31,7 @@ class Booking extends Model
         'event_details' => 'array',
         'meetup_date' => 'date',
         'meetup_time' => 'datetime',
+        'archived_at' => 'datetime',
     ];
 
     /**
