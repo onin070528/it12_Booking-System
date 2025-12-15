@@ -37,7 +37,7 @@
             
             <!-- Left side -->
             <div class="w-full md:w-1/2 p-8 overflow-y-auto max-h-[90vh]">
-                <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
+                <h2 class="text-4xl text-[#93BFC7] font-bold text-center mb-6">Login</h2>
 
                 <form method="POST" action="{{ route('login') }}">
                     @csrf

@@ -81,12 +81,53 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Inventory cards removed from this grid to allow separate layout -->
+            </div>
+            
+            <!-- Inventory Status Cards (separated for independent layout) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium mb-1">In Stock</p>
+                            <h3 class="text-2xl font-bold" style="color: #16a34a;">{{ $inStockCount }}</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check text-green-600 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium mb-1">Low Stock</p>
+                            <h3 class="text-2xl font-bold" style="color: #d97706;">{{ $lowStockCount }}</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium mb-1">Out of Stock</p>
+                            <h3 class="text-2xl font-bold" style="color: #ef4444;">{{ $outOfStockCount }}</h3>
+                        </div>
+                        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-box-open text-red-600 text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
         
            
 
-            <!-- Booking Status Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            <!-- Booking Status Cards (separated for independent layout) -->
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-8">
                 <div class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition">
                     <div class="flex items-center justify-between">
                         <div>
@@ -152,18 +193,6 @@
 
             <!-- Charts Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <div class="col-span-1 lg:col-span-2 flex items-center justify-end gap-3 mb-2">
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm font-medium text-gray-600">From</label>
-                        <input type="date" id="chartStart" class="px-3 py-2 border rounded-lg">
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm font-medium text-gray-600">To</label>
-                        <input type="date" id="chartEnd" class="px-3 py-2 border rounded-lg">
-                    </div>
-                    <button id="chartFilterBtn" class="px-4 py-2 bg-[#93BFC7] text-white rounded-lg">Filter</button>
-                    <button id="chartResetBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">Reset</button>
-                </div>
                 <!-- Bookings by Event Type Chart -->
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h3 class="text-xl font-bold mb-4" style="color: #93BFC7;">
@@ -488,7 +517,7 @@
                 <div class="mb-2"><strong>Contact:</strong> <span id="modalUserPhone"></span></div>
                 <div class="mb-2"><strong>Role:</strong> <span id="modalUserRole"></span></div>
                 <div class="mb-2"><strong>Joined:</strong> <span id="modalUserJoined"></span></div>
-                <div class="mb-2"><strong>Archived At:</strong> <span id="modalUserArchived"></span></div>
+                <div class="mb-2 hidden"><strong>Archived At:</strong> <span id="modalUserArchived"></span></div>
             </div>
             <div class="px-4 py-3 border-t text-right">
                 <button id="modalCloseBtn" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Close</button>

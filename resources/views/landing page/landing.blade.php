@@ -24,8 +24,8 @@
         <section class="text-white py-20" style="background: linear-gradient(to right, #93BFC7, #a8cdd4);">
             <div class="max-w-6xl mx-auto px-6 text-center">
             <h1 class="text-4xl md:text-5xl font-bold mb-4">Smart & Reliable Booking System</h1>
-            <p class="text-lg mb-8">Manage reservations efficiently with a secure Laravel-powered platform.</p>
-            <a href="{{ route('login') }}" class="bg-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition" style="color: #93BFC7;">Get Started</a>
+            <p class="text-lg font-medium mb-8">Manage reservations efficiently with a secure Laravel-powered platform.</p>
+            <a href="{{ route('login') }}" class="bg-white px-10 py-5 text-lg rounded-lg font-bold hover:bg-gray-100 transition" style="color: #93BFC7;">Get Started</a>
             </div>
         </section>
 
@@ -34,7 +34,7 @@
     <section class="py-16">
         <div class="max-w-7xl mx-auto px-6">
             <h2 class="text-3xl font-bold mb-8 text-center">Our Event Styles</h2>
-            <p class="text-center text-gray-600 mb-12">Explore different event styles and themes we offer</p>
+            <p class="text-center font-medium text-lg text-gray-600 mb-12">Explore different event styles and themes we offer</p>
             
             <div class="space-y-6">
                 <!-- Wedding Banner -->
@@ -46,7 +46,7 @@
                     <div class="absolute inset-0 flex items-center px-8 md:px-16">
                         <div class="text-white max-w-2xl">
                             <h3 class="text-3xl md:text-4xl font-bold mb-2 text-rose-300">Wedding</h3>
-                            <p class="text-base md:text-lg">Elegant and romantic designs to make your special day unforgettable. From classic to modern themes.</p>
+                            <p class="text-base md:text-lg font-medium">Elegant and romantic designs to make your special day unforgettable. From classic to modern themes.</p>
                         </div>
                     </div>
                 </div>
@@ -60,7 +60,7 @@
                     <div class="absolute inset-0 flex items-center px-8 md:px-16">
                         <div class="text-white max-w-2xl">
                             <h3 class="text-3xl md:text-4xl font-bold mb-2 text-orange-300">Birthday</h3>
-                            <p class="text-base md:text-lg">Fun and vibrant party setups for all ages. Customizable themes from kids to milestone celebrations.</p>
+                            <p class="text-base md:text-lg font-medium">Fun and vibrant party setups for all ages. Customizable themes from kids to milestone celebrations.</p>
                         </div>
                     </div>
                 </div>
@@ -74,7 +74,7 @@
                     <div class="absolute inset-0 flex items-center px-8 md:px-16">
                         <div class="text-white max-w-2xl">
                             <h3 class="text-3xl md:text-4xl font-bold mb-2 text-purple-300">Debut</h3>
-                            <p class="text-base md:text-lg">Sophisticated and memorable 18th birthday celebrations with elegant decorations and stunning setups.</p>
+                            <p class="text-base md:text-lg font-medium">Sophisticated and memorable 18th birthday celebrations with elegant decorations and stunning setups.</p>
                         </div>
                     </div>
                 </div>
@@ -88,7 +88,7 @@
                     <div class="absolute inset-0 flex items-center px-8 md:px-16">
                         <div class="text-white max-w-2xl">
                             <h3 class="text-3xl md:text-4xl font-bold mb-2 text-blue-300">Pageant</h3>
-                            <p class="text-base md:text-lg">Glamorous stage designs and professional setups for beauty pageants and competitions.</p>
+                            <p class="text-base md:text-lg font-medium">Glamorous stage designs and professional setups for beauty pageants and competitions.</p>
                         </div>
                     </div>
                 </div>
@@ -102,7 +102,7 @@
                     <div class="absolute inset-0 flex items-center px-8 md:px-16">
                         <div class="text-white max-w-2xl">
                             <h3 class="text-3xl md:text-4xl font-bold mb-2 text-slate-300">Corporate Event</h3>
-                            <p class="text-base md:text-lg">Professional and polished setups for conferences, seminars, product launches, and company gatherings.</p>
+                            <p class="text-base md:text-lg font-medium">Professional and polished setups for conferences, seminars, product launches, and company gatherings.</p>
                         </div>
                     </div>
                 </div>
@@ -123,7 +123,7 @@
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
                     <h3 class="font-semibold text-lg mb-2">Facebook</h3>
-                    <a href="https://www.facebook.com/rollyjagonob" target="_blank" class="text-blue-600 hover:underline">Rolly Jagonob</a>
+                    <a href="https://www.facebook.com/rollyjagonob" target="_blank" class="text-blue-600 hover:underline font-medium">Rolly Jagonob</a>
                 </div>
 
                 <!-- Email -->
@@ -132,7 +132,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                     </svg>
                     <h3 class="font-semibold text-lg mb-2">Email</h3>
-                    <a href="mailto:rollyjagonob31@gmail.com" class="text-teal-600 hover:underline">rollyjagonob31@gmail.com</a>
+                    <a href="mailto:rollyjagonob31@gmail.com" class="text-teal-600 hover:underline font-medium">rollyjagonob31@gmail.com</a>
                 </div>
 
                 <!-- Phone -->
@@ -141,7 +141,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                     </svg>
                     <h3 class="font-semibold text-lg mb-2">Phone</h3>
-                    <a href="tel:09077258153" class="text-teal-600 hover:underline">09077258153</a>
+                    <a href="tel:09077258153" class="text-teal-600 hover:underline font-medium">09077258153</a>
                 </div>
             </div>
         </div>

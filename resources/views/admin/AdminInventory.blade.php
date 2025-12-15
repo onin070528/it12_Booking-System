@@ -87,9 +87,26 @@
                 <div class="bg-[#93BFC7] text-white px-6 py-4 rounded-t-xl shadow flex items-center text-3xl font-bold">
                     <i class="fas fa-boxes mr-3"></i>
                     <h3>Active Inventory</h3>
+                    <div class="ml-auto flex items-center gap-3">
+                        <div class="bg-white text-[#93BFC7] px-3 py-1 rounded-md shadow font-semibold hover:bg-gray-100 cursor-pointer text-sm">
+                            <button id="openAddItemModal">+ Add New Item</button>
+                        </div>
+                       <div class="flex items-center gap-3 bg-white px-3 py-1 rounded-md shadow text-[#93BFC7] text-sm">
+    <label for="inventoryStatusFilter" class="font-medium">
+        Status
+    </label>
 
-                    <div class="justify-end ml-auto bg-white text-[#93BFC7] px-4 py-1 rounded-md shadow font-semibold hover:bg-gray-100 cursor-pointer text-sm">
-                        <button id="openAddItemModal">+ Add New Item</button>
+    <select
+        id="inventoryStatusFilter"
+        class="appearance-none bg-transparent pr-5
+               focus:outline-none cursor-pointer">
+        <option value="">All</option>
+        <option value="In Stock">In Stock</option>
+        <option value="Low Stock">Low Stock</option>
+        <option value="Out of Stock">Out of Stock</option>
+    </select>
+</div>
+
                     </div>
                 </div>
 
@@ -122,12 +139,12 @@
                                     $statusBg = 'bg-red-100';
                                 }
                             @endphp
-                            <tr class="bg-white text-[#93BFC7] font-medium hover:bg-gray-200 border-b border-gray-300">
+                            <tr data-status="{{ $status }}" class="bg-white text-[#93BFC7] font-medium hover:bg-gray-200 border-b border-gray-300">
                         <td class="px-6 py-4" data-item-name="{{ $inventory->item_name }}">{{ $inventory->item_name }}</td>
                         <td class="px-6 py-4">{{ $inventory->category }}</td>
                         <td class="px-6 py-4 font-semibold">{{ $inventory->stock }}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-4 py-1 rounded-full {{ $statusBg }} {{ $statusClass }} font-medium inline-block">
+                        <td class="px-6 py-2">
+                            <span class="inline-flex items-center h-full px-4 py-2 rounded-full {{ $statusBg }} {{ $statusClass }} font-medium">
                                 {{ $status }}
                             </span>
                         </td>
@@ -204,12 +221,12 @@
                                     $statusBg = 'bg-red-100';
                                 }
                             @endphp
-                            <tr class="bg-white text-gray-600 font-medium hover:bg-gray-200 border-b border-gray-300">
+                            <tr data-status="{{ $status }}" class="bg-white text-gray-600 font-medium hover:bg-gray-200 border-b border-gray-300">
                                 <td class="px-6 py-4">{{ $inventory->item_name }}</td>
                                 <td class="px-6 py-4">{{ $inventory->category }}</td>
                                 <td class="px-6 py-4 font-semibold">{{ $inventory->stock }}</td>
-                                <td class="px-6 py-4">
-                                    <span class="px-4 py-1 rounded-full {{ $statusBg }} {{ $statusClass }} font-medium inline-block">
+                                <td class="px-6 py-2">
+                                    <span class="inline-flex items-center h-full px-4 py-2 rounded-full {{ $statusBg }} {{ $statusClass }} font-medium">
                                         {{ $status }}
                                     </span>
                                 </td>
@@ -337,6 +354,33 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Inventory status filter (client-side)
+        (function() {
+            const filter = document.getElementById('inventoryStatusFilter');
+            if (!filter) return;
+
+            function applyFilter() {
+                const val = filter.value;
+                const rows = document.querySelectorAll('#activeItemsSection tbody tr');
+                rows.forEach(r => {
+                    if (!val) {
+                        r.style.display = '';
+                        return;
+                    }
+                    const status = (r.getAttribute('data-status') || '').trim();
+                    if (status === val) {
+                        r.style.display = '';
+                    } else {
+                        r.style.display = 'none';
+                    }
+                });
+            }
+
+            filter.addEventListener('change', applyFilter);
+        })();
+    </script>
 
     <!-- Restore Confirmation Modal -->
     <div id="restoreItemModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">

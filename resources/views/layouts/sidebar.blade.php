@@ -23,7 +23,7 @@
 
             <div class="flex flex-col leading-tight">
                 <h1 class="text-[30px] font-bold leading-none" style="color: #93BFC7;">RJ's</h1>
-                <h2 class="text-lg font-semibold tracking-wide" style="color: #93BFC7;">DASHBOARD</h2>
+                <h2 class="text-medium font-bold tracking-wide" style="color: #93BFC7;">Events Styling</h2>
             </div>
         </div>
 

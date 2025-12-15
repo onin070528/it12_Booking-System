@@ -93,6 +93,11 @@ class AdminController extends Controller
         // Archived users (for dashboard quick view)
         $archivedUsers = User::whereNotNull('archived_at')->where('role', 'user')->latest('archived_at')->take(5)->get();
 
+        // Inventory status counts
+        $inStockCount = Inventory::where('status', 'In Stock')->count();
+        $lowStockCount = Inventory::where('status', 'Low Stock')->count();
+        $outOfStockCount = Inventory::where('status', 'Out of Stock')->count();
+
         return view('admin.dashboard', compact(
             'totalUsers',
             'totalAdmins',
@@ -113,6 +118,7 @@ class AdminController extends Controller
             'monthlyRevenue',
             'paymentsByMethod',
             'archivedUsers'
+            , 'inStockCount', 'lowStockCount', 'outOfStockCount'
         ));
     }
 

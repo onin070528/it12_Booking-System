@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Log;
 
 class RegisteredUserController extends Controller
 {
@@ -69,7 +70,7 @@ class RegisteredUserController extends Controller
         try {
             Mail::to($user->email)->send(new WelcomeMail($user));
         } catch (\Exception $e) {
-            \Log::error("Failed to send welcome email to {$user->email}: " . $e->getMessage());
+            Log::error("Failed to send welcome email to {$user->email}: " . $e->getMessage());
             // Don't fail registration if email fails
         }
 

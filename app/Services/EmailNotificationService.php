@@ -46,27 +46,22 @@ class EmailNotificationService
             return false;
         }
 
-        // Check mail configuration
-        $mailer = config('mail.default');
-        $host = config('mail.mailers.smtp.host');
-        $username = config('mail.mailers.smtp.username');
-        $password = config('mail.mailers.smtp.password');
-        
-        Log::info("Mail Configuration - Mailer: {$mailer}, Host: {$host}, Username: " . ($username ?: 'NOT SET'));
-        
-        // Check for placeholder values
-        if (str_contains($username, 'your-email') || str_contains($password, 'your-app-password')) {
-            Log::error("PLACEHOLDER VALUES DETECTED in mail configuration! Username or password contains placeholder text.");
-            Log::error("Please update your .env file with real email credentials.");
-            return false;
-        }
+        // Use dedicated notifications mailer if configured
+        $notificationsMailer = 'notifications';
 
-        // Check if password might be regular password instead of App Password
-        // Gmail App Passwords are 16 characters (with or without spaces)
-        if ($host === 'smtp.gmail.com' && $password && strlen(str_replace(' ', '', $password)) !== 16) {
-            Log::warning("Gmail password length is not 16 characters. Gmail requires App Passwords (16 chars), not regular passwords.");
-            Log::warning("If you're using your regular Gmail password, you need to generate an App Password.");
-            Log::warning("See: https://support.google.com/accounts/answer/185833");
+        $mailerConfig = config("mail.mailers.{$notificationsMailer}", []);
+        $mailerDriver = $mailerConfig['transport'] ?? config('mail.default');
+        $notifHost = $mailerConfig['host'] ?? null;
+        $notifUsername = $mailerConfig['username'] ?? null;
+        $notifPassword = $mailerConfig['password'] ?? null;
+
+        Log::info("Notifications Mailer - driver: {$mailerDriver}, host: " . ($notifHost ?: 'NOT SET') . ", username: " . ($notifUsername ?: 'NOT SET'));
+
+        // Check for placeholder values on notifications mailer
+        if (($notifUsername && str_contains($notifUsername, 'your-email')) || ($notifPassword && str_contains($notifPassword, 'your-app-password'))) {
+            Log::error("PLACEHOLDER VALUES DETECTED in notifications mail configuration! Username or password contains placeholder text.");
+            Log::error("Please update your .env file with real notification email credentials.");
+            return false;
         }
 
         // Optional: Check domain (but don't block if it fails - just log a warning)
@@ -78,27 +73,30 @@ class EmailNotificationService
 
         try {
             // Log which user's email is being used
-            Log::info("Attempting to send email to user ID {$user->id} ({$user->name}) at email: {$user->email}");
-            Log::info("Mail::to() will be called with: {$user->email}");
-            
-            Mail::to($user->email)->send(
-                new BookingNotificationMail($user, $notificationType, $message, $data, $booking)
-            );
+            Log::info("Attempting to send notification email to user ID {$user->id} ({$user->name}) at email: {$user->email}");
+
+            // Build mailable and ensure it uses the notifications sender if configured
+            $mailable = new BookingNotificationMail($user, $notificationType, $message, $data, $booking);
+
+            // If a custom from address is set for notifications, apply it to the mailable
+            $notifFrom = env('NOTIF_FROM_ADDRESS') ?: config('mail.from.address');
+            $notifFromName = env('NOTIF_FROM_NAME') ?: config('mail.from.name');
+            if ($notifFrom) {
+                $mailable->from($notifFrom, $notifFromName);
+            }
+
+            // Send using the dedicated notifications mailer so we don't affect default mailer
+            Mail::mailer($notificationsMailer)->to($user->email)->send($mailable);
 
             Log::info("✓ Email notification sent successfully to {$user->email} (User: {$user->name}, ID: {$user->id}) for notification type: {$notificationType}");
             Log::info("=== EMAIL SEND COMPLETE ===");
             return true;
-        } catch (\Swift_TransportException $e) {
-            Log::error("✗ SMTP Transport Error sending email to {$user->email} (User: {$user->name}, ID: {$user->id})");
-            Log::error("Error: " . $e->getMessage());
-            Log::error("This usually means: Invalid SMTP credentials, wrong host/port, or network issue");
-            Log::error("Stack trace: " . $e->getTraceAsString());
-            return false;
         } catch (\Exception $e) {
+            // Log transport/network errors and any other exceptions here
             Log::error("✗ Failed to send email notification to {$user->email} (User: {$user->name}, ID: {$user->id})");
-            Log::error("Error Type: " . get_class($e));
-            Log::error("Error Message: " . $e->getMessage());
-            Log::error("Error File: " . $e->getFile() . ":" . $e->getLine());
+            Log::error("Exception Class: " . get_class($e));
+            Log::error("Error: " . $e->getMessage());
+            Log::error("File: " . $e->getFile() . ":" . $e->getLine());
             Log::error("Stack trace: " . $e->getTraceAsString());
             return false;
         }

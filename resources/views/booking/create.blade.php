@@ -36,10 +36,11 @@
                         </h3>
 
                         <select id="event_type" name="event_type" required class="w-full px-4 py-3 rounded-lg border-0 
-                                focus:ring-2 focus:ring-white shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
+                                focus:ring-2 focus:ring-white shadow-[0_2px_8px_rgba(0,0,0,0.15)] text-lg font-medium">
                             <option value="">Choose event type</option>
                             <option value="wedding">Wedding</option>
                             <option value="birthday">Birthday</option>
+                            <option value="christening">Christening</option>
                             <option value="debut">Debut</option>
                             <option value="pageant">Pageant</option>
                             <option value="corporate">Corporate Event</option>
@@ -71,6 +72,16 @@
                                 <input type="text" id="birthday_venue" name="birthday_venue" placeholder="Venue *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                                 <input type="number" id="birthday_guests" name="birthday_guests" placeholder="Number of Guests *" required min="1" class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
                                 <textarea id="birthday_theme" name="birthday_theme" placeholder="Theme / Motif *" required class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white resize-none"></textarea>
+                        </div>
+
+                        <!-- CHRISTENING FORM -->
+                        <div id="form_christening" class="eventForm hidden bg-[#93BFC7] rounded-xl shadow p-6 mb-6">
+                            <h3 class="text-xl font-bold text-white mb-4">Christening Details</h3>
+                            <input type="text" id="christening_child" name="christening_child" placeholder="Child's Name *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <input type="text" id="christening_parents" name="christening_parents" placeholder="Parents' Names *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <input type="text" id="christening_venue" name="christening_venue" placeholder="Venue *" required class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <input type="number" id="christening_guests" name="christening_guests" placeholder="Number of Guests *" required min="1" class="w-full mb-4 px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                            <textarea id="christening_notes" name="christening_notes" placeholder="Additional Notes (Optional)" class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white resize-none"></textarea>
                         </div>
 
                         <!-- DEBUT FORM -->
@@ -279,6 +290,26 @@
                         </div>
 
                         <!-- Debut Preview Fields -->
+                        
+                        <!-- Christening Preview Fields -->
+                        <div id="preview_christening" class="hidden space-y-4">
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Child's Name:</p>
+                                <p class="text-white font-semibold" id="preview_christening_child">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Parents' Names:</p>
+                                <p class="text-white font-semibold" id="preview_christening_parents">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Venue:</p>
+                                <p class="text-white font-semibold" id="preview_christening_venue">-</p>
+                            </div>
+                            <div class="bg-white/20 p-4 rounded-lg">
+                                <p class="text-white font-bold text-base">Number of Guests:</p>
+                                <p class="text-white font-semibold" id="preview_christening_guests">-</p>
+                            </div>
+                        </div>
                         <div id="preview_debut" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
                                 <p class="text-white font-bold text-base">Debutante Name:</p>
@@ -613,7 +644,7 @@
                 const eventSelect = document.getElementById('event_type');
                 const forms = document.querySelectorAll('.eventForm');
                 const eventInfo = document.getElementById('event_info_container');
-                const previewSections = ['preview_wedding', 'preview_birthday', 'preview_debut', 'preview_pageant', 'preview_corporate'];
+                const previewSections = ['preview_wedding', 'preview_birthday', 'preview_christening', 'preview_debut', 'preview_pageant', 'preview_corporate'];
                 const submitButton = document.getElementById('submitBookingBtn');
 
                 // Hide all preview sections
@@ -685,6 +716,20 @@
                 );
                 document.getElementById('birthday_theme')?.addEventListener('input', e =>
                     document.getElementById('preview_birthday_theme').textContent = e.target.value || '-'
+                );
+
+                // Christening form listeners
+                document.getElementById('christening_child')?.addEventListener('input', e =>
+                    document.getElementById('preview_christening_child').textContent = e.target.value || '-'
+                );
+                document.getElementById('christening_parents')?.addEventListener('input', e =>
+                    document.getElementById('preview_christening_parents').textContent = e.target.value || '-'
+                );
+                document.getElementById('christening_venue')?.addEventListener('input', e =>
+                    document.getElementById('preview_christening_venue').textContent = e.target.value || '-'
+                );
+                document.getElementById('christening_guests')?.addEventListener('input', e =>
+                    document.getElementById('preview_christening_guests').textContent = e.target.value || '-'
                 );
 
                 // Debut form listeners
@@ -961,6 +1006,8 @@
                             guestCount = parseInt(document.getElementById('pageant_guests').value) || 0;
                         } else if (eventType === 'corporate') {
                             guestCount = parseInt(document.getElementById('corporate_attendees').value) || 0;
+                        } else if (eventType === 'christening') {
+                            guestCount = parseInt(document.getElementById('christening_guests').value) || 0;
                         }
                         
                         // Calculate amount: base + (guests * 500)
@@ -1055,6 +1102,32 @@
                                 this.classList.remove('border-2', 'border-red-400');
                             });
                         });
+
+                        // Prefill event type from query parameter (e.g., ?event_type=wedding)
+                        (function prefillFromQuery() {
+                            try {
+                                const params = new URLSearchParams(window.location.search);
+                                const pre = params.get('event_type');
+                                if (!pre) return;
+                                const normalized = pre.toLowerCase();
+                                // If the option exists in the select, set it and trigger change
+                                const optionExists = Array.from(eventSelect.options).some(o => o.value === normalized);
+                                if (optionExists) {
+                                    eventSelect.value = normalized;
+                                    eventSelect.dispatchEvent(new Event('change'));
+                                    // Focus first required input of the active form
+                                    setTimeout(() => {
+                                        const activeForm = document.getElementById(`form_${normalized}`);
+                                        if (activeForm) {
+                                            const firstInput = activeForm.querySelector('[required]');
+                                            if (firstInput) firstInput.focus();
+                                        }
+                                    }, 250);
+                                }
+                            } catch (e) {
+                                // ignore
+                            }
+                        })();
             </script>
 
         </div>

@@ -30,7 +30,7 @@
                 <div class="flex-1">
 
                     <!-- Client Information -->
-                    <div class="bg-[#93BFC7] rounded-xl shadow p-6 mb-6">
+                    <div class="bg-[#93BFC7] rounded-xl shadow-xl p-6 mb-6">
                         <h3 class="text-2xl font-bold text-white mb-4">
                             <i class="fas fa-user mr-2"></i>Client Information
                         </h3>
@@ -55,7 +55,7 @@
                     </div>
 
                     <!-- Select Event Type -->
-                    <div class="bg-[#93BFC7] rounded-xl shadow p-6 mb-6">
+                    <div class="bg-[#93BFC7] rounded-xl shadow-xl p-6 mb-6">
                         <h3 class="text-2xl font-bold text-white mb-4">
                             <i class="fas fa-list mr-2"></i>Select Event Type
                         </h3>
@@ -191,60 +191,60 @@
                 </div>
 
                 <!-- PREVIEW PANEL -->
-                <div class="flex-1 bg-[#93BFC7] rounded-xl shadow p-6 flex flex-col" style="height: fit-content; max-height: 90vh;">
+                <div class="flex-1 bg-[#93BFC7] rounded-xl shadow-xl p-6 flex flex-col" style="height: fit-content; max-height: 90vh;">
                     <h3 class="text-2xl font-bold text-white mb-6">Preview Booking</h3>
 
                     <div class="space-y-4 overflow-y-auto flex-1" style="max-height: calc(90vh - 200px);">
 
                         <!-- Client Information Preview -->
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-bold text-base">Client Name:</p>
+                            <p class="text-white font-bold text-lg ">Client Name:</p>
                             <p class="text-white font-semibold" id="preview_client_name">-</p>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-bold text-base">Client Email:</p>
+                            <p class="text-white font-bold text-lg">Client Email:</p>
                             <p class="text-white font-semibold" id="preview_client_email">-</p>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-bold text-base">Client Phone:</p>
+                            <p class="text-white font-bold text-lg">Client Phone:</p>
                             <p class="text-white font-semibold" id="preview_client_phone">-</p>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-bold text-base">Event Type:</p>
+                            <p class="text-white font-bold text-lg">Event Type:</p>
                             <p class="text-white font-semibold" id="preview_event_type">-</p>
                         </div>
 
                         <!-- Wedding Preview Fields -->
                         <div id="preview_wedding" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Bride Name:</p>
+                                <p class="text-white font-bold text-lg">Bride Name:</p>
                                 <p class="text-white font-semibold" id="preview_wedding_bride">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Groom Name:</p>
+                                <p class="text-white font-bold text-lg">Groom Name:</p>
                                 <p class="text-white font-semibold" id="preview_wedding_groom">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Number of Guests:</p>
+                                <p class="text-white font-bold text-lg">Number of Guests:</p>
                                 <p class="text-white font-semibold" id="preview_wedding_guests">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Ceremony Venue:</p>
+                                <p class="text-white font-bold text-lg">Ceremony Venue:</p>
                                 <p class="text-white font-semibold" id="preview_wedding_ceremony">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Reception Venue:</p>
+                                <p class="text-white font-bold text-lg">Reception Venue:</p>
                                 <p class="text-white font-semibold" id="preview_wedding_reception">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Theme / Motif:</p>
+                                <p class="text-white font-bold text-lg">Theme / Motif:</p>
                                 <p class="text-white font-semibold" id="preview_wedding_theme">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Additional Notes:</p>
+                                <p class="text-white font-bold text-lg">Additional Notes:</p>
                                 <p class="text-white font-semibold" id="preview_wedding_notes">-</p>
                             </div>
                         </div>
@@ -252,23 +252,23 @@
                         <!-- Birthday Preview Fields -->
                         <div id="preview_birthday" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Celebrant Name:</p>
+                                <p class="text-white font-bold text-lg">Celebrant Name:</p>
                                 <p class="text-white font-semibold" id="preview_birthday_celebrant">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Age:</p>
+                                <p class="text-white font-bold text-lg">Age:</p>
                                 <p class="text-white font-semibold" id="preview_birthday_age">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Venue:</p>
+                                <p class="text-white font-bold text-lg">Venue:</p>
                                 <p class="text-white font-semibold" id="preview_birthday_venue">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Number of Guests:</p>
+                                <p class="text-white font-bold text-lg">Number of Guests:</p>
                                 <p class="text-white font-semibold" id="preview_birthday_guests">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Theme / Motif:</p>
+                                <p class="text-white font-bold text-lg">Theme / Motif:</p>
                                 <p class="text-white font-semibold" id="preview_birthday_theme">-</p>
                             </div>
                         </div>
@@ -276,35 +276,35 @@
                         <!-- Debut Preview Fields -->
                         <div id="preview_debut" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Debutante Name:</p>
+                                <p class="text-white font-bold text-lg">Debutante Name:</p>
                                 <p class="text-white font-semibold" id="preview_debut_name">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Venue:</p>
+                                <p class="text-white font-bold text-lg">Venue:</p>
                                 <p class="text-white font-semibold" id="preview_debut_venue">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Number of Guests:</p>
+                                <p class="text-white font-bold text-lg">Number of Guests:</p>
                                 <p class="text-white font-semibold" id="preview_debut_guests">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Theme / Motif:</p>
+                                <p class="text-white font-bold text-lg">Theme / Motif:</p>
                                 <p class="text-white font-semibold" id="preview_debut_theme">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">18 Roses Participants:</p>
+                                <p class="text-white font-bold text-lg">18 Roses Participants:</p>
                                 <p class="text-white font-semibold" id="preview_debut_roses">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">18 Candles Participants:</p>
+                                <p class="text-white font-bold text-lg">18 Candles Participants:</p>
                                 <p class="text-white font-semibold" id="preview_debut_candles">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">18 Treasures Participants:</p>
+                                <p class="text-white font-bold text-lg">18 Treasures Participants:</p>
                                 <p class="text-white font-semibold" id="preview_debut_treasures">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Program Notes:</p>
+                                <p class="text-white font-bold text-lg">Program Notes:</p>
                                 <p class="text-white font-semibold" id="preview_debut_notes">-</p>
                             </div>
                         </div>
@@ -312,31 +312,31 @@
                         <!-- Pageant Preview Fields -->
                         <div id="preview_pageant" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Pageant Title:</p>
+                                <p class="text-white font-bold text-lg">Pageant Title:</p>
                                 <p class="text-white font-semibold" id="preview_pageant_title">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Venue:</p>
+                                <p class="text-white font-bold text-lg">Venue:</p>
                                 <p class="text-white font-semibold" id="preview_pageant_venue">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Number of Guests:</p>
+                                <p class="text-white font-bold text-lg">Number of Guests:</p>
                                 <p class="text-white font-semibold" id="preview_pageant_guests">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Theme / Motif:</p>
+                                <p class="text-white font-bold text-lg">Theme / Motif:</p>
                                 <p class="text-white font-semibold" id="preview_pageant_theme">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Number of Contestants:</p>
+                                <p class="text-white font-bold text-lg">Number of Contestants:</p>
                                 <p class="text-white font-semibold" id="preview_pageant_contestants">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Categories:</p>
+                                <p class="text-white font-bold text-lg">Categories:</p>
                                 <p class="text-white font-semibold" id="preview_pageant_categories">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Additional Notes:</p>
+                                <p class="text-white font-bold text-lg">Additional Notes:</p>
                                 <p class="text-white font-semibold" id="preview_pageant_notes">-</p>
                             </div>
                         </div>
@@ -344,52 +344,52 @@
                         <!-- Corporate Preview Fields -->
                         <div id="preview_corporate" class="hidden space-y-4">
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Company Name:</p>
+                                <p class="text-white font-bold text-lg">Company Name:</p>
                                 <p class="text-white font-semibold" id="preview_corporate_company">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Event Title / Theme:</p>
+                                <p class="text-white font-bold text-lg">Event Title / Theme:</p>
                                 <p class="text-white font-semibold" id="preview_corporate_title">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Venue / Location:</p>
+                                <p class="text-white font-bold text-lg">Venue / Location:</p>
                                 <p class="text-white font-semibold" id="preview_corporate_venue">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Number of Attendees:</p>
+                                <p class="text-white font-bold text-lg">Number of Attendees:</p>
                                 <p class="text-white font-semibold" id="preview_corporate_attendees">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Company Representative:</p>
+                                <p class="text-white font-bold text-lg">Company Representative:</p>
                                 <p class="text-white font-semibold" id="preview_corporate_representative">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Contact Number:</p>
+                                <p class="text-white font-bold text-lg">Contact Number:</p>
                                 <p class="text-white font-semibold" id="preview_corporate_contact">-</p>
                             </div>
                             <div class="bg-white/20 p-4 rounded-lg">
-                                <p class="text-white font-bold text-base">Event Requirements:</p>
+                                <p class="text-white font-bold text-lg">Event Requirements:</p>
                                 <p class="text-white font-semibold" id="preview_corporate_requirements">-</p>
                             </div>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-bold text-base">Date:</p>
+                            <p class="text-white font-bold text-lg">Date:</p>
                             <p class="text-white font-semibold" id="preview_date">-</p>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-bold text-base">Time:</p>
+                            <p class="text-white font-bold text-lg">Time:</p>
                             <p class="text-white font-semibold" id="preview_time">-</p>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-bold text-base">Location:</p>
+                            <p class="text-white font-bold text-lg">Location:</p>
                             <p class="text-white font-semibold" id="preview_location">-</p>
                         </div>
 
                         <div class="bg-white/20 p-4 rounded-lg">
-                            <p class="text-white font-bold text-base">Request:</p>
+                            <p class="text-white font-bold text-lg">Request:</p>
                             <p class="text-white font-semibold" id="preview_request">-</p>
                         </div>
                     </div>
@@ -789,7 +789,7 @@
                             return false;
                         }
 
-                        // Get the active form based on event type
+                        // Get the active form lgd on event type
                         const activeForm = document.getElementById(`form_${eventSelect.value}`);
                         if (!activeForm) {
                             showErrorModal('Please fill in all required event details.');
@@ -899,10 +899,10 @@
                         }
                         formData.append('theme', themeValue);
                         
-                        // Calculate total amount based on event type and guests
-                        let totalAmount = 50000; // Base amount
+                        // Calculate total amount lgd on event type and guests
+                        let totalAmount = 50000; // lg amount
                         
-                        // Get guest count based on event type
+                        // Get guest count lgd on event type
                         let guestCount = 0;
                         if (eventType === 'wedding') {
                             guestCount = parseInt(document.getElementById('wedding_guests').value) || 0;
@@ -916,7 +916,7 @@
                             guestCount = parseInt(document.getElementById('corporate_attendees').value) || 0;
                         }
                         
-                        // Calculate amount: base + (guests * 500)
+                        // Calculate amount: lg + (guests * 500)
                         totalAmount = totalAmount + (guestCount * 500);
                         formData.append('total_amount', totalAmount);
 

@@ -25,13 +25,7 @@
 
              <!-- Header -->
             @include('layouts.header')
-                    
-            <div class="flex justify-end mb-6">
-                <a href="{{ route('booking.create') }}"
-                    class="bg-[#5394D0] text-white px-6 py-2.5 rounded-md shadow hover:bg-[#3e78a9] transition inline-block">
-                    Book Now!
-                </a>
-            </div>
+                        
 
             <!-- Event Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8 justify-center max-w-7xl mx-auto">
@@ -49,7 +43,7 @@
                             Elegant styling and complete packages for your dream wedding.
                         </p>
                         <div class="flex gap-3 mt-4">
-                            <a href="{{ route('booking.create') }}"
+                            <a href="{{ route('booking.create') }}?event_type=wedding"
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
@@ -74,7 +68,7 @@
                             Colorful and themed setups perfect for any birthday celebration.
                         </p>
                         <div class="flex gap-3 mt-4">
-                            <a href="{{ route('booking.create') }}"
+                            <a href="{{ route('booking.create') }}?event_type=birthday"
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
@@ -99,7 +93,7 @@
                             Stylish backdrops and stage aesthetics designed for pageants.
                         </p>
                         <div class="flex gap-3 mt-4">
-                            <a href="{{ route('booking.create') }}"
+                            <a href="{{ route('booking.create') }}?event_type=pageant"
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
@@ -124,7 +118,7 @@
                             Soft tones and charming designs perfect for christening events.
                         </p>
                         <div class="flex gap-3 mt-4">
-                            <a href="{{ route('booking.create') }}"
+                            <a href="{{ route('booking.create') }}?event_type=christening"
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
@@ -149,7 +143,7 @@
                             Elegant and sophisticated styling for your memorable 18th birthday debut celebration.
                         </p>
                         <div class="flex gap-3 mt-4">
-                            <a href="{{ route('booking.create') }}"
+                            <a href="{{ route('booking.create') }}?event_type=debut"
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
@@ -174,7 +168,7 @@
                             Professional event styling and complete setup solutions for corporate gatherings, conferences, and business events.
                         </p>
                         <div class="flex gap-3 mt-4">
-                            <a href="{{ route('booking.create') }}"
+                            <a href="{{ route('booking.create') }}?event_type=corporate"
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>

@@ -36,7 +36,7 @@
 
             <!-- Left side - Registration Form -->
             <div class="w-full md:w-1/2 p-8 overflow-y-auto max-h-[90vh]">
-                <h2 class="text-2xl font-bold text-center mb-0">Registration</h2>
+                <h2 class="text-3xl text-[#93BFC7] font-bold text-center mb-0">Registration</h2>
 
                 <form action="{{ route('register') }}" method="POST">
                     @csrf
@@ -53,7 +53,7 @@
 
                     <!-- First Name -->
                     <div class="mb-4">
-                        <label class="block text-sm mb-1">First Name</label>
+                        <label class="block text-sm mb-1 ">First Name</label>
                         <input type="text" name="first_name"
                             class="w-full h-10 bg-gray-100 rounded px-3"
                             placeholder="Enter first name" required autofocus
@@ -148,7 +148,7 @@
                     </div>
 
                     <button type="submit"
-                        class="w-full bg-[#5394D0] text-white rounded h-10 hover:bg-blue-600">
+                        class="w-full bg-[#5394D0] text-white font-semibold rounded h-10 hover:bg-blue-600">
                         Register
                     </button>
 

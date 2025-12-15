@@ -16,9 +16,15 @@
                     <h2 class="text-3xl font-bold" style="color: #93BFC7;">Archived Bookings</h2>
                     <p class="text-sm text-gray-600">List of archived bookings</p>
                 </div>
-                <div>
-                    <a href="{{ route('admin.bookings.index') }}" class="bg-[#93BFC7] px-4 py-2 rounded-lg text-white">Back to Bookings</a>
-                </div>
+               <div>
+    <a href="{{ route('admin.bookings.index') }}"
+       class="inline-flex items-center gap-2 bg-[#93BFC7] px-4 py-2 rounded-lg
+              text-white text-sm font-medium hover:bg-[#7eaab1] transition">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Bookings</span>
+    </a>
+</div>
+
             </div>
 
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
