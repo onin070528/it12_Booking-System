@@ -83,6 +83,14 @@
                 </a>
             </li>
 
+            <!-- Profile / Settings -->
+            <li>
+                <a href="{{ route('profile') }}"
+                   class="flex items-center {{ request()->routeIs('profile') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition">
+                    <i class="fas fa-user-cog mr-3"></i> Profile
+                </a>
+            </li>
+
         </ul>
 
         <div class="mt-auto px-4 pb-6 pt-6">

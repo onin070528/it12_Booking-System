@@ -6,10 +6,13 @@ use App\Models\Booking;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\EmailNotificationService;
+use App\Mail\WalkInCustomerWelcomeMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
@@ -30,6 +33,9 @@ class BookingController extends Controller
             $isWalkIn = $request->input('is_walk_in', false);
             
             // If walk-in, validate and handle client information
+            $temporaryPassword = null;
+            $isNewWalkInUser = false;
+            
             if ($isWalkIn && $this->isAdmin()) {
                 $request->validate([
                     'client_name' => 'required|string|max:255',
@@ -41,15 +47,25 @@ class BookingController extends Controller
                 $client = User::where('email', $request->input('client_email'))->first();
                 
                 if (!$client) {
+                    // Generate a temporary password for new walk-in customer
+                    $temporaryPassword = Str::random(12); // Generate random 12-character password
+                    
                     // Create a new user for the walk-in client
                     $client = User::create([
                         'name' => $request->input('client_name'),
                         'email' => $request->input('client_email'),
-                        'password' => bcrypt(bin2hex(random_bytes(16))), // Random password
+                        'password' => bcrypt($temporaryPassword),
                         'role' => 'user',
                         'first_name' => explode(' ', $request->input('client_name'))[0],
                         'last_name' => implode(' ', array_slice(explode(' ', $request->input('client_name')), 1)),
                         'phone' => $request->input('client_phone'),
+                    ]);
+                    
+                    $isNewWalkInUser = true;
+                    
+                    Log::info('New walk-in customer account created', [
+                        'email' => $client->email,
+                        'name' => $client->name,
                     ]);
                 }
                 
@@ -253,8 +269,25 @@ class BookingController extends Controller
                 );
             }
 
+            // Send welcome email to new walk-in customers with login credentials
+            if ($isNewWalkInUser && $temporaryPassword) {
+                try {
+                    Mail::to($client->email)->send(new WalkInCustomerWelcomeMail($client, $booking, $temporaryPassword));
+                    
+                    Log::info('Welcome email sent to walk-in customer', [
+                        'email' => $client->email,
+                        'booking_id' => $booking->id,
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('Failed to send welcome email to walk-in customer: ' . $e->getMessage(), [
+                        'email' => $client->email,
+                        'booking_id' => $booking->id,
+                    ]);
+                }
+            }
+
             $successMessage = $isWalkIn && $this->isAdmin()
-                ? 'Walk-in booking created successfully! The client will be notified.'
+                ? 'Walk-in booking created successfully! ' . ($isNewWalkInUser ? 'The client has been sent login credentials via email.' : 'The client will be notified.')
                 : 'Booking submitted successfully! The admin will review your booking and contact you soon.';
 
             return response()->json([
