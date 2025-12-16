@@ -171,8 +171,5 @@ Route::middleware(['auth', 'user'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// PayMongo webhook (no auth required, signature verification handles security)
-Route::post('/webhook/paymongo', [PaymentController::class, 'webhook'])->name('payment.webhook');
-
 // Include authentication routes (login, register, password reset, etc.)
 require __DIR__ . '/auth.php';
