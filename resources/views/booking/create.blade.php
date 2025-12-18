@@ -383,7 +383,7 @@
                                 class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white resize-none" rows="4"></textarea>
                         </div>
                         <div>       
-                            <button type="submit" form="bookingForm"
+                            <button type="submit" id="submitBookingBtn" form="bookingForm"
                                 class="w-full bg-white text-[#93BFC7] font-bold py-3 rounded-lg hover:bg-gray-100 
                                 transition-all shadow">
                                 Submit Booking Request

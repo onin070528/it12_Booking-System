@@ -47,7 +47,7 @@ class SendFullPaymentReminders extends Command
             // Check if reminder was already sent (to avoid duplicates)
             $existingReminder = Notification::where('user_id', $booking->user_id)
                 ->where('notifiable_type', Booking::class)
-                ->where('notifiable_id', $booking->id)
+                ->where('notifiable_id', $booking->booking_id)
                 ->where('type', 'full_payment_reminder')
                 ->whereDate('created_at', Carbon::today())
                 ->first();
@@ -63,18 +63,18 @@ class SendFullPaymentReminders extends Command
                         'user_id' => $booking->user_id,
                         'type' => 'full_payment_reminder',
                         'notifiable_type' => Booking::class,
-                        'notifiable_id' => $booking->id,
+                        'notifiable_id' => $booking->booking_id,
                         'message' => "Reminder: Your {$booking->event_type} event on {$booking->event_date->format('F d, Y')} is in {$daysUntilEvent} day(s). Please complete your full payment of ₱" . number_format($remainingAmount, 2) . ".",
                         'read' => false,
                         'data' => [
-                            'booking_id' => $booking->id,
+                            'booking_id' => $booking->booking_id,
                             'remaining_amount' => $remainingAmount,
                             'event_date' => $booking->event_date->format('Y-m-d'),
                         ],
                     ]);
 
                     $reminderCount++;
-                    $this->info("Sent reminder to {$booking->user->name} for booking #{$booking->id}");
+                    $this->info("Sent reminder to {$booking->user->name} for booking #{$booking->booking_id}");
                 }
             }
         }

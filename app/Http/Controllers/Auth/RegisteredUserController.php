@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Mail\WelcomeMail;
+use App\Mail\NewAccountPendingMail;
 use App\Models\User;
 use App\Services\EmailNotificationService;
 use App\Services\EmailValidationService;
@@ -62,18 +63,22 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => $request->password, // The User model's 'hashed' cast will automatically hash this
+            'account_status' => 'pending', // New accounts require admin approval
         ]);
 
         event(new Registered($user));
 
-        // Send welcome email
+        // Don't send welcome email yet - send it when account is approved
+        // Notify admin(s) about new pending registration
         try {
-            Mail::to($user->email)->send(new WelcomeMail($user));
+            $admins = User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                Mail::to($admin->email)->send(new NewAccountPendingMail($user));
+            }
         } catch (\Exception $e) {
-            Log::error("Failed to send welcome email to {$user->email}: " . $e->getMessage());
-            // Don't fail registration if email fails
+            Log::error("Failed to send admin notification for new registration: " . $e->getMessage());
         }
 
-        return redirect(route('login', absolute: false))->with('status', 'Registration successful! Please check your email for a welcome message.');
+        return redirect(route('login', absolute: false))->with('status', 'Registration successful! Your account is pending approval. You will receive an email once your account has been reviewed.');
     }
 }

@@ -76,6 +76,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/inventory/{id}/archive', [EventController::class, 'archiveInventory'])->name('inventory.archive');
     Route::post('/inventory/{id}/restore', [EventController::class, 'restoreInventory'])->name('inventory.restore');
     
+    // Inventory Assignment for Bookings
+    Route::get('/inventory/available/list', [EventController::class, 'getAvailableInventory'])->name('inventory.available');
+    Route::get('/bookings/{booking}/inventory', [EventController::class, 'getBookingInventory'])->name('bookings.inventory');
+    Route::post('/bookings/{booking}/inventory/assign', [EventController::class, 'assignInventory'])->name('bookings.inventory.assign');
+    Route::post('/bookings/{booking}/inventory/return', [EventController::class, 'returnInventory'])->name('bookings.inventory.return');
+    Route::delete('/inventory/assignment/{assignment}', [EventController::class, 'removeInventoryAssignment'])->name('inventory.assignment.remove');
+    
     // Reports (renamed from AdminReports)
     Route::get('/reports', [EventController::class, 'AdminReports'])->name('reports.index');
     
@@ -115,6 +122,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/users/{user}', [App\Http\Controllers\AdminController::class, 'showUser'])->name('users.show');
     Route::post('/users/{user}/archive', [App\Http\Controllers\AdminController::class, 'archiveUser'])->name('users.archive');
     Route::post('/users/{user}/restore', [App\Http\Controllers\AdminController::class, 'restoreUser'])->name('users.restore');
+    Route::post('/users/{user}/approve', [App\Http\Controllers\AdminController::class, 'approveUser'])->name('users.approve');
+    Route::post('/users/{user}/reject', [App\Http\Controllers\AdminController::class, 'rejectUser'])->name('users.reject');
+    Route::delete('/users/{user}', [App\Http\Controllers\AdminController::class, 'deleteUser'])->name('users.delete');
+    Route::get('/users-pending-count', [App\Http\Controllers\AdminController::class, 'pendingUsersCount'])->name('users.pending-count');
 });
 
 // User routes - require authentication and user role ONLY (admins cannot access)

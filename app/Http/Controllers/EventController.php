@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Event;
 use App\Models\Inventory;
 use App\Models\Booking;
+use App\Models\BookingInventory;
 use Carbon\Carbon;
 
 class EventController extends Controller
@@ -437,7 +439,25 @@ class EventController extends Controller
         $newItems = Inventory::whereNull('archived_at')->where('created_at', '>=', now()->subDays(30))->count();
         $archivedCount = Inventory::whereNotNull('archived_at')->count();
         
-        return view('admin.AdminInventory', compact('inventories', 'archivedInventories', 'totalProducts', 'lowStockItems', 'newItems', 'archivedCount'));
+        // Get all active bookings with inventory assignments
+        $assignedInventories = \App\Models\BookingInventory::with(['booking.user', 'inventory'])
+            ->whereIn('status', ['assigned', 'in_use', 'partially_returned'])
+            ->orderBy('assigned_at', 'desc')
+            ->get();
+        
+        // Get inventory units for the form
+        $units = Inventory::$units;
+        
+        return view('admin.AdminInventory', compact(
+            'inventories', 
+            'archivedInventories', 
+            'totalProducts', 
+            'lowStockItems', 
+            'newItems', 
+            'archivedCount',
+            'assignedInventories',
+            'units'
+        ));
     }
 
     /**
@@ -448,7 +468,8 @@ class EventController extends Controller
         $validated = $request->validate([
             'item_name' => 'required|string|max:255',
             'category' => 'required|string|max:255',
-            'stock' => 'required|integer|min:0',
+            'unit' => 'required|string|max:50',
+            'stock' => 'required|numeric|min:0',
         ]);
 
         $inventory = Inventory::create($validated);
@@ -468,6 +489,7 @@ class EventController extends Controller
         $inventory = Inventory::where('inventory_id', $id)->firstOrFail();
         // Return with both id and inventory_id for compatibility
         $inventory->id = $inventory->inventory_id;
+        $inventory->available_stock = $inventory->available_stock;
         return response()->json($inventory);
     }
 
@@ -481,7 +503,8 @@ class EventController extends Controller
         $validated = $request->validate([
             'item_name' => 'required|string|max:255',
             'category' => 'required|string|max:255',
-            'stock' => 'required|integer|min:0',
+            'unit' => 'required|string|max:50',
+            'stock' => 'required|numeric|min:0',
         ]);
 
         $inventory->update($validated);
@@ -499,6 +522,18 @@ class EventController extends Controller
     public function archiveInventory($id)
     {
         $inventory = Inventory::where('inventory_id', $id)->firstOrFail();
+        
+        // Check if item is currently assigned to any booking
+        $inUse = $inventory->bookingAssignments()
+            ->whereIn('status', ['assigned', 'in_use'])
+            ->exists();
+            
+        if ($inUse) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot archive this item. It is currently assigned to a booking.'
+            ], 400);
+        }
         
         // Mark as archived instead of deleting
         $inventory->archived_at = now();
@@ -524,6 +559,215 @@ class EventController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Item restored successfully!'
+        ]);
+    }
+
+    /**
+     * Assign inventory items to a booking
+     */
+    public function assignInventory(Request $request, $bookingId)
+    {
+        $booking = Booking::findOrFail($bookingId);
+        
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.inventory_id' => 'required|exists:inventories,inventory_id',
+            'items.*.quantity' => 'required|numeric|min:0.01',
+        ]);
+
+        $errors = [];
+        $assigned = [];
+
+        foreach ($validated['items'] as $item) {
+            $inventory = Inventory::where('inventory_id', $item['inventory_id'])->first();
+            
+            if (!$inventory) {
+                $errors[] = "Inventory item not found.";
+                continue;
+            }
+
+            // Check available stock
+            if ($inventory->available_stock < $item['quantity']) {
+                $errors[] = "{$inventory->item_name}: Only {$inventory->available_stock} {$inventory->unit} available.";
+                continue;
+            }
+
+            // Create or update the assignment
+            $assignment = BookingInventory::updateOrCreate(
+                [
+                    'booking_id' => $bookingId,
+                    'inventory_id' => $item['inventory_id'],
+                ],
+                [
+                    'quantity_assigned' => DB::raw('quantity_assigned + ' . $item['quantity']),
+                    'status' => 'assigned',
+                    'assigned_at' => now(),
+                ]
+            );
+
+            // If new record, set quantity directly
+            if ($assignment->wasRecentlyCreated) {
+                $assignment->quantity_assigned = $item['quantity'];
+                $assignment->save();
+            }
+
+            $assigned[] = $inventory->item_name;
+        }
+
+        if (!empty($errors)) {
+            return response()->json([
+                'success' => false,
+                'message' => implode(' ', $errors),
+                'assigned' => $assigned
+            ], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Inventory assigned successfully!',
+            'assigned' => $assigned
+        ]);
+    }
+
+    /**
+     * Get available inventory for assignment
+     */
+    public function getAvailableInventory()
+    {
+        $inventories = Inventory::whereNull('archived_at')
+            ->where('stock', '>', 0)
+            ->orderBy('item_name')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->inventory_id,
+                    'item_name' => $item->item_name,
+                    'category' => $item->category,
+                    'unit' => $item->unit,
+                    'total_stock' => $item->stock,
+                    'available_stock' => $item->available_stock,
+                    'status' => $item->status,
+                ];
+            });
+
+        return response()->json($inventories);
+    }
+
+    /**
+     * Get inventory assigned to a specific booking
+     */
+    public function getBookingInventory($bookingId)
+    {
+        $booking = Booking::with(['inventoryAssignments.inventory'])->findOrFail($bookingId);
+        
+        $assignments = $booking->inventoryAssignments->map(function ($assignment) {
+            return [
+                'id' => $assignment->id,
+                'inventory_id' => $assignment->inventory_id,
+                'item_name' => $assignment->inventory->item_name,
+                'category' => $assignment->inventory->category,
+                'unit' => $assignment->inventory->unit,
+                'quantity_assigned' => $assignment->quantity_assigned,
+                'quantity_returned' => $assignment->quantity_returned,
+                'quantity_damaged' => $assignment->quantity_damaged,
+                'damage_notes' => $assignment->damage_notes,
+                'status' => $assignment->status,
+                'assigned_at' => $assignment->assigned_at?->format('M d, Y g:i A'),
+            ];
+        });
+
+        return response()->json([
+            'booking_id' => $bookingId,
+            'customer' => $booking->user->name,
+            'event_type' => $booking->event_type,
+            'event_date' => $booking->event_date->format('M d, Y'),
+            'assignments' => $assignments,
+        ]);
+    }
+
+    /**
+     * Return inventory items from a booking (complete booking)
+     */
+    public function returnInventory(Request $request, $bookingId)
+    {
+        $booking = Booking::findOrFail($bookingId);
+        
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.assignment_id' => 'required|exists:booking_inventory,id',
+            'items.*.quantity_returned' => 'required|numeric|min:0',
+            'items.*.quantity_damaged' => 'required|numeric|min:0',
+            'items.*.damage_notes' => 'nullable|string|max:500',
+        ]);
+
+        foreach ($validated['items'] as $item) {
+            $assignment = \App\Models\BookingInventory::findOrFail($item['assignment_id']);
+            
+            // Validate totals don't exceed assigned
+            $totalReturned = $item['quantity_returned'] + $item['quantity_damaged'];
+            if ($totalReturned > $assignment->quantity_assigned) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Return quantity exceeds assigned quantity for {$assignment->inventory->item_name}."
+                ], 400);
+            }
+
+            // Update the assignment
+            $assignment->quantity_returned = $item['quantity_returned'];
+            $assignment->quantity_damaged = $item['quantity_damaged'];
+            $assignment->damage_notes = $item['damage_notes'] ?? null;
+            $assignment->returned_at = now();
+            
+            // Set status based on return
+            if ($assignment->isFullyReturned()) {
+                $assignment->status = 'returned';
+            } else {
+                $assignment->status = 'partially_returned';
+            }
+            
+            $assignment->save();
+
+            // If there's damage, reduce the main inventory stock
+            if ($item['quantity_damaged'] > 0) {
+                $inventory = $assignment->inventory;
+                $inventory->stock = max(0, $inventory->stock - $item['quantity_damaged']);
+                $inventory->save();
+            }
+        }
+
+        // Check if all items are returned
+        if ($booking->allInventoryReturned()) {
+            // Optionally update booking status to completed
+            $booking->status = 'completed';
+            $booking->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Inventory returned successfully! Stock has been updated.'
+        ]);
+    }
+
+    /**
+     * Remove inventory assignment from a booking
+     */
+    public function removeInventoryAssignment($assignmentId)
+    {
+        $assignment = \App\Models\BookingInventory::findOrFail($assignmentId);
+        
+        // Only allow removal if not already returned
+        if ($assignment->status === 'returned') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot remove a returned assignment.'
+            ], 400);
+        }
+
+        $assignment->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Assignment removed successfully.'
         ]);
     }
 }

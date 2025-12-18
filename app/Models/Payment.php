@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
+    protected $primaryKey = 'payment_id';
+
     protected $fillable = [
         'booking_id',
         'user_id',
@@ -30,7 +32,8 @@ class Payment extends Model
      */
     public function booking(): BelongsTo
     {
-        return $this->belongsTo(Booking::class);
+        // Specify both foreign key and owner key due to custom PK
+        return $this->belongsTo(Booking::class, 'booking_id', 'booking_id');
     }
 
     /**
@@ -38,6 +41,6 @@ class Payment extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 }

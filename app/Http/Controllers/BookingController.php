@@ -69,7 +69,7 @@ class BookingController extends Controller
                     ]);
                 }
                 
-                $userId = $client->id;
+                $userId = $client->user_id;
             } else {
                 // Regular booking from authenticated user
                 $userId = Auth::id();
@@ -307,7 +307,7 @@ class BookingController extends Controller
             $admins = User::where('role', 'admin')->get();
             $notificationMessage = "New booking submitted by " . ($this->authUser()?->name ?? 'Guest') . " for {$eventType} event on " . $booking->event_date->format('F d, Y');
             $notificationData = [
-                'booking_id' => $booking->id,
+                'booking_id' => $booking->booking_id,
                 'customer_name' => $this->authUser()?->name ?? 'Guest',
                 'event_type' => $eventType,
             ];
@@ -318,15 +318,15 @@ class BookingController extends Controller
                     : ($this->authUser()?->name ?? 'Guest');
                     
                 Notification::create([
-                    'user_id' => $admin->id,
+                    'user_id' => $admin->user_id,
                     'type' => 'booking_created',
                     'notifiable_type' => Booking::class,
-                    'notifiable_id' => $booking->id,
+                    'notifiable_id' => $booking->booking_id,
                     'message' => ($isWalkIn ? "Walk-in booking created for " : "New booking submitted by ") 
                         . $clientName . " for {$eventType} event on " . $booking->event_date->format('F d, Y'),
                     'read' => false,
                     'data' => [
-                        'booking_id' => $booking->id,
+                        'booking_id' => $booking->booking_id,
                         'customer_name' => $clientName,
                         'event_type' => $eventType,
                         'is_walk_in' => $isWalkIn,
@@ -350,12 +350,12 @@ class BookingController extends Controller
                     
                     Log::info('Welcome email sent to walk-in customer', [
                         'email' => $client->email,
-                        'booking_id' => $booking->id,
+                        'booking_id' => $booking->booking_id,
                     ]);
                 } catch (\Exception $e) {
                     Log::error('Failed to send welcome email to walk-in customer: ' . $e->getMessage(), [
                         'email' => $client->email,
-                        'booking_id' => $booking->id,
+                        'booking_id' => $booking->booking_id,
                     ]);
                 }
             }
@@ -367,7 +367,7 @@ class BookingController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $successMessage,
-                'booking_id' => $booking->id,
+                'booking_id' => $booking->booking_id,
             ]);
         } catch (\Exception $e) {
             Log::error('Booking creation failed: ' . $e->getMessage());
@@ -398,7 +398,7 @@ class BookingController extends Controller
                 ->sum('amount');
             $remainingBalance = $booking->total_amount - $totalPaid;
             
-            $bookingPayments[$booking->id] = [
+            $bookingPayments[$booking->booking_id] = [
                 'total_paid' => $totalPaid,
                 'remaining_balance' => $remainingBalance,
             ];
@@ -474,14 +474,14 @@ class BookingController extends Controller
         // Send notification to customer asking them to choose communication method
         $notificationMessage = "Your booking for {$booking->event_type} event has been confirmed! Please choose how you'd like to proceed: schedule a meetup or continue via messaging.";
         $notificationData = [
-            'booking_id' => $booking->id,
+            'booking_id' => $booking->booking_id,
         ];
 
         Notification::create([
             'user_id' => $booking->user_id,
             'type' => 'booking_confirmed',
             'notifiable_type' => Booking::class,
-            'notifiable_id' => $booking->id,
+            'notifiable_id' => $booking->booking_id,
             'message' => $notificationMessage,
             'read' => false,
             'data' => $notificationData,
@@ -546,23 +546,23 @@ class BookingController extends Controller
         $admins = User::where('role', 'admin')->get();
         foreach ($admins as $admin) {
             if ($request->input('communication_method') === 'meetup') {
-                $message = "Customer {$booking->user->name} has chosen to schedule a meetup for booking #{$booking->id}. Meetup scheduled on " . 
+                $message = "Customer {$booking->user->name} has chosen to schedule a meetup for booking #{$booking->booking_id}. Meetup scheduled on " . 
                           \Carbon\Carbon::parse($request->input('meetup_date'))->format('F d, Y') . 
                           " at " . date('g:i A', strtotime($request->input('meetup_time'))) . ".";
             } else {
-                $message = "Customer {$booking->user->name} has chosen to continue via messaging for booking #{$booking->id}. You can communicate through the Messages section.";
+                $message = "Customer {$booking->user->name} has chosen to continue via messaging for booking #{$booking->booking_id}. You can communicate through the Messages section.";
             }
             
             $notificationData = [
-                'booking_id' => $booking->id,
+                'booking_id' => $booking->booking_id,
                 'communication_method' => $request->input('communication_method'),
             ];
 
             Notification::create([
-                'user_id' => $admin->id,
+                'user_id' => $admin->user_id,
                 'type' => 'booking_communication_chosen',
                 'notifiable_type' => Booking::class,
-                'notifiable_id' => $booking->id,
+                'notifiable_id' => $booking->booking_id,
                 'message' => $message,
                 'read' => false,
                 'data' => $notificationData,
@@ -619,7 +619,7 @@ class BookingController extends Controller
         // Send notification to customer
         $notificationMessage = "Your booking for {$booking->event_type} event on {$booking->event_date->format('F d, Y')} is ready for payment. Please proceed to make your downpayment.";
         $notificationData = [
-            'booking_id' => $booking->id,
+            'booking_id' => $booking->booking_id,
             'amount' => $booking->total_amount,
         ];
 
@@ -627,7 +627,7 @@ class BookingController extends Controller
             'user_id' => $booking->user_id,
             'type' => 'booking_ready_for_payment',
             'notifiable_type' => Booking::class,
-            'notifiable_id' => $booking->id,
+            'notifiable_id' => $booking->booking_id,
             'message' => $notificationMessage,
             'read' => false,
             'data' => $notificationData,
@@ -687,10 +687,10 @@ class BookingController extends Controller
         ]);
 
         // Send notification to customer
-        $notificationMessage = "Your partial payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been received. Remaining balance: ₱" . number_format($booking->total_amount - $payment->amount, 2) . ".";
+        $notificationMessage = "Your partial payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->booking_id} has been received. Remaining balance: ₱" . number_format($booking->total_amount - $payment->amount, 2) . ".";
         $notificationData = [
-            'booking_id' => $booking->id,
-            'payment_id' => $payment->id,
+            'booking_id' => $booking->booking_id,
+            'payment_id' => $payment->payment_id,
             'paid_amount' => $payment->amount,
             'remaining_amount' => $booking->total_amount - $payment->amount,
         ];
@@ -699,7 +699,7 @@ class BookingController extends Controller
             'user_id' => $booking->user_id,
             'type' => 'payment_partial_received',
             'notifiable_type' => Booking::class,
-            'notifiable_id' => $booking->id,
+            'notifiable_id' => $booking->booking_id,
             'message' => $notificationMessage,
             'read' => false,
             'data' => $notificationData,
@@ -777,10 +777,10 @@ class BookingController extends Controller
             ]);
 
             // Send notification to customer
-            $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been received. Your booking is now fully paid and approved!";
+            $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->booking_id} has been received. Your booking is now fully paid and approved!";
             $notificationData = [
-                'booking_id' => $booking->id,
-                'payment_id' => $payment->id,
+                'booking_id' => $booking->booking_id,
+                'payment_id' => $payment->payment_id,
                 'status' => 'approved',
             ];
 
@@ -788,7 +788,7 @@ class BookingController extends Controller
                 'user_id' => $booking->user_id,
                 'type' => 'payment_full_received',
                 'notifiable_type' => Booking::class,
-                'notifiable_id' => $booking->id,
+                'notifiable_id' => $booking->booking_id,
                 'message' => $notificationMessage,
                 'read' => false,
                 'data' => $notificationData,
@@ -815,10 +815,10 @@ class BookingController extends Controller
             ]);
 
             // Send notification to customer
-            $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->id} has been received. Remaining balance: ₱" . number_format($remainingBalance, 2) . ".";
+            $notificationMessage = "Your payment of ₱" . number_format($payment->amount, 2) . " for booking #{$booking->booking_id} has been received. Remaining balance: ₱" . number_format($remainingBalance, 2) . ".";
             $notificationData = [
-                'booking_id' => $booking->id,
-                'payment_id' => $payment->id,
+                'booking_id' => $booking->booking_id,
+                'payment_id' => $payment->payment_id,
                 'paid_amount' => $payment->amount,
                 'remaining_amount' => $remainingBalance,
             ];
@@ -827,7 +827,7 @@ class BookingController extends Controller
                 'user_id' => $booking->user_id,
                 'type' => 'payment_received',
                 'notifiable_type' => Booking::class,
-                'notifiable_id' => $booking->id,
+                'notifiable_id' => $booking->booking_id,
                 'message' => $notificationMessage,
                 'read' => false,
                 'data' => $notificationData,
@@ -880,9 +880,9 @@ class BookingController extends Controller
         ]);
 
         // Send notification to customer
-        $notificationMessage = "Great news! Your booking #{$booking->id} for {$booking->event_type} event is now in the design phase. Our team is working on your event design.";
+        $notificationMessage = "Great news! Your booking #{$booking->booking_id} for {$booking->event_type} event is now in the design phase. Our team is working on your event design.";
         $notificationData = [
-            'booking_id' => $booking->id,
+            'booking_id' => $booking->booking_id,
             'status' => 'in_design',
         ];
 
@@ -890,7 +890,7 @@ class BookingController extends Controller
             'user_id' => $booking->user_id,
             'type' => 'booking_in_design',
             'notifiable_type' => Booking::class,
-            'notifiable_id' => $booking->id,
+            'notifiable_id' => $booking->booking_id,
             'message' => $notificationMessage,
             'read' => false,
             'data' => $notificationData,
@@ -939,9 +939,9 @@ class BookingController extends Controller
         ]);
 
         // Send notification to customer
-        $notificationMessage = "We regret to inform you that your booking #{$booking->id} for {$booking->event_type} event on {$booking->event_date->format('F d, Y')} has been rejected. Please contact us if you have any questions.";
+        $notificationMessage = "We regret to inform you that your booking #{$booking->booking_id} for {$booking->event_type} event on {$booking->event_date->format('F d, Y')} has been rejected. Please contact us if you have any questions.";
         $notificationData = [
-            'booking_id' => $booking->id,
+            'booking_id' => $booking->booking_id,
             'status' => 'rejected',
         ];
 
@@ -949,7 +949,7 @@ class BookingController extends Controller
             'user_id' => $booking->user_id,
             'type' => 'booking_rejected',
             'notifiable_type' => Booking::class,
-            'notifiable_id' => $booking->id,
+            'notifiable_id' => $booking->booking_id,
             'message' => $notificationMessage,
             'read' => false,
             'data' => $notificationData,
@@ -1003,9 +1003,9 @@ class BookingController extends Controller
         // Determine who cancelled and send appropriate notifications
         if ($isAdmin) {
             // Admin cancelled - notify customer
-            $notificationMessage = "Your booking #{$booking->id} for {$booking->event_type} event on {$booking->event_date->format('F d, Y')} has been cancelled by the administrator. Please contact us if you have any questions.";
+            $notificationMessage = "Your booking #{$booking->booking_id} for {$booking->event_type} event on {$booking->event_date->format('F d, Y')} has been cancelled by the administrator. Please contact us if you have any questions.";
             $notificationData = [
-                'booking_id' => $booking->id,
+                'booking_id' => $booking->booking_id,
                 'status' => 'cancelled',
                 'cancelled_by' => 'admin',
             ];
@@ -1014,7 +1014,7 @@ class BookingController extends Controller
                 'user_id' => $booking->user_id,
                 'type' => 'booking_cancelled',
                 'notifiable_type' => Booking::class,
-                'notifiable_id' => $booking->id,
+                'notifiable_id' => $booking->booking_id,
                 'message' => $notificationMessage,
                 'read' => false,
                 'data' => $notificationData,
@@ -1033,13 +1033,13 @@ class BookingController extends Controller
             // Also notify all admins
             $admins = User::where('role', 'admin')->get();
             foreach ($admins as $admin) {
-                    if ($admin->id !== Auth::id()) {
-                    $adminMessage = "Booking #{$booking->id} for {$booking->event_type} event has been cancelled by " . ($this->authUser()?->name ?? 'Admin') . ".";
+                    if ($admin->user_id !== Auth::id()) {
+                    $adminMessage = "Booking #{$booking->booking_id} for {$booking->event_type} event has been cancelled by " . ($this->authUser()?->name ?? 'Admin') . ".";
                     Notification::create([
-                        'user_id' => $admin->id,
+                        'user_id' => $admin->user_id,
                         'type' => 'booking_cancelled',
                         'notifiable_type' => Booking::class,
-                        'notifiable_id' => $booking->id,
+                        'notifiable_id' => $booking->booking_id,
                         'message' => $adminMessage,
                         'read' => false,
                         'data' => $notificationData,
@@ -1048,9 +1048,9 @@ class BookingController extends Controller
             }
         } else {
             // Customer cancelled - notify all admins
-            $notificationMessage = "Customer {$booking->user->name} has cancelled booking #{$booking->id} for {$booking->event_type} event on {$booking->event_date->format('F d, Y')}.";
+            $notificationMessage = "Customer {$booking->user->name} has cancelled booking #{$booking->booking_id} for {$booking->event_type} event on {$booking->event_date->format('F d, Y')}.";
             $notificationData = [
-                'booking_id' => $booking->id,
+                'booking_id' => $booking->booking_id,
                 'status' => 'cancelled',
                 'cancelled_by' => 'customer',
                 'customer_name' => $booking->user->name,
@@ -1059,10 +1059,10 @@ class BookingController extends Controller
             $admins = User::where('role', 'admin')->get();
             foreach ($admins as $admin) {
                 Notification::create([
-                    'user_id' => $admin->id,
+                    'user_id' => $admin->user_id,
                     'type' => 'booking_cancelled',
                     'notifiable_type' => Booking::class,
-                    'notifiable_id' => $booking->id,
+                    'notifiable_id' => $booking->booking_id,
                     'message' => $notificationMessage,
                     'read' => false,
                     'data' => $notificationData,
@@ -1079,12 +1079,12 @@ class BookingController extends Controller
             }
 
             // Also notify customer
-            $customerMessage = "Your booking #{$booking->id} for {$booking->event_type} event on {$booking->event_date->format('F d, Y')} has been cancelled. We're sorry to see you go!";
+            $customerMessage = "Your booking #{$booking->booking_id} for {$booking->event_type} event on {$booking->event_date->format('F d, Y')} has been cancelled. We're sorry to see you go!";
             Notification::create([
                 'user_id' => $booking->user_id,
                 'type' => 'booking_cancelled',
                 'notifiable_type' => Booking::class,
-                'notifiable_id' => $booking->id,
+                'notifiable_id' => $booking->booking_id,
                 'message' => $customerMessage,
                 'read' => false,
                 'data' => $notificationData,
@@ -1137,7 +1137,7 @@ class BookingController extends Controller
         // Send notification to customer
         $notificationMessage = "Congratulations! Your {$booking->event_type} event on {$booking->event_date->format('F d, Y')} has been marked as successfully completed. Thank you for choosing us!";
         $notificationData = [
-            'booking_id' => $booking->id,
+            'booking_id' => $booking->booking_id,
             'status' => 'completed',
         ];
 
@@ -1145,7 +1145,7 @@ class BookingController extends Controller
             'user_id' => $booking->user_id,
             'type' => 'booking_completed',
             'notifiable_type' => Booking::class,
-            'notifiable_id' => $booking->id,
+            'notifiable_id' => $booking->booking_id,
             'message' => $notificationMessage,
             'read' => false,
             'data' => $notificationData,

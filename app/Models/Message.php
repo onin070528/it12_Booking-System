@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
+    protected $primaryKey = 'message_id';
+
     protected $fillable = [
         'sender_id',
         'receiver_id',
@@ -25,7 +27,7 @@ class Message extends Model
      */
     public function sender(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'sender_id');
+        return $this->belongsTo(User::class, 'sender_id', 'user_id');
     }
 
     /**
@@ -33,7 +35,7 @@ class Message extends Model
      */
     public function receiver(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'receiver_id');
+        return $this->belongsTo(User::class, 'receiver_id', 'user_id');
     }
 
     /**

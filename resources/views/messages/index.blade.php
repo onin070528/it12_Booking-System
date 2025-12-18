@@ -78,7 +78,7 @@
                     <div class="border-t border-gray-200 p-4 bg-white">
                         <form id="messageForm" class="flex space-x-3">
                             @csrf
-                            <input type="hidden" name="receiver_id" value="{{ $admin->id }}">
+                            <input type="hidden" name="receiver_id" value="{{ $admin->user_id }}">
                             <input type="text" 
                                    id="messageInput" 
                                    name="message" 
@@ -96,18 +96,34 @@
         </div>
     </div>
 
+    {{-- Pass PHP data to JavaScript via data attributes to avoid linter errors --}}
+    <div id="chatConfig" 
+         data-last-message-id="{{ $messages->max('message_id') ?? 0 }}"
+         data-admin-id="{{ $admin->user_id }}"
+         data-current-user-id="{{ Auth::user()->user_id }}"
+         data-send-url="{{ route('messages.send') }}"
+         data-get-url="{{ route('messages.get') }}"
+         data-csrf-token="{{ csrf_token() }}"
+         style="display: none;"></div>
+
     <script>
-        const messagesContainer = document.getElementById('messagesContainer');
-        const messageForm = document.getElementById('messageForm');
-        const messageInput = document.getElementById('messageInput');
-        let lastMessageId = {{ $messages->max('id') ?? 0 }};
-        const adminId = {{ $admin->id }};
+        // Get config from data attributes
+        var chatConfig = document.getElementById('chatConfig');
+        var messagesContainer = document.getElementById('messagesContainer');
+        var messageForm = document.getElementById('messageForm');
+        var messageInput = document.getElementById('messageInput');
+        var lastMessageId = parseInt(chatConfig.dataset.lastMessageId) || 0;
+        var adminId = parseInt(chatConfig.dataset.adminId);
+        var currentUserId = parseInt(chatConfig.dataset.currentUserId);
+        var sendUrl = chatConfig.dataset.sendUrl;
+        var getUrl = chatConfig.dataset.getUrl;
+        var csrfToken = chatConfig.dataset.csrfToken;
 
         // Scroll to bottom on load
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         // Update badge on page load (messages are marked as read when page loads)
-        setTimeout(() => {
+        setTimeout(function() {
             if (typeof updateUnreadMessagesCount === 'function') {
                 updateUnreadMessagesCount();
             }
@@ -117,28 +133,28 @@
         messageForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const message = messageInput.value.trim();
+            var message = messageInput.value.trim();
             if (!message) return;
 
-            const formData = new FormData(messageForm);
+            var formData = new FormData(messageForm);
             
             try {
-                const response = await fetch('{{ route("messages.send") }}', {
+                var response = await fetch(sendUrl, {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-CSRF-TOKEN': csrfToken,
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
                     }
                 });
 
-                const data = await response.json();
+                var data = await response.json();
                 
                 if (data.success) {
                     messageInput.value = '';
                     addMessageToChat(data.message);
-                    lastMessageId = data.message.id;
+                    lastMessageId = data.message.message_id;
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     // Update badge after sending
                     if (typeof updateUnreadMessagesCount === 'function') {
@@ -152,12 +168,12 @@
 
         // Add message to chat
         function addMessageToChat(message) {
-            const isSender = message.sender_id === {{ Auth::id() }};
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `flex ${isSender ? 'justify-end' : 'justify-start'}`;
+            var isSender = message.sender_id === currentUserId;
+            var messageDiv = document.createElement('div');
+            messageDiv.className = 'flex ' + (isSender ? 'justify-end' : 'justify-start');
             
-            const date = new Date(message.created_at);
-            const formattedDate = date.toLocaleDateString('en-US', { 
+            var date = new Date(message.created_at);
+            var formattedDate = date.toLocaleDateString('en-US', { 
                 month: 'short', 
                 day: 'numeric', 
                 year: 'numeric',
@@ -165,21 +181,24 @@
                 minute: '2-digit'
             });
 
-            messageDiv.innerHTML = `
-                <div class="max-w-md">
-                    <div class="flex items-start space-x-2 ${isSender ? 'flex-row-reverse space-x-reverse' : ''}">
-                        <div class="w-8 h-8 rounded-full ${isSender ? 'bg-[#5394D0]' : 'bg-[#93BFC7]'} flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-user text-white text-xs"></i>
-                        </div>
-                        <div class="flex flex-col ${isSender ? 'items-end' : 'items-start'}">
-                            <div class="px-4 py-2 rounded-lg ${isSender ? 'bg-[#5394D0] text-white' : 'bg-white text-gray-800 border border-gray-200'}">
-                                <p class="text-sm">${message.message}</p>
-                            </div>
-                            <span class="text-xs text-gray-500 mt-1 px-2">${formattedDate}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
+            var flexDirection = isSender ? 'flex-row-reverse space-x-reverse' : '';
+            var avatarBg = isSender ? 'bg-[#5394D0]' : 'bg-[#93BFC7]';
+            var flexAlign = isSender ? 'items-end' : 'items-start';
+            var bubbleStyle = isSender ? 'bg-[#5394D0] text-white' : 'bg-white text-gray-800 border border-gray-200';
+
+            messageDiv.innerHTML = '<div class="max-w-md">' +
+                '<div class="flex items-start space-x-2 ' + flexDirection + '">' +
+                    '<div class="w-8 h-8 rounded-full ' + avatarBg + ' flex items-center justify-center flex-shrink-0">' +
+                        '<i class="fas fa-user text-white text-xs"></i>' +
+                    '</div>' +
+                    '<div class="flex flex-col ' + flexAlign + '">' +
+                        '<div class="px-4 py-2 rounded-lg ' + bubbleStyle + '">' +
+                            '<p class="text-sm">' + message.message + '</p>' +
+                        '</div>' +
+                        '<span class="text-xs text-gray-500 mt-1 px-2">' + formattedDate + '</span>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
             
             messagesContainer.appendChild(messageDiv);
         }
@@ -187,19 +206,19 @@
         // Poll for new messages
         setInterval(async function() {
             try {
-                const response = await fetch(`{{ route("messages.get") }}?last_message_id=${lastMessageId}&other_user_id=${adminId}`, {
+                var response = await fetch(getUrl + '?last_message_id=' + lastMessageId + '&other_user_id=' + adminId, {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
                     }
                 });
 
-                const data = await response.json();
+                var data = await response.json();
                 
                 if (data.messages && data.messages.length > 0) {
-                    data.messages.forEach(message => {
+                    data.messages.forEach(function(message) {
                         addMessageToChat(message);
-                        lastMessageId = Math.max(lastMessageId, message.id);
+                        lastMessageId = Math.max(lastMessageId, message.message_id);
                     });
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     // Update badge when new messages arrive

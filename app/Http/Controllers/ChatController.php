@@ -25,15 +25,15 @@ class ChatController extends Controller
         
         // Get conversation messages
         $messages = Message::where(function($query) use ($user, $admin) {
-            $query->where('sender_id', $user->id)
-                  ->where('receiver_id', $admin->id);
+            $query->where('sender_id', $user->user_id)
+                  ->where('receiver_id', $admin->user_id);
         })->orWhere(function($query) use ($user, $admin) {
-            $query->where('sender_id', $admin->id)
-                  ->where('receiver_id', $user->id);
+            $query->where('sender_id', $admin->user_id)
+                  ->where('receiver_id', $user->user_id);
         })->orderBy('created_at', 'asc')->get();
         
         // Mark messages as read
-        Message::where('receiver_id', $user->id)
+        Message::where('receiver_id', $user->user_id)
                ->where('read', false)
                ->update(['read' => true, 'read_at' => now()]);
         
@@ -48,13 +48,13 @@ class ChatController extends Controller
         $admin = Auth::user();
         
         // Get all users who have conversations with admin
-        $conversations = Message::where('sender_id', $admin->id)
-            ->orWhere('receiver_id', $admin->id)
+        $conversations = Message::where('sender_id', $admin->user_id)
+            ->orWhere('receiver_id', $admin->user_id)
             ->with(['sender', 'receiver'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->groupBy(function($message) use ($admin) {
-                return $message->sender_id == $admin->id 
+                return $message->sender_id == $admin->user_id 
                     ? $message->receiver_id 
                     : $message->sender_id;
             });
@@ -65,20 +65,20 @@ class ChatController extends Controller
         $messages = collect();
         
         if ($selectedUserId) {
-            $selectedUser = User::findOrFail($selectedUserId);
+            $selectedUser = User::where('user_id', $selectedUserId)->firstOrFail();
             
             // Get conversation messages
             $messages = Message::where(function($query) use ($admin, $selectedUser) {
-                $query->where('sender_id', $admin->id)
-                      ->where('receiver_id', $selectedUser->id);
+                $query->where('sender_id', $admin->user_id)
+                      ->where('receiver_id', $selectedUser->user_id);
             })->orWhere(function($query) use ($admin, $selectedUser) {
-                $query->where('sender_id', $selectedUser->id)
-                      ->where('receiver_id', $admin->id);
+                $query->where('sender_id', $selectedUser->user_id)
+                      ->where('receiver_id', $admin->user_id);
             })->orderBy('created_at', 'asc')->get();
             
             // Mark messages as read
-            Message::where('receiver_id', $admin->id)
-                   ->where('sender_id', $selectedUser->id)
+            Message::where('receiver_id', $admin->user_id)
+                   ->where('sender_id', $selectedUser->user_id)
                    ->where('read', false)
                    ->update(['read' => true, 'read_at' => now()]);
         }
@@ -100,8 +100,8 @@ class ChatController extends Controller
             ->get()
             ->map(function($user) use ($admin) {
                 // Check if user has unread messages from admin
-                $unreadCount = Message::where('sender_id', $user->id)
-                    ->where('receiver_id', $admin->id)
+                $unreadCount = Message::where('sender_id', $user->user_id)
+                    ->where('receiver_id', $admin->user_id)
                     ->where('read', false)
                     ->count();
                 
@@ -109,11 +109,11 @@ class ChatController extends Controller
                 
                 // Check if user has existing conversation
                 $hasConversation = Message::where(function($query) use ($admin, $user) {
-                    $query->where('sender_id', $admin->id)
-                          ->where('receiver_id', $user->id);
+                    $query->where('sender_id', $admin->user_id)
+                          ->where('receiver_id', $user->user_id);
                 })->orWhere(function($query) use ($admin, $user) {
-                    $query->where('sender_id', $user->id)
-                          ->where('receiver_id', $admin->id);
+                    $query->where('sender_id', $user->user_id)
+                          ->where('receiver_id', $admin->user_id);
                 })->exists();
                 
                 $user->has_conversation = $hasConversation;
@@ -139,12 +139,12 @@ class ChatController extends Controller
     public function send(Request $request)
     {
         $request->validate([
-            'receiver_id' => 'required|exists:users,id',
+            'receiver_id' => 'required|exists:users,user_id',
             'message' => 'required|string|max:1000',
         ]);
         
         $message = Message::create([
-            'sender_id' => Auth::id(),
+            'sender_id' => Auth::user()->user_id,
             'receiver_id' => $request->receiver_id,
             'message' => $request->message,
         ]);
@@ -171,7 +171,7 @@ class ChatController extends Controller
         if (!$otherUserId) {
             // For regular users, get admin
             $admin = User::where('role', 'admin')->first();
-            $otherUserId = $admin ? $admin->id : null;
+            $otherUserId = $admin ? $admin->user_id : null;
         }
         
         if (!$otherUserId) {
@@ -179,14 +179,14 @@ class ChatController extends Controller
         }
         
         // Get new messages
-        $messages = Message::where('id', '>', $lastMessageId)
+        $messages = Message::where('message_id', '>', $lastMessageId)
             ->where(function($query) use ($user, $otherUserId) {
                 $query->where(function($q) use ($user, $otherUserId) {
-                    $q->where('sender_id', $user->id)
+                    $q->where('sender_id', $user->user_id)
                       ->where('receiver_id', $otherUserId);
                 })->orWhere(function($q) use ($user, $otherUserId) {
                     $q->where('sender_id', $otherUserId)
-                      ->where('receiver_id', $user->id);
+                      ->where('receiver_id', $user->user_id);
                 });
             })
             ->with(['sender', 'receiver'])
@@ -194,14 +194,14 @@ class ChatController extends Controller
             ->get();
         
         // Mark received messages as read
-        Message::where('receiver_id', $user->id)
+        Message::where('receiver_id', $user->user_id)
                ->where('sender_id', $otherUserId)
                ->where('read', false)
                ->update(['read' => true, 'read_at' => now()]);
         
         return response()->json([
             'messages' => $messages,
-            'last_message_id' => $messages->max('id') ?? $lastMessageId,
+            'last_message_id' => $messages->max('message_id') ?? $lastMessageId,
         ]);
     }
 
@@ -210,7 +210,7 @@ class ChatController extends Controller
      */
     public function getUnreadCount()
     {
-        $count = Message::where('receiver_id', Auth::id())
+        $count = Message::where('receiver_id', Auth::user()->user_id)
             ->where('read', false)
             ->count();
         

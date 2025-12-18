@@ -14,6 +14,16 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 
+    protected $primaryKey = 'user_id';
+
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'user_id';
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -29,6 +39,10 @@ class User extends Authenticatable
         'role',
         'archived_at',
         'phone',
+        'account_status',
+        'approved_at',
+        'approved_by',
+        'rejection_reason',
     ];
 
     /**
@@ -51,6 +65,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'archived_at' => 'datetime',
+            'approved_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -72,11 +87,43 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if account is pending approval
+     */
+    public function isPending(): bool
+    {
+        return $this->account_status === 'pending';
+    }
+
+    /**
+     * Check if account is approved
+     */
+    public function isApproved(): bool
+    {
+        return $this->account_status === 'approved';
+    }
+
+    /**
+     * Check if account is rejected
+     */
+    public function isRejected(): bool
+    {
+        return $this->account_status === 'rejected';
+    }
+
+    /**
+     * Get the admin who approved this user
+     */
+    public function approvedByAdmin()
+    {
+        return $this->belongsTo(User::class, 'approved_by', 'user_id');
+    }
+
+    /**
      * Get the notifications for the user.
      */
     public function notifications(): HasMany
     {
-        return $this->hasMany(Notification::class);
+        return $this->hasMany(Notification::class, 'user_id', 'user_id');
     }
 
     /**
@@ -84,7 +131,7 @@ class User extends Authenticatable
      */
     public function sentMessages(): HasMany
     {
-        return $this->hasMany(Message::class, 'sender_id');
+        return $this->hasMany(Message::class, 'sender_id', 'user_id');
     }
 
     /**
@@ -92,7 +139,7 @@ class User extends Authenticatable
      */
     public function receivedMessages(): HasMany
     {
-        return $this->hasMany(Message::class, 'receiver_id');
+        return $this->hasMany(Message::class, 'receiver_id', 'user_id');
     }
 
     /**
@@ -108,7 +155,7 @@ class User extends Authenticatable
      */
     public function bookings(): HasMany
     {
-        return $this->hasMany(Booking::class);
+        return $this->hasMany(Booking::class, 'user_id', 'user_id');
     }
 
     /**

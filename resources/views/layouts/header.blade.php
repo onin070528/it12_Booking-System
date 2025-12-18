@@ -2,8 +2,9 @@
 <div class="bg-white shadow-md rounded-xl px-6 py-4 flex justify-between items-center mb-8">
     <div class="flex items-center space-x-2">
         <div>
-            <h2 class="text-3xl font-bold" style="color: #93BFC7;">
-                <i class="fas fa-user-shield mr-2"></i>Welcome, {{ Auth::user()->first_name }}
+            <h2 class="text-3xl font-bold text-[#93BFC7] flex items-center gap-2">
+                <i class="fas fa-user-circle"></i>
+                Welcome, {{ Auth::user()->first_name }}
             </h2>
             <p class="text-1xl font-semibold" style="color: #93BFC7;">
                 @if(isset($headerSubtitle))
@@ -16,7 +17,6 @@
     </div>
 
     <div class="flex items-center space-x-6 text-[#93BFC7]">
-        <i class="fas fa-search text-xl cursor-pointer"></i>
         
         <!-- Notification Dropdown -->
         <div class="relative" id="notificationDropdown">

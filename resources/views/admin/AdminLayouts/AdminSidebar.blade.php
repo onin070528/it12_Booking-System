@@ -110,6 +110,17 @@
                 </a>
             </li>
 
+            <!-- Users Management -->
+            <li>
+                <a href="{{ route('admin.users.index') }}"
+                   class="flex items-center justify-between {{ request()->routeIs('admin.users.*') ? 'bg-[#93BFC7] text-white' : 'text-gray-700 hover:bg-gray-100' }} px-4 py-3 rounded-lg font-medium transition relative">
+                    <div class="flex items-center">
+                        <i class="fas fa-users-cog mr-3"></i> Users Management
+                    </div>
+                    <span id="pendingUsersBadge" class="hidden bg-orange-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center min-w-[24px] animate-pulse"></span>
+                </a>
+            </li>
+
         </ul>
 
             <div class="mt-auto px-4 pb-6 pt-6">
@@ -224,6 +235,39 @@
 
         // Update every 5 seconds
         setInterval(updateIncompleteBookingsCount, 5000);
+
+        // Update pending users count (make it globally accessible)
+        window.updatePendingUsersCount = function() {
+            fetch('{{ route("admin.users.pending-count") }}', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('pendingUsersBadge');
+                if (badge) {
+                    if (data.count > 0) {
+                        badge.textContent = data.count > 99 ? '99+' : data.count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching pending users count:', error));
+        };
+
+        // Update on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', updatePendingUsersCount);
+        } else {
+            updatePendingUsersCount();
+        }
+
+        // Update every 10 seconds
+        setInterval(updatePendingUsersCount, 10000);
     </script>
 
 </body>

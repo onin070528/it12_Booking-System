@@ -7,9 +7,14 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Event;
 use App\Models\Inventory;
+use App\Mail\AccountApprovedMail;
+use App\Mail\AccountRejectedMail;
+use App\Mail\WelcomeMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class AdminController extends Controller
 {
@@ -18,9 +23,10 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
-        $totalUsers = User::where('role', 'user')->count();
+        $totalUsers = User::where('role', 'user')->where('account_status', 'approved')->count();
         $totalAdmins = User::where('role', 'admin')->count();
-        $recentUsers = User::where('role', 'user')->latest()->take(5)->get();
+        $pendingUsersCount = User::where('role', 'user')->where('account_status', 'pending')->count();
+        $recentUsers = User::where('role', 'user')->where('account_status', 'approved')->latest()->take(5)->get();
 
         // Booking Statistics
         $totalBookings = Booking::count();
@@ -117,8 +123,9 @@ class AdminController extends Controller
             'expectedRevenue',
             'monthlyRevenue',
             'paymentsByMethod',
-            'archivedUsers'
-            , 'inStockCount', 'lowStockCount', 'outOfStockCount'
+            'archivedUsers',
+            'pendingUsersCount',
+            'inStockCount', 'lowStockCount', 'outOfStockCount'
         ));
     }
 
@@ -296,14 +303,32 @@ class AdminController extends Controller
     }
 
     /**
-     * List users for admin - shows active and archived users.
+     * List users for admin - shows pending, active, archived, and rejected users.
      */
     public function usersIndex()
     {
-        $activeUsers = User::whereNull('archived_at')->where('role', 'user')->orderBy('created_at', 'desc')->get();
-        $archivedUsers = User::whereNotNull('archived_at')->where('role', 'user')->orderBy('archived_at', 'desc')->get();
+        $pendingUsers = User::where('account_status', 'pending')
+            ->where('role', 'user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        $activeUsers = User::whereNull('archived_at')
+            ->where('role', 'user')
+            ->where('account_status', 'approved')
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        $archivedUsers = User::whereNotNull('archived_at')
+            ->where('role', 'user')
+            ->orderBy('archived_at', 'desc')
+            ->get();
+            
+        $rejectedUsers = User::where('account_status', 'rejected')
+            ->where('role', 'user')
+            ->orderBy('updated_at', 'desc')
+            ->get();
 
-        return view('admin.users.index', compact('activeUsers', 'archivedUsers'));
+        return view('admin.users.index', compact('pendingUsers', 'activeUsers', 'archivedUsers', 'rejectedUsers'));
     }
 
     /**
@@ -312,7 +337,7 @@ class AdminController extends Controller
     public function userData(User $user)
     {
         return response()->json([
-            'id' => $user->id,
+            'id' => $user->user_id,
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
@@ -320,6 +345,18 @@ class AdminController extends Controller
             'created_at' => $user->created_at?->toDateTimeString(),
             'archived_at' => $user->archived_at?->toDateTimeString(),
         ]);
+    }
+
+    /**
+     * Return the count of pending users (for sidebar badge).
+     */
+    public function pendingUsersCount()
+    {
+        $count = User::where('role', 'user')
+            ->where('account_status', 'pending')
+            ->count();
+            
+        return response()->json(['count' => $count]);
     }
 
     /**
@@ -338,6 +375,93 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to archive user: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed to archive user'], 500);
+        }
+    }
+
+    /**
+     * Approve a pending user account.
+     */
+    public function approveUser(User $user)
+    {
+        try {
+            if ($user->account_status !== 'pending') {
+                return response()->json(['success' => false, 'message' => 'User is not pending approval'], 400);
+            }
+
+            $user->account_status = 'approved';
+            $user->approved_at = now();
+            $user->approved_by = Auth::id();
+            $user->save();
+
+            // Send approval email and welcome email
+            try {
+                Mail::to($user->email)->send(new AccountApprovedMail($user));
+                Mail::to($user->email)->send(new WelcomeMail($user));
+            } catch (\Exception $e) {
+                Log::error("Failed to send approval email to {$user->email}: " . $e->getMessage());
+            }
+
+            Log::info('User approved', ['user_id' => $user->id, 'approved_by' => Auth::id()]);
+
+            return response()->json(['success' => true, 'message' => 'User account approved successfully']);
+        } catch (\Exception $e) {
+            Log::error('Failed to approve user: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to approve user'], 500);
+        }
+    }
+
+    /**
+     * Reject a pending user account.
+     */
+    public function rejectUser(Request $request, User $user)
+    {
+        try {
+            if ($user->account_status !== 'pending') {
+                return response()->json(['success' => false, 'message' => 'User is not pending approval'], 400);
+            }
+
+            $reason = $request->input('reason');
+
+            $user->account_status = 'rejected';
+            $user->rejection_reason = $reason;
+            $user->save();
+
+            // Send rejection email
+            try {
+                Mail::to($user->email)->send(new AccountRejectedMail($user, $reason));
+            } catch (\Exception $e) {
+                Log::error("Failed to send rejection email to {$user->email}: " . $e->getMessage());
+            }
+
+            Log::info('User rejected', ['user_id' => $user->id, 'rejected_by' => Auth::id(), 'reason' => $reason]);
+
+            return response()->json(['success' => true, 'message' => 'User account rejected']);
+        } catch (\Exception $e) {
+            Log::error('Failed to reject user: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to reject user'], 500);
+        }
+    }
+
+    /**
+     * Delete a rejected user account permanently.
+     */
+    public function deleteUser(User $user)
+    {
+        try {
+            // Only allow deleting rejected accounts
+            if ($user->account_status !== 'rejected') {
+                return response()->json(['success' => false, 'message' => 'Only rejected accounts can be deleted'], 400);
+            }
+
+            $userId = $user->id;
+            $user->delete();
+
+            Log::info('Rejected user deleted', ['user_id' => $userId, 'deleted_by' => Auth::id()]);
+
+            return response()->json(['success' => true, 'message' => 'User account deleted permanently']);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete user: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to delete user'], 500);
         }
     }
 }

@@ -120,7 +120,7 @@ class PaymentController extends Controller
             
             // Create payment record
             $payment = Payment::create([
-                'booking_id' => $booking->id,
+                'booking_id' => $booking->booking_id,
                 'user_id' => Auth::id(),
                 'amount' => $paymentAmount,
                 'currency' => 'PHP',
@@ -131,10 +131,10 @@ class PaymentController extends Controller
 
             // Notify all admins about the payment
             $admins = User::where('role', 'admin')->get();
-            $notificationMessage = Auth::user()->name . " has submitted a cash payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->id} ({$booking->event_type}).";
+            $notificationMessage = Auth::user()->name . " has submitted a cash payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->booking_id} ({$booking->event_type}).";
             $notificationData = [
-                'booking_id' => $booking->id,
-                'payment_id' => $payment->id,
+                'booking_id' => $booking->booking_id,
+                'payment_id' => $payment->payment_id,
                 'customer_name' => Auth::user()->name,
                 'amount' => $paymentAmount,
                 'payment_method' => 'cash',
@@ -142,10 +142,10 @@ class PaymentController extends Controller
 
             foreach ($admins as $admin) {
                 Notification::create([
-                    'user_id' => $admin->id,
+                    'user_id' => $admin->user_id,
                     'type' => 'payment_submitted',
                     'notifiable_type' => Payment::class,
-                    'notifiable_id' => $payment->id,
+                    'notifiable_id' => $payment->payment_id,
                     'message' => $notificationMessage,
                     'read' => false,
                     'data' => $notificationData,
@@ -190,7 +190,7 @@ class PaymentController extends Controller
             
             // Create payment record
             $payment = Payment::create([
-                'booking_id' => $booking->id,
+                'booking_id' => $booking->booking_id,
                 'user_id' => Auth::id(),
                 'amount' => $paymentAmount,
                 'currency' => 'PHP',
@@ -203,10 +203,10 @@ class PaymentController extends Controller
 
             // Notify all admins about the payment
             $admins = User::where('role', 'admin')->get();
-            $notificationMessage = Auth::user()->name . " has submitted a " . ucfirst($paymentMethod) . " payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->id} ({$booking->event_type}). Reference: {$referenceNumber}";
+            $notificationMessage = Auth::user()->name . " has submitted a " . ucfirst($paymentMethod) . " payment of ₱" . number_format($paymentAmount, 2) . " for booking #{$booking->booking_id} ({$booking->event_type}). Reference: {$referenceNumber}";
             $notificationData = [
-                'booking_id' => $booking->id,
-                'payment_id' => $payment->id,
+                'booking_id' => $booking->booking_id,
+                'payment_id' => $payment->payment_id,
                 'customer_name' => Auth::user()->name,
                 'amount' => $paymentAmount,
                 'payment_method' => $paymentMethod,
@@ -215,10 +215,10 @@ class PaymentController extends Controller
 
             foreach ($admins as $admin) {
                 Notification::create([
-                    'user_id' => $admin->id,
+                    'user_id' => $admin->user_id,
                     'type' => 'payment_submitted',
                     'notifiable_type' => Payment::class,
-                    'notifiable_id' => $payment->id,
+                    'notifiable_id' => $payment->payment_id,
                     'message' => $notificationMessage,
                     'read' => false,
                     'data' => $notificationData,

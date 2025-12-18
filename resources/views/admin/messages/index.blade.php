@@ -48,8 +48,8 @@
                         </div>
                         <div class="flex-1 overflow-y-auto">
                             @forelse($users as $user)
-                                <a href="{{ route('admin.messages.index', ['user_id' => $user->id]) }}" 
-                                   class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition {{ $selectedUser && $selectedUser->id == $user->id ? 'bg-blue-50 border-l-4 border-l-[#93BFC7]' : '' }}">
+                                <a href="{{ route('admin.messages.index', ['user_id' => $user->user_id]) }}" 
+                                   class="block px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition {{ $selectedUser && $selectedUser->user_id == $user->user_id ? 'bg-blue-50 border-l-4 border-l-[#93BFC7]' : '' }}">
                                     <div class="flex items-center justify-between">
                                         <div class="flex items-center space-x-3 flex-1 min-w-0">
                                             <div class="w-10 h-10 rounded-full bg-[#93BFC7] flex items-center justify-center flex-shrink-0">
@@ -141,7 +141,7 @@
                             <div class="border-t border-gray-200 p-4 bg-white">
                                 <form id="messageForm" class="flex space-x-3">
                                     @csrf
-                                    <input type="hidden" name="receiver_id" value="{{ $selectedUser->id }}">
+                                    <input type="hidden" name="receiver_id" value="{{ $selectedUser->user_id }}">
                                     <input type="text" 
                                            id="messageInput" 
                                            name="message" 
@@ -174,18 +174,33 @@
     </div>
 
     @if($selectedUser)
+    {{-- Pass PHP data to JavaScript via data attributes to avoid linter errors --}}
+    <div id="chatConfig" 
+         data-last-message-id="{{ $messages->max('message_id') ?? 0 }}"
+         data-selected-user-id="{{ $selectedUser->user_id }}"
+         data-current-user-id="{{ Auth::user()->user_id }}"
+         data-send-url="{{ route('admin.messages.send') }}"
+         data-get-url="{{ route('admin.messages.get') }}"
+         data-csrf-token="{{ csrf_token() }}"
+         style="display: none;"></div>
     <script>
+        // Get config from data attributes
+        const chatConfig = document.getElementById('chatConfig');
         const messagesContainer = document.getElementById('messagesContainer');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
-        let lastMessageId = {{ $messages->max('id') ?? 0 }};
-        const selectedUserId = {{ $selectedUser->id }};
+        let lastMessageId = parseInt(chatConfig.dataset.lastMessageId) || 0;
+        const selectedUserId = parseInt(chatConfig.dataset.selectedUserId);
+        const currentUserId = parseInt(chatConfig.dataset.currentUserId);
+        const sendUrl = chatConfig.dataset.sendUrl;
+        const getUrl = chatConfig.dataset.getUrl;
+        const csrfToken = chatConfig.dataset.csrfToken;
 
         // Scroll to bottom on load
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         // Update badge on page load (messages are marked as read when page loads)
-        setTimeout(() => {
+        setTimeout(function() {
             if (typeof updateUnreadMessagesCount === 'function') {
                 updateUnreadMessagesCount();
             }
@@ -195,28 +210,28 @@
         messageForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const message = messageInput.value.trim();
+            var message = messageInput.value.trim();
             if (!message) return;
 
-            const formData = new FormData(messageForm);
+            var formData = new FormData(messageForm);
             
             try {
-                const response = await fetch('{{ route("admin.messages.send") }}', {
+                var response = await fetch(sendUrl, {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-CSRF-TOKEN': csrfToken,
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
                     }
                 });
 
-                const data = await response.json();
+                var data = await response.json();
                 
                 if (data.success) {
                     messageInput.value = '';
                     addMessageToChat(data.message);
-                    lastMessageId = data.message.id;
+                    lastMessageId = data.message.message_id;
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     // Update badge after sending
                     if (typeof updateUnreadMessagesCount === 'function') {
@@ -230,12 +245,12 @@
 
         // Add message to chat
         function addMessageToChat(message) {
-            const isSender = message.sender_id === {{ Auth::id() }};
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `flex ${isSender ? 'justify-end' : 'justify-start'}`;
+            var isSender = message.sender_id === currentUserId;
+            var messageDiv = document.createElement('div');
+            messageDiv.className = 'flex ' + (isSender ? 'justify-end' : 'justify-start');
             
-            const date = new Date(message.created_at);
-            const formattedDate = date.toLocaleDateString('en-US', { 
+            var date = new Date(message.created_at);
+            var formattedDate = date.toLocaleDateString('en-US', { 
                 month: 'short', 
                 day: 'numeric', 
                 year: 'numeric',
@@ -243,21 +258,24 @@
                 minute: '2-digit'
             });
 
-            messageDiv.innerHTML = `
-                <div class="max-w-md">
-                    <div class="flex items-start space-x-2 ${isSender ? 'flex-row-reverse space-x-reverse' : ''}">
-                        <div class="w-8 h-8 rounded-full ${isSender ? 'bg-[#93BFC7]' : 'bg-[#5394D0]'} flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-user text-white text-xs"></i>
-                        </div>
-                        <div class="flex flex-col ${isSender ? 'items-end' : 'items-start'}">
-                            <div class="px-4 py-2 rounded-lg ${isSender ? 'bg-[#93BFC7] text-white' : 'bg-white text-gray-800 border border-gray-200'}">
-                                <p class="text-sm">${message.message}</p>
-                            </div>
-                            <span class="text-xs text-gray-500 mt-1 px-2">${formattedDate}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
+            var flexDirection = isSender ? 'flex-row-reverse space-x-reverse' : '';
+            var avatarBg = isSender ? 'bg-[#93BFC7]' : 'bg-[#5394D0]';
+            var flexAlign = isSender ? 'items-end' : 'items-start';
+            var bubbleStyle = isSender ? 'bg-[#93BFC7] text-white' : 'bg-white text-gray-800 border border-gray-200';
+            
+            messageDiv.innerHTML = '<div class="max-w-md">' +
+                '<div class="flex items-start space-x-2 ' + flexDirection + '">' +
+                    '<div class="w-8 h-8 rounded-full ' + avatarBg + ' flex items-center justify-center flex-shrink-0">' +
+                        '<i class="fas fa-user text-white text-xs"></i>' +
+                    '</div>' +
+                    '<div class="flex flex-col ' + flexAlign + '">' +
+                        '<div class="px-4 py-2 rounded-lg ' + bubbleStyle + '">' +
+                            '<p class="text-sm">' + message.message + '</p>' +
+                        '</div>' +
+                        '<span class="text-xs text-gray-500 mt-1 px-2">' + formattedDate + '</span>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
             
             messagesContainer.appendChild(messageDiv);
         }
@@ -265,19 +283,19 @@
         // Poll for new messages
         setInterval(async function() {
             try {
-                const response = await fetch(`{{ route("admin.messages.get") }}?last_message_id=${lastMessageId}&other_user_id=${selectedUserId}`, {
+                var response = await fetch(getUrl + '?last_message_id=' + lastMessageId + '&other_user_id=' + selectedUserId, {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
                     }
                 });
 
-                const data = await response.json();
+                var data = await response.json();
                 
                 if (data.messages && data.messages.length > 0) {
-                    data.messages.forEach(message => {
+                    data.messages.forEach(function(message) {
                         addMessageToChat(message);
-                        lastMessageId = Math.max(lastMessageId, message.id);
+                        lastMessageId = Math.max(lastMessageId, message.message_id);
                     });
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     // Update badge when new messages arrive
@@ -324,10 +342,9 @@
                 <div id="usersList" class="space-y-2 max-h-96 overflow-y-auto">
                     @foreach($users as $user)
                         <div class="user-item p-4 border-2 border-gray-200 rounded-lg hover:border-[#93BFC7] hover:bg-gray-50 transition-all cursor-pointer" 
-                             data-user-id="{{ $user->id }}"
+                             data-user-id="{{ $user->user_id }}"
                              data-user-name="{{ strtolower($user->name) }}"
-                             data-user-email="{{ strtolower($user->email) }}"
-                             onclick="selectUserForMessage({{ $user->id }})">
+                             data-user-email="{{ strtolower($user->email) }}">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3 flex-1">
                                     <div class="w-12 h-12 rounded-full bg-[#93BFC7] flex items-center justify-center flex-shrink-0">
@@ -369,14 +386,21 @@
         </div>
     </div>
 
+    {{-- Store route URL for JavaScript --}}
+    <div id="modalConfig" data-messages-url="{{ route('admin.messages.index') }}" style="display: none;"></div>
+    
     <script>
+        // Get modal config
+        var modalConfig = document.getElementById('modalConfig');
+        var messagesIndexUrl = modalConfig ? modalConfig.dataset.messagesUrl : '';
+
         function openNewMessageModal() {
-            const modal = document.getElementById('newMessageModal');
+            var modal = document.getElementById('newMessageModal');
             modal.classList.remove('hidden');
             document.getElementById('userSearchInput').value = '';
             filterUsers();
-            setTimeout(() => {
-                const modalContent = modal.querySelector('.modal-content');
+            setTimeout(function() {
+                var modalContent = modal.querySelector('.modal-content');
                 if (modalContent) {
                     modalContent.style.transform = 'scale(1)';
                 }
@@ -384,23 +408,23 @@
         }
 
         function closeNewMessageModal() {
-            const modal = document.getElementById('newMessageModal');
-            const modalContent = modal.querySelector('.modal-content');
+            var modal = document.getElementById('newMessageModal');
+            var modalContent = modal.querySelector('.modal-content');
             if (modalContent) {
                 modalContent.style.transform = 'scale(0.95)';
             }
-            setTimeout(() => {
+            setTimeout(function() {
                 modal.classList.add('hidden');
             }, 200);
         }
 
         function filterUsers() {
-            const searchTerm = document.getElementById('userSearchInput').value.toLowerCase();
-            const userItems = document.querySelectorAll('.user-item');
+            var searchTerm = document.getElementById('userSearchInput').value.toLowerCase();
+            var userItems = document.querySelectorAll('.user-item');
             
-            userItems.forEach(item => {
-                const userName = item.dataset.userName;
-                const userEmail = item.dataset.userEmail;
+            userItems.forEach(function(item) {
+                var userName = item.dataset.userName;
+                var userEmail = item.dataset.userEmail;
                 
                 if (userName.includes(searchTerm) || userEmail.includes(searchTerm)) {
                     item.style.display = 'block';
@@ -411,8 +435,19 @@
         }
 
         function selectUserForMessage(userId) {
-            window.location.href = '{{ route("admin.messages.index") }}?user_id=' + userId;
+            window.location.href = messagesIndexUrl + '?user_id=' + userId;
         }
+
+        // Add click event listeners to user items using event delegation
+        document.getElementById('usersList').addEventListener('click', function(e) {
+            var userItem = e.target.closest('.user-item');
+            if (userItem) {
+                var userId = userItem.dataset.userId;
+                if (userId) {
+                    selectUserForMessage(userId);
+                }
+            }
+        });
 
         // Close modal when clicking outside
         document.getElementById('newMessageModal').addEventListener('click', function(e) {

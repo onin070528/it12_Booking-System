@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,7 +14,9 @@ class NotificationController extends Controller
      */
     public function index()
     {
-        $notifications = Auth::user()->notifications()
+        /** @var User $user */
+        $user = Auth::user();
+        $notifications = $user->notifications()
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -40,7 +43,9 @@ class NotificationController extends Controller
      */
     public function markAllAsRead()
     {
-        Auth::user()->notifications()->where('read', false)->update(['read' => true]);
+        /** @var User $user */
+        $user = Auth::user();
+        $user->notifications()->where('read', false)->update(['read' => true]);
 
         return response()->json(['success' => true]);
     }
@@ -50,7 +55,9 @@ class NotificationController extends Controller
      */
     public function getUnreadCount()
     {
-        $count = Auth::user()->notifications()->where('read', false)->count();
+        /** @var User $user */
+        $user = Auth::user();
+        $count = $user->notifications()->where('read', false)->count();
         
         return response()->json(['count' => $count]);
     }
@@ -60,7 +67,9 @@ class NotificationController extends Controller
      */
     public function getRecent()
     {
-        $notifications = Auth::user()->notifications()
+        /** @var User $user */
+        $user = Auth::user();
+        $notifications = $user->notifications()
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -73,7 +82,9 @@ class NotificationController extends Controller
      */
     public function adminIndex()
     {
-        $notifications = Auth::user()->notifications()
+        /** @var User $user */
+        $user = Auth::user();
+        $notifications = $user->notifications()
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 

@@ -28,8 +28,29 @@
         <!-- Header -->
             @include('admin.layouts.header')
 
+            <!-- Pending Users Alert -->
+            @if($pendingUsersCount > 0)
+            <div class="mb-6 bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-user-clock text-orange-500 text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-orange-800">Pending Account Approvals</h3>
+                            <p class="text-orange-700">You have <strong>{{ $pendingUsersCount }}</strong> user{{ $pendingUsersCount > 1 ? 's' : '' }} waiting for account approval.</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('admin.users.index') }}" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2">
+                        <i class="fas fa-user-check"></i>
+                        Review Now
+                    </a>
+                </div>
+            </div>
+            @endif
+
             <!-- Stats Cards -->
-            <<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
 
     <!-- Total Users -->
     <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
@@ -290,7 +311,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex items-center space-x-3">
-                                        <button type="button" data-user-id="{{ $user->id }}" class="view-user-btn text-[#93BFC7] hover:text-[#7eaab1]">
+                                        <button type="button" data-user-id="{{ $user->user_id }}" class="view-user-btn text-[#93BFC7] hover:text-[#7eaab1]">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         <!-- archive removed -->
