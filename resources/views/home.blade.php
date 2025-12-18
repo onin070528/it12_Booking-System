@@ -254,14 +254,12 @@
                                                 <span>Choose</span>
                                             </button>
                                         @elseif($booking->status == 'pending_payment')
-                                            <button 
-                                                data-booking-id="{{ $booking->id }}"
-                                                data-booking-amount="{{ $booking->total_amount }}"
-                                                onclick="openPaymentMethodModal(this.dataset.bookingId, this.dataset.bookingAmount)"
+                                            <a 
+                                                href="{{ route('payment.checkout', $booking) }}"
                                                 class="inline-flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 font-semibold text-xs">
                                                 <i class="fas fa-credit-card"></i>
                                                 <span>Pay Now</span>
-                                            </button>
+                                            </a>
                                         @elseif($booking->communication_method)
                                             <span class="settled-badge inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
                                                 <i class="fas fa-check-circle mr-1.5"></i>
@@ -302,99 +300,6 @@
 
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="toast-container"></div>
-
-    <!-- Payment Method Selection Modal -->
-    <div id="paymentMethodModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 animate-fadeIn">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 transform transition-all duration-300 scale-95 modal-content">
-            <div class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-t-2xl px-8 py-5 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                        <i class="fas fa-credit-card text-white text-lg"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-white tracking-tight">
-                        Select Payment Method
-                    </h3>
-                </div>
-                <button onclick="closePaymentMethodModal()" class="text-white hover:text-gray-200 transition-colors duration-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
-            </div>
-            <div class="p-8">
-                <div class="mb-6 text-center">
-                    <div class="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-money-bill-wave text-orange-600 text-2xl"></i>
-                    </div>
-                    <p class="text-gray-700 text-base leading-relaxed font-medium mb-2">
-                        Choose your preferred payment method
-                    </p>
-                    <p class="text-gray-500 text-sm" id="paymentAmountDisplay">
-                        Amount: <span class="font-bold text-orange-600">₱0.00</span>
-                    </p>
-                </div>
-                
-                <form id="paymentMethodForm">
-                    @csrf
-                    <input type="hidden" id="payment_booking_id" name="booking_id">
-                    
-                    <div class="space-y-3 mb-6">
-                        <!-- Cash Option -->
-                        <label class="flex items-start p-5 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all duration-300 payment-option group">
-                            <input type="radio" name="payment_method" value="cash" class="mt-1 mr-4 w-5 h-5 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2" required>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-1">
-                                    <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                                        <i class="fas fa-money-bill-wave text-orange-600 text-lg"></i>
-                                    </div>
-                                    <span class="font-bold text-gray-800 text-lg">Cash Payment</span>
-                                </div>
-                                <p class="text-sm text-gray-600 ml-[3.25rem]">Pay in cash during meetup or event</p>
-                            </div>
-                        </label>
-
-                        <!-- GCash Option -->
-                        <label class="flex items-start p-5 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all duration-300 payment-option group">
-                            <input type="radio" name="payment_method" value="gcash" class="mt-1 mr-4 w-5 h-5 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2" required>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-1">
-                                    <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                                        <i class="fas fa-mobile-alt text-green-600 text-lg"></i>
-                                    </div>
-                                    <span class="font-bold text-gray-800 text-lg">GCash</span>
-                                </div>
-                                <p class="text-sm text-gray-600 ml-[3.25rem]">Pay via GCash mobile wallet</p>
-                            </div>
-                        </label>
-
-                        <!-- PayMaya Option -->
-                        <label class="flex items-start p-5 border-2 border-gray-200 rounded-xl cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-all duration-300 payment-option group">
-                            <input type="radio" name="payment_method" value="paymaya" class="mt-1 mr-4 w-5 h-5 text-orange-500 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2" required>
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-1">
-                                    <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                                        <i class="fas fa-credit-card text-blue-600 text-lg"></i>
-                                    </div>
-                                    <span class="font-bold text-gray-800 text-lg">PayMaya</span>
-                                </div>
-                                <p class="text-sm text-gray-600 ml-[3.25rem]">Pay via PayMaya wallet</p>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div class="flex gap-3 pt-2">
-                        <button type="button" onclick="proceedToPayment()" 
-                            class="flex-1 inline-flex items-center justify-center gap-2 bg-orange-500 text-white font-bold py-3.5 rounded-lg hover:bg-orange-600 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-[1.02]">
-                            <i class="fas fa-arrow-right"></i>
-                            <span>Proceed</span>
-                        </button>
-                        <button type="button" onclick="closePaymentMethodModal()" 
-                            class="flex-1 inline-flex items-center justify-center gap-2 bg-gray-200 text-gray-700 font-bold py-3.5 rounded-lg hover:bg-gray-300 transition-all duration-300 shadow-sm hover:shadow-md">
-                            <span>Cancel</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
     <!-- View Booking Details Modal -->
     <div id="viewBookingModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 animate-fadeIn">
@@ -486,6 +391,7 @@
                                 <span>Meetup Date</span>
                             </label>
                             <input type="date" id="meetup_date_comm" name="meetup_date" 
+                                min="{{ date('Y-m-d') }}"
                                 class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-[#93BFC7] transition-all duration-200 bg-white">
                         </div>
                         <div>
@@ -863,125 +769,6 @@
                 toast.remove();
             }, 5000);
         }
-
-        // Payment Method Modal Functions
-        function openPaymentMethodModal(bookingId, bookingAmount) {
-            document.getElementById('payment_booking_id').value = bookingId;
-            const amount = parseFloat(bookingAmount).toLocaleString('en-US', { 
-                minimumFractionDigits: 2, 
-                maximumFractionDigits: 2 
-            });
-            document.getElementById('paymentAmountDisplay').innerHTML = 
-                `Amount: <span class="font-bold text-orange-600">₱${amount}</span>`;
-            
-            const modal = document.getElementById('paymentMethodModal');
-            modal.classList.remove('hidden');
-            document.getElementById('paymentMethodForm').reset();
-            
-            // Reset option styling
-            document.querySelectorAll('.payment-option').forEach(opt => {
-                opt.classList.remove('border-orange-500', 'bg-orange-50');
-            });
-            
-            // Trigger animation
-            setTimeout(() => {
-                const modalContent = modal.querySelector('.modal-content');
-                if (modalContent) {
-                    modalContent.style.transform = 'scale(1)';
-                }
-            }, 10);
-        }
-
-        function closePaymentMethodModal() {
-            const modal = document.getElementById('paymentMethodModal');
-            const modalContent = modal.querySelector('.modal-content');
-            if (modalContent) {
-                modalContent.style.transform = 'scale(0.95)';
-            }
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                document.getElementById('paymentMethodForm').reset();
-            }, 200);
-        }
-
-        function proceedToPayment() {
-            const form = document.getElementById('paymentMethodForm');
-            const bookingId = document.getElementById('payment_booking_id').value;
-            const paymentMethod = form.querySelector('input[name="payment_method"]:checked')?.value;
-
-            if (!paymentMethod) {
-                alert('Please select a payment method.');
-                return;
-            }
-
-            // If cash, submit directly to process payment
-            if (paymentMethod === 'cash') {
-                const formData = new FormData();
-                formData.append('payment_method', 'cash');
-                formData.append('_token', '{{ csrf_token() }}');
-                
-                fetch(`{{ route('payment.process', ':id') }}`.replace(':id', bookingId), {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
-                    }
-                })
-                .then(response => {
-                    if (response.redirected) {
-                        window.location.href = response.url;
-                    } else {
-                        return response.json();
-                    }
-                })
-                .then(data => {
-                    if (data) {
-                        if (data.success) {
-                            window.location.href = '{{ route("payments.index") }}';
-                        } else {
-                            alert(data.message || 'An error occurred.');
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while processing cash payment.');
-                });
-            } else {
-                // For online payments, redirect to checkout with selected method
-                window.location.href = `{{ route('payment.checkout', ':id') }}`.replace(':id', bookingId) + `?method=${paymentMethod}`;
-            }
-        }
-
-        // Highlight selected payment option
-        document.querySelectorAll('.payment-option').forEach(option => {
-            option.addEventListener('click', function() {
-                document.querySelectorAll('.payment-option').forEach(opt => {
-                    opt.classList.remove('border-orange-500', 'bg-orange-50');
-                });
-                this.classList.add('border-orange-500', 'bg-orange-50');
-            });
-        });
-        
-        // Update styling when radio is checked
-        document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                document.querySelectorAll('.payment-option').forEach(opt => {
-                    opt.classList.remove('border-orange-500', 'bg-orange-50');
-                });
-                if (this.checked) {
-                    this.closest('.payment-option').classList.add('border-orange-500', 'bg-orange-50');
-                }
-            });
-        });
-        
-        // Close payment modal when clicking outside
-        document.getElementById('paymentMethodModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closePaymentMethodModal();
-            }
-        });
     </script>
 
 </body>

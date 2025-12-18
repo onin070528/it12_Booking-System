@@ -359,21 +359,30 @@ class EventController extends Controller
             ->take(10)
             ->get();
 
-        // Monthly Revenue Trend (last 6 months, filtered)
-        $monthlyRevenue = \App\Models\Payment::where('status', 'paid')
+        // Monthly Revenue Trend (last 6 months) - ensure all months are present
+        $end = now()->endOfMonth();
+        $start = now()->subMonths(5)->startOfMonth();
+
+        // Build list of last 6 months in YYYY-MM format (oldest -> newest)
+        $months = collect();
+        for ($i = 0; $i < 6; $i++) {
+            $months->push(now()->subMonths(5 - $i)->format('Y-m'));
+        }
+
+        $paymentsByMonth = \App\Models\Payment::where('status', 'paid')
             ->whereNotNull('paid_at')
+            ->whereBetween('paid_at', [$start, $end])
             ->selectRaw('DATE_FORMAT(paid_at, "%Y-%m") as month, SUM(amount) as total')
-            ->where('paid_at', '>=', now()->subMonths(6))
-            ->where('paid_at', '<=', $endDate)
             ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->map(function($item) {
-                return (object)[
-                    'month' => $item->month,
-                    'total' => (float)$item->total
-                ];
-            });
+            ->pluck('total', 'month')
+            ->toArray();
+
+        $monthlyRevenue = $months->map(function($m) use ($paymentsByMonth) {
+            return (object)[
+                'month' => $m,
+                'total' => (float) ($paymentsByMonth[$m] ?? 0),
+            ];
+        });
 
         // Payment Methods Statistics (filtered by date range)
         $paymentsByMethod = \App\Models\Payment::where('status', 'paid')

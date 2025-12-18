@@ -157,6 +157,7 @@
                     <div class="mb-4">
                         <label class="block text-gray-700 font-semibold mb-2">Meetup Date</label>
                         <input type="date" id="meetup_date" name="meetup_date" required
+                            min="{{ date('Y-m-d') }}"
                             class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#93BFC7]">
                     </div>
                     <div class="mb-4">

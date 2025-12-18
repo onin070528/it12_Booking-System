@@ -29,167 +29,187 @@
             @include('admin.layouts.header')
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Total Users Card -->
-                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium mb-1">Total Users</p>
-                            <h3 class="text-3xl font-bold" style="color: #93BFC7;">{{ $totalUsers }}</h3>
-                        </div>
-                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-users text-blue-600 text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
+            <<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
 
-                <!-- Total Bookings Card -->
-                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium mb-1">Total Bookings</p>
-                            <h3 class="text-3xl font-bold" style="color: #93BFC7;">{{ $totalBookings }}</h3>
-                        </div>
-                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-calendar-check text-green-600 text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total Revenue Card -->
-                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium mb-1">Total Revenue</p>
-                            <h3 class="text-2xl font-bold" style="color: #93BFC7;">₱{{ number_format($totalRevenue, 2) }}</h3>
-                        </div>
-                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-money-bill-wave text-green-600 text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pending Payments Card -->
-                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium mb-1">Pending Payments</p>
-                            <h3 class="text-2xl font-bold text-yellow-600">₱{{ number_format($pendingPayments, 2) }}</h3>
-                        </div>
-                        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-hourglass-half text-yellow-600 text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Inventory cards removed from this grid to allow separate layout -->
+    <!-- Total Users -->
+    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm font-medium mb-1">Total Users</p>
+                <h3 class="text-3xl font-bold text-[#93BFC7]">{{ $totalUsers }}</h3>
             </div>
+            <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-users text-blue-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Bookings -->
+    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm font-medium mb-1">Total Bookings</p>
+                <h3 class="text-3xl font-bold text-[#93BFC7]">{{ $totalBookings }}</h3>
+            </div>
+            <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-calendar-check text-green-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Revenue -->
+    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm font-medium mb-1">Total Revenue</p>
+                <h3 class="text-2xl font-bold text-[#93BFC7]">
+                    ₱{{ number_format($totalRevenue, 2) }}
+                </h3>
+            </div>
+            <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-money-bill-wave text-green-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Payments -->
+    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm font-medium mb-1">Pending Payments</p>
+                <h3 class="text-2xl font-bold text-yellow-600">
+                    ₱{{ number_format($pendingPayments, 2) }}
+                </h3>
+            </div>
+            <div class="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-hourglass-half text-yellow-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Downpayments -->
+    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm font-medium mb-1">Downpayments</p>
+                <h3 class="text-2xl font-bold text-blue-600">
+                    ₱{{ number_format($downpaymentsReceived, 2) }}
+                </h3>
+            </div>
+            <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-wallet text-blue-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+</div>
+
             
-            <!-- Inventory Status Cards (separated for independent layout) -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium mb-1">In Stock</p>
-                            <h3 class="text-2xl font-bold" style="color: #16a34a;">{{ $inStockCount }}</h3>
-                        </div>
-                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-check text-green-600 text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium mb-1">Low Stock</p>
-                            <h3 class="text-2xl font-bold" style="color: #d97706;">{{ $lowStockCount }}</h3>
-                        </div>
-                        <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
-                        </div>
-                    </div>
-                </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
-                <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-sm font-medium mb-1">Out of Stock</p>
-                            <h3 class="text-2xl font-bold" style="color: #ef4444;">{{ $outOfStockCount }}</h3>
-                        </div>
-                        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-box-open text-red-600 text-2xl"></i>
-                        </div>
-                    </div>
+    <!-- LEFT: STOCK STATUS -->
+    <div class="bg-white rounded-2xl shadow-xl p-6">
+        <h2 class="text-lg font-semibold text-gray-700 mb-5">Stock Status</h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Card -->
+            <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 
+                        shadow-xl shadow-black/5 
+                        hover:shadow-2xl hover:-translate-y-0.5 
+                        transition-all duration-300 flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">In Stock</p>
+                    <h3 class="text-2xl font-bold text-green-600">{{ $inStockCount }}</h3>
+                </div>
+                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check text-green-600"></i>
                 </div>
             </div>
-        
-           
 
-            <!-- Booking Status Cards (separated for independent layout) -->
-            <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-8">
-                <div class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-xs font-medium mb-1">Pending</p>
-                            <h3 class="text-2xl font-bold text-yellow-600">{{ $pendingBookings }}</h3>
-                        </div>
-                        <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-clock text-yellow-600 text-lg"></i>
-                        </div>
-                    </div>
+            <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 
+                        shadow-xl shadow-black/5 
+                        hover:shadow-2xl hover:-translate-y-0.5 
+                        transition-all duration-300 flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Low Stock</p>
+                    <h3 class="text-2xl font-bold text-yellow-600">{{ $lowStockCount }}</h3>
                 </div>
-
-                <div class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-xs font-medium mb-1">Confirmed</p>
-                            <h3 class="text-2xl font-bold text-green-600">{{ $confirmedBookings }}</h3>
-                        </div>
-                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-check-circle text-green-600 text-lg"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-xs font-medium mb-1">Approved</p>
-                            <h3 class="text-2xl font-bold text-blue-600">{{ $approvedBookings }}</h3>
-                        </div>
-                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-check-double text-blue-600 text-lg"></i>
-                        </div>
-                    </div>
-                </div>
-
-
-
-                <div class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-xs font-medium mb-1">Cancelled</p>
-                            <h3 class="text-2xl font-bold text-red-600">{{ $cancelledBookings }}</h3>
-                        </div>
-                        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-times-circle text-red-600 text-lg"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-gray-600 text-xs font-medium mb-1">Downpayments</p>
-                            <h3 class="text-xl font-bold text-blue-600">₱{{ number_format($downpaymentsReceived, 2) }}</h3>
-                        </div>
-                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-wallet text-blue-600 text-lg"></i>
-                        </div>
-                    </div>
+                <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-600"></i>
                 </div>
             </div>
+
+            <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 
+                        shadow-xl shadow-black/5 
+                        hover:shadow-2xl hover:-translate-y-0.5 
+                        transition-all duration-300 flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Out of Stock</p>
+                    <h3 class="text-2xl font-bold text-red-600">{{ $outOfStockCount }}</h3>
+                </div>
+                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-box-open text-red-600"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: BOOKING STATUS -->
+    <div class="bg-white rounded-2xl shadow-xl p-6">
+        <h2 class="text-lg font-semibold text-gray-700 mb-5">Booking Status</h2>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <!-- Card -->
+            <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 
+                        shadow-xl shadow-black/5 
+                        hover:shadow-2xl hover:-translate-y-0.5 
+                        transition-all duration-300 flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs">Pending</p>
+                    <h3 class="text-xl font-bold text-yellow-600">{{ $pendingBookings }}</h3>
+                </div>
+                <i class="fas fa-clock text-yellow-500"></i>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 
+                        shadow-xl shadow-black/5 
+                        hover:shadow-2xl hover:-translate-y-0.5 
+                        transition-all duration-300 flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs">Confirmed</p>
+                    <h3 class="text-xl font-bold text-green-600">{{ $confirmedBookings }}</h3>
+                </div>
+                <i class="fas fa-check-circle text-green-500"></i>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 
+                        shadow-xl shadow-black/5 
+                        hover:shadow-2xl hover:-translate-y-0.5 
+                        transition-all duration-300 flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs">Approved</p>
+                    <h3 class="text-xl font-bold text-blue-600">{{ $approvedBookings }}</h3>
+                </div>
+                <i class="fas fa-check-double text-blue-500"></i>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 
+                        shadow-xl shadow-black/5 
+                        hover:shadow-2xl hover:-translate-y-0.5 
+                        transition-all duration-300 flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs">Cancelled</p>
+                    <h3 class="text-xl font-bold text-red-600">{{ $cancelledBookings }}</h3>
+                </div>
+                <i class="fas fa-times-circle text-red-500"></i>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
 
             <!-- Charts Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -377,6 +397,12 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    },
                     plugins: {
                         legend: {
                             position: 'bottom'
@@ -411,6 +437,12 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    },
                     plugins: {
                         legend: {
                             position: 'bottom'
@@ -433,12 +465,21 @@
                         borderColor: '#93BFC7',
                         backgroundColor: 'rgba(147, 191, 199, 0.1)',
                         tension: 0.4,
-                        fill: true
+                        fill: true,
+                        pointBackgroundColor: '#93BFC7',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutQuart'
+                    },
                     plugins: {
                         legend: {
                             display: false
@@ -526,7 +567,7 @@
     </div>
 
     <script>
-        // Modal handlers for viewing user details
+      
         function openUserModal(userId) {
             const modal = document.getElementById('userModal');
             const nameEl = document.getElementById('modalUserName');

@@ -10,6 +10,21 @@
 <body class="bg-gray-100">
     <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-lg">
+            
+            @if(session('error'))
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    {{ session('error') }}
+                </div>
+            @endif
+            
+            @if(session('success'))
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    {{ session('success') }}
+                </div>
+            @endif
+            
             <div>
                 <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
                     Payment Checkout
@@ -61,13 +76,6 @@
                     <p class="text-xs text-gray-500 mt-2">
                         @if(isset($isRemainingBalance) && $isRemainingBalance)
                             * This is the remaining balance payment. After this payment, your booking will be fully paid.
-                            @if(isset($daysUntilEvent))
-                                @if($daysUntilEvent >= 14)
-                                    <br><span class="text-green-600 font-semibold">✓ Payment can be made ({{ $daysUntilEvent }} days before event)</span>
-                                @else
-                                    <br><span class="text-red-600 font-semibold">⚠ Full payment must be made at least 2 weeks before event ({{ $daysUntilEvent }} days remaining)</span>
-                                @endif
-                            @endif
                         @else
                             * This is a 30% downpayment. The remaining balance will be collected later.
                         @endif
@@ -156,7 +164,7 @@
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Payment Screenshot/Proof <span class="text-red-500">*</span>
+                        Payment Screenshot/Proof <span class="text-gray-400 text-xs">(Optional)</span>
                     </label>
                     <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-[#93BFC7] transition-colors">
                         <div class="space-y-1 text-center">
@@ -164,7 +172,7 @@
                             <div class="flex text-sm text-gray-600">
                                 <label for="payment_screenshot" class="relative cursor-pointer bg-white rounded-md font-medium text-[#93BFC7] hover:text-[#7eaab1] focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#93BFC7]">
                                     <span>Upload a file</span>
-                                    <input id="payment_screenshot" name="payment_screenshot" type="file" accept="image/*" class="sr-only" required>
+                                    <input id="payment_screenshot" name="payment_screenshot" type="file" accept="image/*" class="sr-only">
                                 </label>
                                 <p class="pl-1">or drag and drop</p>
                             </div>
@@ -182,9 +190,9 @@
                         class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg hover:bg-gray-300 transition">
                         Cancel
                     </button>
-                    <button type="submit" 
-                        class="flex-1 bg-[#93BFC7] text-white font-semibold py-2.5 rounded-lg hover:bg-[#7eaab1] transition">
-                        <i class="fas fa-check mr-2"></i>Submit Payment
+                    <button type="submit" id="modalSubmitBtn"
+                        class="flex-1 bg-[#93BFC7] text-white font-semibold py-2.5 rounded-lg hover:bg-[#7eaab1] transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-check mr-2"></i><span>Submit Payment</span>
                     </button>
                 </div>
             </form>
@@ -200,7 +208,9 @@
         const filePreview = document.getElementById('filePreview');
         const previewImage = document.getElementById('previewImage');
         const fileName = document.getElementById('fileName');
+        const modalSubmitBtn = document.getElementById('modalSubmitBtn');
         let selectedPaymentMethod = null;
+        let isSubmitting = false;
 
         // Handle payment method selection
         document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
@@ -212,6 +222,9 @@
         // Handle proceed button click
         proceedBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            
+            if (isSubmitting) return;
+            
             const selectedMethod = document.querySelector('input[name="payment_method"]:checked');
             
             if (!selectedMethod) {
@@ -220,13 +233,16 @@
             }
 
             if (selectedMethod.value === 'paymaya' || selectedMethod.value === 'gcash') {
-                // Show modal for PayMaya and GCash (requires reference number and screenshot)
+                // Show modal for PayMaya and GCash (requires reference number)
                 paymentDetailsModal.classList.remove('hidden');
                 setTimeout(() => {
                     paymentDetailsModal.querySelector('.scale-95').style.transform = 'scale(1)';
                 }, 10);
             } else if (selectedMethod.value === 'cash') {
-                // Direct submit for Cash (no reference number needed)
+                // Direct submit for Cash (no reference number needed) with double-submit prevention
+                isSubmitting = true;
+                proceedBtn.disabled = true;
+                proceedBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
                 paymentForm.submit();
             }
         });
@@ -257,55 +273,59 @@
         paymentDetailsForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const referenceNumber = document.getElementById('reference_number').value;
-            const screenshot = fileInput.files[0];
+            if (isSubmitting) return;
             
-            if (!referenceNumber || !screenshot) {
-                alert('Please fill in all required fields');
+            const referenceNumber = document.getElementById('reference_number').value.trim();
+            
+            if (!referenceNumber) {
+                alert('Please enter a reference number');
                 return;
             }
 
-            // Create FormData from the main payment form
-            const formData = new FormData(paymentForm);
-            
-            // Append reference number and screenshot
-            formData.append('reference_number', referenceNumber);
-            formData.append('payment_screenshot', screenshot);
+            // Disable submit button and show loading state
+            isSubmitting = true;
+            modalSubmitBtn.disabled = true;
+            modalSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
 
-            // Submit via fetch
-            fetch(paymentForm.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json',
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else if (response.ok) {
-                    return response.json().then(data => {
-                        if (data.redirect) {
-                            window.location.href = data.redirect;
-                        } else {
-                            window.location.reload();
-                        }
-                    });
-                } else {
-                    return response.json().then(data => {
-                        alert(data.message || 'An error occurred. Please try again.');
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
-            });
+            // Add hidden inputs to the main form for reference number and screenshot
+            // Remove any existing ones first
+            const existingRefInput = paymentForm.querySelector('input[name="reference_number"]');
+            if (existingRefInput) existingRefInput.remove();
+            
+            const existingScreenshotInput = paymentForm.querySelector('input[name="payment_screenshot"][type="hidden"]');
+            if (existingScreenshotInput) existingScreenshotInput.remove();
+            
+            // Add reference number to main form
+            const refInput = document.createElement('input');
+            refInput.type = 'hidden';
+            refInput.name = 'reference_number';
+            refInput.value = referenceNumber;
+            paymentForm.appendChild(refInput);
+            
+            // If screenshot was uploaded, move it to the main form
+            const screenshot = fileInput.files[0];
+            if (screenshot) {
+                // Clone the file input and add to main form
+                const clonedFileInput = fileInput.cloneNode(true);
+                clonedFileInput.id = 'payment_screenshot_main';
+                // We need to actually transfer the file - use DataTransfer
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(screenshot);
+                clonedFileInput.files = dataTransfer.files;
+                
+                // Remove existing file input from main form if any, then add new one
+                const existingFileInput = paymentForm.querySelector('input[name="payment_screenshot"]');
+                if (existingFileInput) existingFileInput.remove();
+                paymentForm.appendChild(clonedFileInput);
+            }
+            
+            // Submit the main form
+            paymentForm.submit();
         });
 
         function closePaymentModal() {
+            if (isSubmitting) return;
+            
             const modal = paymentDetailsModal.querySelector('.scale-95');
             if (modal) {
                 modal.style.transform = 'scale(0.95)';

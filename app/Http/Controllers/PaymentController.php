@@ -63,7 +63,7 @@ class PaymentController extends Controller
 
         // Calculate days until event for display
         $eventDate = \Carbon\Carbon::parse($booking->event_date);
-        $daysUntilEvent = now()->diffInDays($eventDate, false);
+        $daysUntilEvent = (int) now()->diffInDays($eventDate, false);
 
         return view('payments.checkout', compact('booking', 'amountToPay', 'isRemainingBalance', 'totalPaid', 'remainingBalance', 'daysUntilEvent'));
     }
@@ -76,7 +76,7 @@ class PaymentController extends Controller
         $request->validate([
             'payment_method' => 'required|in:gcash,paymaya,cash',
             'reference_number' => 'required_if:payment_method,paymaya,gcash|nullable|string|max:255',
-            'payment_screenshot' => 'required_if:payment_method,paymaya,gcash|nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'payment_screenshot' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         // Verify booking belongs to user
@@ -87,14 +87,6 @@ class PaymentController extends Controller
         // Check if booking is confirmed, approved, pending payment, or partial_payment
         if (!in_array($booking->status, ['confirmed', 'approved', 'pending_payment', 'partial_payment'])) {
             return back()->with('error', 'This booking is not ready for payment yet. Please wait for admin confirmation.');
-        }
-
-        // Validate payment timing - must be at least 2 weeks before event
-        $eventDate = \Carbon\Carbon::parse($booking->event_date);
-        $daysUntilEvent = now()->diffInDays($eventDate, false);
-        
-        if ($daysUntilEvent < 14) {
-            return back()->with('error', 'Full payment must be made at least 2 weeks before the event date. Your event is in ' . $daysUntilEvent . ' day(s).');
         }
 
         $paymentMethod = $request->payment_method;
@@ -177,17 +169,20 @@ class PaymentController extends Controller
                 ->with('success', $successMessage);
         }
 
-        // Handle PayMaya and GCash payments (require reference number and screenshot)
+        // Handle PayMaya and GCash payments (require reference number, screenshot optional)
         if (in_array($paymentMethod, ['paymaya', 'gcash'])) {
             $referenceNumber = $request->input('reference_number');
             $screenshot = $request->file('payment_screenshot');
             
-            if (!$referenceNumber || !$screenshot) {
-                return back()->with('error', 'Reference number and payment screenshot are required for ' . ucfirst($paymentMethod) . ' payments.');
+            if (!$referenceNumber) {
+                return back()->with('error', 'Reference number is required for ' . ucfirst($paymentMethod) . ' payments.');
             }
 
-            // Store screenshot
-            $screenshotPath = $screenshot->store('payment-proofs', 'public');
+            // Store screenshot if provided
+            $screenshotPath = null;
+            if ($screenshot) {
+                $screenshotPath = $screenshot->store('payment-proofs', 'public');
+            }
             
             $description = $isRemainingBalance 
                 ? "Remaining Balance ({$paymentMethod}) for {$booking->event_type} booking"
