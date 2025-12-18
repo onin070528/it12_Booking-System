@@ -114,16 +114,35 @@ class BookingController extends Controller
         try {
             if ($eventType === 'wedding') {
                 $request->validate([
-                    'wedding_bride' => 'required|string',
-                    'wedding_groom' => 'required|string',
+                    'wedding_bride_firstname' => 'required|string',
+                    'wedding_bride_lastname' => 'required|string',
+                    'wedding_groom_firstname' => 'required|string',
+                    'wedding_groom_lastname' => 'required|string',
                     'wedding_guests' => 'required|integer|min:1',
                     'wedding_ceremony' => 'required|string',
                     'wedding_reception' => 'required|string',
                     'wedding_theme' => 'required|string',
                 ]);
+                
+                // Build bride full name
+                $brideName = trim($request->input('wedding_bride_firstname') . ' ' . 
+                    ($request->input('wedding_bride_middlename') ? $request->input('wedding_bride_middlename') . ' ' : '') . 
+                    $request->input('wedding_bride_lastname'));
+                
+                // Build groom full name
+                $groomName = trim($request->input('wedding_groom_firstname') . ' ' . 
+                    ($request->input('wedding_groom_middlename') ? $request->input('wedding_groom_middlename') . ' ' : '') . 
+                    $request->input('wedding_groom_lastname'));
+                
                 $eventDetails = [
-                    'bride' => $request->input('wedding_bride'),
-                    'groom' => $request->input('wedding_groom'),
+                    'bride' => $brideName,
+                    'bride_firstname' => $request->input('wedding_bride_firstname'),
+                    'bride_middlename' => $request->input('wedding_bride_middlename'),
+                    'bride_lastname' => $request->input('wedding_bride_lastname'),
+                    'groom' => $groomName,
+                    'groom_firstname' => $request->input('wedding_groom_firstname'),
+                    'groom_middlename' => $request->input('wedding_groom_middlename'),
+                    'groom_lastname' => $request->input('wedding_groom_lastname'),
                     'guests' => $request->input('wedding_guests'),
                     'ceremony_venue' => $request->input('wedding_ceremony'),
                     'reception_venue' => $request->input('wedding_reception'),
@@ -132,23 +151,53 @@ class BookingController extends Controller
                 ];
             } elseif ($eventType === 'birthday') {
                 $request->validate([
-                    'birthday_celebrant' => 'required|string',
+                    'birthday_celebrant_firstname' => 'required|string',
+                    'birthday_celebrant_lastname' => 'required|string',
                     'birthday_age' => 'required|integer|min:1',
-                    'birthday_venue' => 'required|string',
                     'birthday_guests' => 'required|integer|min:1',
                     'birthday_theme' => 'required|string',
                 ]);
+                
+                // Build celebrant full name
+                $celebrantName = trim($request->input('birthday_celebrant_firstname') . ' ' . 
+                    ($request->input('birthday_celebrant_middlename') ? $request->input('birthday_celebrant_middlename') . ' ' : '') . 
+                    $request->input('birthday_celebrant_lastname'));
+                
                 $eventDetails = [
-                    'celebrant' => $request->input('birthday_celebrant'),
+                    'celebrant' => $celebrantName,
+                    'celebrant_firstname' => $request->input('birthday_celebrant_firstname'),
+                    'celebrant_middlename' => $request->input('birthday_celebrant_middlename'),
+                    'celebrant_lastname' => $request->input('birthday_celebrant_lastname'),
                     'age' => $request->input('birthday_age'),
-                    'venue' => $request->input('birthday_venue'),
                     'guests' => $request->input('birthday_guests'),
                     'theme' => $request->input('birthday_theme'),
                 ];
+            } elseif ($eventType === 'christening') {
+                $request->validate([
+                    'christening_child_firstname' => 'required|string',
+                    'christening_child_lastname' => 'required|string',
+                    'christening_parents' => 'required|string',
+                    'christening_guests' => 'required|integer|min:1',
+                ]);
+                
+                // Build child full name
+                $childName = trim($request->input('christening_child_firstname') . ' ' . 
+                    ($request->input('christening_child_middlename') ? $request->input('christening_child_middlename') . ' ' : '') . 
+                    $request->input('christening_child_lastname'));
+                
+                $eventDetails = [
+                    'child' => $childName,
+                    'child_firstname' => $request->input('christening_child_firstname'),
+                    'child_middlename' => $request->input('christening_child_middlename'),
+                    'child_lastname' => $request->input('christening_child_lastname'),
+                    'parents' => $request->input('christening_parents'),
+                    'guests' => $request->input('christening_guests'),
+                    'notes' => $request->input('christening_notes'),
+                ];
             } elseif ($eventType === 'debut') {
                 $request->validate([
-                    'debut_name' => 'required|string',
-                    'debut_venue' => 'required|string',
+                    'debut_firstname' => 'required|string',
+                    'debut_lastname' => 'required|string',
                     'debut_guests' => 'required|integer|min:1',
                     'debut_roses' => 'required|array|size:18',
                     'debut_roses.*' => 'required|string',
@@ -158,9 +207,16 @@ class BookingController extends Controller
                     'debut_treasures.*' => 'required|string',
                 ]);
                 
+                // Build debutante full name
+                $debutanteName = trim($request->input('debut_firstname') . ' ' . 
+                    ($request->input('debut_middlename') ? $request->input('debut_middlename') . ' ' : '') . 
+                    $request->input('debut_lastname'));
+                
                 $eventDetails = [
-                    'debutante' => $request->input('debut_name'),
-                    'venue' => $request->input('debut_venue'),
+                    'debutante' => $debutanteName,
+                    'debutante_firstname' => $request->input('debut_firstname'),
+                    'debutante_middlename' => $request->input('debut_middlename'),
+                    'debutante_lastname' => $request->input('debut_lastname'),
                     'guests' => $request->input('debut_guests'),
                     'roses' => $request->input('debut_roses', []),
                     'candles' => $request->input('debut_candles', []),
@@ -169,35 +225,53 @@ class BookingController extends Controller
                 ];
             } elseif ($eventType === 'pageant') {
                 $request->validate([
+                    'pageant_organizer_firstname' => 'required|string',
+                    'pageant_organizer_lastname' => 'required|string',
                     'pageant_title' => 'required|string',
-                    'pageant_venue' => 'required|string',
                     'pageant_guests' => 'required|integer|min:1',
                     'pageant_contestants' => 'required|integer|min:1',
                 ]);
+                
+                // Build organizer full name
+                $organizerName = trim($request->input('pageant_organizer_firstname') . ' ' . 
+                    ($request->input('pageant_organizer_middlename') ? $request->input('pageant_organizer_middlename') . ' ' : '') . 
+                    $request->input('pageant_organizer_lastname'));
+                
                 $eventDetails = [
+                    'organizer' => $organizerName,
+                    'organizer_firstname' => $request->input('pageant_organizer_firstname'),
+                    'organizer_middlename' => $request->input('pageant_organizer_middlename'),
+                    'organizer_lastname' => $request->input('pageant_organizer_lastname'),
                     'title' => $request->input('pageant_title'),
-                    'venue' => $request->input('pageant_venue'),
                     'guests' => $request->input('pageant_guests'),
                     'contestants' => $request->input('pageant_contestants'),
                     'notes' => $request->input('pageant_notes'),
                 ];
             } elseif ($eventType === 'corporate') {
                 $request->validate([
+                    'corporate_rep_firstname' => 'required|string',
+                    'corporate_rep_lastname' => 'required|string',
                     'corporate_company' => 'required|string',
                     'corporate_title' => 'required|string',
-                    'corporate_venue' => 'required|string',
                     'corporate_attendees' => 'required|integer|min:1',
-                    'corporate_representative' => 'required|string',
                     'corporate_contact' => 'required|string',
                     'corporate_requirements' => 'required|string',
                 ]);
+                
+                // Build representative full name
+                $representativeName = trim($request->input('corporate_rep_firstname') . ' ' . 
+                    ($request->input('corporate_rep_middlename') ? $request->input('corporate_rep_middlename') . ' ' : '') . 
+                    $request->input('corporate_rep_lastname'));
+                
                 $eventDetails = [
+                    'representative' => $representativeName,
+                    'representative_firstname' => $request->input('corporate_rep_firstname'),
+                    'representative_middlename' => $request->input('corporate_rep_middlename'),
+                    'representative_lastname' => $request->input('corporate_rep_lastname'),
                     'company' => $request->input('corporate_company'),
                     'title' => $request->input('corporate_title'),
-                    'theme' => $request->input('corporate_title'), // Use title as theme for corporate
-                    'venue' => $request->input('corporate_venue'),
+                    'theme' => $request->input('corporate_title'),
                     'attendees' => $request->input('corporate_attendees'),
-                    'representative' => $request->input('corporate_representative'),
                     'contact' => $request->input('corporate_contact'),
                     'requirements' => $request->input('corporate_requirements'),
                 ];

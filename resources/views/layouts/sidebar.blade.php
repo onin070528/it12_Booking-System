@@ -22,8 +22,8 @@
             <img src="/img/rj_logo.jpg" alt="RJ Logo" class="h-16 w-16 object-contain rounded-md">
 
             <div class="flex flex-col leading-tight">
-                <h1 class="text-[30px] font-bold leading-none" style="color: #93BFC7;">RJ's</h1>
-                <h2 class="text-medium font-bold tracking-wide" style="color: #93BFC7;">Events Styling</h2>
+                <h1 class="text-[40px] font-bold leading-none Poppins" style="color: #93BFC7;">RJ's</h1>
+                <h2 class="text-medium font-bold tracking-wide " style="color: #93BFC7;">Events Styling</h2>
             </div>
         </div>
 

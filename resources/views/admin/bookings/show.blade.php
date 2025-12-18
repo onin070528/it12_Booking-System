@@ -167,8 +167,25 @@
                             <td class="py-3 px-4 text-gray-900">{{ $details['age'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700">Venue</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['venue'] ?? 'N/A' }}</td>
+                            <td class="py-3 px-4 font-semibold text-gray-700">Number of Guests</td>
+                            <td class="py-3 px-4 text-gray-900">{{ $details['guests'] ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 font-semibold text-gray-700">Theme / Motif</td>
+                            <td class="py-3 px-4 text-gray-900">{{ $details['theme'] ?? 'N/A' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            @elseif($booking->event_type === 'christening')
+                <table class="w-full">
+                    <tbody class="divide-y divide-gray-100">
+                        <tr>
+                            <td class="py-3 px-4 font-semibold text-gray-700 w-1/3">Child's Name</td>
+                            <td class="py-3 px-4 text-gray-900">{{ $details['child_name'] ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 font-semibold text-gray-700">Godparents (Ninong/Ninang)</td>
+                            <td class="py-3 px-4 text-gray-900">{{ $details['godparents'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
                             <td class="py-3 px-4 font-semibold text-gray-700">Number of Guests</td>
@@ -178,6 +195,12 @@
                             <td class="py-3 px-4 font-semibold text-gray-700">Theme / Motif</td>
                             <td class="py-3 px-4 text-gray-900">{{ $details['theme'] ?? 'N/A' }}</td>
                         </tr>
+                        @if(isset($details['notes']) && $details['notes'])
+                        <tr>
+                            <td class="py-3 px-4 font-semibold text-gray-700">Additional Notes</td>
+                            <td class="py-3 px-4 text-gray-900">{{ $details['notes'] }}</td>
+                        </tr>
+                        @endif
                     </tbody>
                 </table>
             @elseif($booking->event_type === 'debut')
@@ -188,28 +211,38 @@
                             <td class="py-3 px-4 text-gray-900">{{ $details['debutante'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700">Venue</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['venue'] ?? 'N/A' }}</td>
-                        </tr>
-                        <tr>
                             <td class="py-3 px-4 font-semibold text-gray-700">Number of Guests</td>
                             <td class="py-3 px-4 text-gray-900">{{ $details['guests'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700">Theme / Motif</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['theme'] ?? 'N/A' }}</td>
-                        </tr>
-                        <tr>
                             <td class="py-3 px-4 font-semibold text-gray-700">18 Roses Participants</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['roses'] ?? 'N/A' }}</td>
+                            <td class="py-3 px-4 text-gray-900">
+                                @if(isset($details['roses']) && is_array($details['roses']))
+                                    {{ implode(', ', $details['roses']) }}
+                                @else
+                                    {{ $details['roses'] ?? 'N/A' }}
+                                @endif
+                            </td>
                         </tr>
                         <tr>
                             <td class="py-3 px-4 font-semibold text-gray-700">18 Candles Participants</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['candles'] ?? 'N/A' }}</td>
+                            <td class="py-3 px-4 text-gray-900">
+                                @if(isset($details['candles']) && is_array($details['candles']))
+                                    {{ implode(', ', $details['candles']) }}
+                                @else
+                                    {{ $details['candles'] ?? 'N/A' }}
+                                @endif
+                            </td>
                         </tr>
                         <tr>
                             <td class="py-3 px-4 font-semibold text-gray-700">18 Treasures Participants</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['treasures'] ?? 'N/A' }}</td>
+                            <td class="py-3 px-4 text-gray-900">
+                                @if(isset($details['treasures']) && is_array($details['treasures']))
+                                    {{ implode(', ', $details['treasures']) }}
+                                @else
+                                    {{ $details['treasures'] ?? 'N/A' }}
+                                @endif
+                            </td>
                         </tr>
                         @if(isset($details['notes']) && $details['notes'])
                         <tr>
@@ -223,28 +256,20 @@
                 <table class="w-full">
                     <tbody class="divide-y divide-gray-100">
                         <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700 w-1/3">Pageant Title</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['title'] ?? 'N/A' }}</td>
+                            <td class="py-3 px-4 font-semibold text-gray-700 w-1/3">Organizer Name</td>
+                            <td class="py-3 px-4 text-gray-900">{{ $details['organizer'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700">Venue</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['venue'] ?? 'N/A' }}</td>
+                            <td class="py-3 px-4 font-semibold text-gray-700">Pageant Title</td>
+                            <td class="py-3 px-4 text-gray-900">{{ $details['title'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
                             <td class="py-3 px-4 font-semibold text-gray-700">Number of Guests</td>
                             <td class="py-3 px-4 text-gray-900">{{ $details['guests'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700">Theme / Motif</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['theme'] ?? 'N/A' }}</td>
-                        </tr>
-                        <tr>
                             <td class="py-3 px-4 font-semibold text-gray-700">Number of Contestants</td>
                             <td class="py-3 px-4 text-gray-900">{{ $details['contestants'] ?? 'N/A' }}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700">Categories</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['categories'] ?? 'N/A' }}</td>
                         </tr>
                         @if(isset($details['notes']) && $details['notes'])
                         <tr>
@@ -258,7 +283,11 @@
                 <table class="w-full">
                     <tbody class="divide-y divide-gray-100">
                         <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700 w-1/3">Company Name</td>
+                            <td class="py-3 px-4 font-semibold text-gray-700 w-1/3">Company Representative</td>
+                            <td class="py-3 px-4 text-gray-900">{{ $details['representative'] ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3 px-4 font-semibold text-gray-700">Company Name</td>
                             <td class="py-3 px-4 text-gray-900">{{ $details['company'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
@@ -266,16 +295,8 @@
                             <td class="py-3 px-4 text-gray-900">{{ $details['title'] ?? $details['theme'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700">Venue / Location</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['venue'] ?? 'N/A' }}</td>
-                        </tr>
-                        <tr>
                             <td class="py-3 px-4 font-semibold text-gray-700">Number of Attendees</td>
                             <td class="py-3 px-4 text-gray-900">{{ $details['attendees'] ?? 'N/A' }}</td>
-                        </tr>
-                        <tr>
-                            <td class="py-3 px-4 font-semibold text-gray-700">Company Representative</td>
-                            <td class="py-3 px-4 text-gray-900">{{ $details['representative'] ?? 'N/A' }}</td>
                         </tr>
                         <tr>
                             <td class="py-3 px-4 font-semibold text-gray-700">Contact Number</td>

@@ -23,8 +23,8 @@
     <!-- HERO -->
         <section class="text-white py-20" style="background: linear-gradient(to right, #93BFC7, #a8cdd4);">
             <div class="max-w-6xl mx-auto px-6 text-center">
-            <h1 class="text-4xl md:text-5xl font-bold mb-4">Smart & Reliable Booking System</h1>
-            <p class="text-lg font-medium mb-8">Manage reservations efficiently with a secure Laravel-powered platform.</p>
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Rj's Event Styling </h1>
+            <p class="text-lg font-medium mb-8">Good events are planned. Great events are styled with purpose</p>
             <a href="{{ route('login') }}" class="bg-white px-10 py-5 text-lg rounded-lg font-bold hover:bg-gray-100 transition" style="color: #93BFC7;">Get Started</a>
             </div>
         </section>
