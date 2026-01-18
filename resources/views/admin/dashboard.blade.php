@@ -50,7 +50,7 @@
             @endif
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
 
     <!-- Total Users -->
     <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
@@ -78,14 +78,15 @@
         </div>
     </div>
 
-    <!-- Total Revenue -->
+    <!-- Total Profit -->
     <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-gray-600 text-sm font-medium mb-1">Total Revenue</p>
+                <p class="text-gray-600 text-sm font-medium mb-1">Total Profit</p>
                 <h3 class="text-2xl font-bold text-[#93BFC7]">
-                    ₱{{ number_format($totalRevenue, 2) }}
+                    ₱{{ number_format($totalProfit, 2) }}
                 </h3>
+                <p class="text-xs text-gray-400 mt-1">From completed events</p>
             </div>
             <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
                 <i class="fas fa-money-bill-wave text-green-600 text-xl"></i>
@@ -93,32 +94,18 @@
         </div>
     </div>
 
-    <!-- Pending Payments -->
+    <!-- This Month's Revenue -->
     <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-gray-600 text-sm font-medium mb-1">Pending Payments</p>
-                <h3 class="text-2xl font-bold text-yellow-600">
-                    ₱{{ number_format($pendingPayments, 2) }}
-                </h3>
-            </div>
-            <div class="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center">
-                <i class="fas fa-hourglass-half text-yellow-600 text-xl"></i>
-            </div>
-        </div>
-    </div>
-
-    <!-- Downpayments -->
-    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-gray-600 text-sm font-medium mb-1">Downpayments</p>
+                <p class="text-gray-600 text-sm font-medium mb-1">This Month's Revenue</p>
                 <h3 class="text-2xl font-bold text-blue-600">
-                    ₱{{ number_format($downpaymentsReceived, 2) }}
+                    ₱{{ number_format($thisMonthRevenue, 2) }}
                 </h3>
+                <p class="text-xs text-gray-400 mt-1">{{ now()->format('F Y') }}</p>
             </div>
             <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
-                <i class="fas fa-wallet text-blue-600 text-xl"></i>
+                <i class="fas fa-calendar-alt text-blue-600 text-xl"></i>
             </div>
         </div>
     </div>
@@ -646,6 +633,169 @@
             });
         });
     </script>
+
+    <!-- Booking Reminders Modal -->
+    @if(isset($upcomingBookings) && $upcomingBookings->count() > 0)
+    <div id="bookingRemindersModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[85vh] flex flex-col animate-slideIn">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-[#93BFC7] to-[#7aa8b0] rounded-t-2xl px-6 py-4 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-bell text-white text-lg animate-pulse"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Upcoming Booking Reminders</h3>
+                        <p class="text-white/80 text-sm">All upcoming events</p>
+                    </div>
+                </div>
+                <button onclick="closeBookingRemindersModal()" class="text-white hover:text-gray-200 transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="space-y-4">
+                    @foreach($upcomingBookings as $booking)
+                        @php
+                            $daysUntil = now()->startOfDay()->diffInDays($booking->event_date, false);
+                            $isToday = $daysUntil === 0;
+                            $isTomorrow = $daysUntil === 1;
+                            $urgencyClass = $isToday ? 'border-red-400 bg-red-50' : ($isTomorrow ? 'border-orange-400 bg-orange-50' : 'border-blue-200 bg-blue-50');
+                            $badgeClass = $isToday ? 'bg-red-500' : ($isTomorrow ? 'bg-orange-500' : 'bg-blue-500');
+                        @endphp
+                        <div class="border-l-4 {{ $urgencyClass }} rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="px-2 py-1 {{ $badgeClass }} text-white text-xs font-bold rounded-full">
+                                            @if($isToday)
+                                                TODAY
+                                            @elseif($isTomorrow)
+                                                TOMORROW
+                                            @else
+                                                {{ $daysUntil }} DAYS
+                                            @endif
+                                        </span>
+                                        <span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-semibold rounded-full capitalize">
+                                            {{ $booking->event_type }}
+                                        </span>
+                                    </div>
+                                    <h4 class="font-semibold text-gray-800 text-lg">
+                                        {{ $booking->user->first_name ?? '' }} {{ $booking->user->last_name ?? $booking->user->name }}
+                                    </h4>
+                                    <div class="mt-2 space-y-1 text-sm text-gray-600">
+                                        <p class="flex items-center gap-2">
+                                            <i class="fas fa-calendar text-[#93BFC7] w-4"></i>
+                                            {{ $booking->event_date->format('F d, Y (l)') }}
+                                        </p>
+                                        @if($booking->event_time)
+                                        <p class="flex items-center gap-2">
+                                            <i class="fas fa-clock text-[#93BFC7] w-4"></i>
+                                            {{ date('g:i A', strtotime($booking->event_time)) }}
+                                        </p>
+                                        @endif
+                                        <p class="flex items-center gap-2">
+                                            <i class="fas fa-map-marker-alt text-[#93BFC7] w-4"></i>
+                                            {{ $booking->location }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <a href="{{ route('admin.booking.show', $booking) }}" 
+                                   class="flex-shrink-0 bg-[#93BFC7] hover:bg-[#7aa8b0] text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2">
+                                    <i class="fas fa-eye"></i>
+                                    View
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 rounded-b-2xl flex-shrink-0">
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600 text-sm">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        {{ $upcomingBookings->count() }} upcoming event{{ $upcomingBookings->count() > 1 ? 's' : '' }}
+                    </p>
+                    <div class="flex gap-3">
+                        <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                            <input type="checkbox" id="dontShowAgainToday" class="rounded border-gray-300 text-[#93BFC7] focus:ring-[#93BFC7]">
+                            <span>Don't show again today</span>
+                        </label>
+                        <button onclick="closeBookingRemindersModal()" 
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .animate-slideIn {
+            animation: slideIn 0.3s ease-out;
+        }
+    </style>
+
+    <script>
+        // Check if modal should be shown on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('bookingRemindersModal');
+            if (!modal) return;
+            
+            const lastDismissed = localStorage.getItem('bookingRemindersLastDismissed');
+            const today = new Date().toDateString();
+            
+            // Show modal by default, hide only if dismissed today
+            if (lastDismissed === today) {
+                modal.style.display = 'none';
+            } else {
+                modal.style.display = 'flex';
+            }
+        });
+
+        function closeBookingRemindersModal() {
+            const modal = document.getElementById('bookingRemindersModal');
+            const dontShowAgain = document.getElementById('dontShowAgainToday');
+            
+            if (dontShowAgain && dontShowAgain.checked) {
+                localStorage.setItem('bookingRemindersLastDismissed', new Date().toDateString());
+            }
+            
+            modal.style.display = 'none';
+        }
+
+        // Close on backdrop click
+        document.getElementById('bookingRemindersModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeBookingRemindersModal();
+            }
+        });
+
+        // Clear old dismissal on new day (cleanup)
+        (function() {
+            const lastDismissed = localStorage.getItem('bookingRemindersLastDismissed');
+            const today = new Date().toDateString();
+            if (lastDismissed && lastDismissed !== today) {
+                localStorage.removeItem('bookingRemindersLastDismissed');
+            }
+        })();
+    </script>
+    @endif
 
 </body>
 </html>

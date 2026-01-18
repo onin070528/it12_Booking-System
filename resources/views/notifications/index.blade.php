@@ -63,7 +63,7 @@
                         @endphp
                         <div 
                             @if($isBookingNotification && $isUnread && $isUser)
-                                data-notification-id="{{ $notification->id }}"
+                                data-notification-id="{{ $notification->notification_id }}"
                                 data-notification-type="{{ $notification->type }}"
                                 class="booking-notification-item bg-[#F9FAFB] rounded-lg border border-gray-200 p-4 flex items-start gap-4 hover:bg-[#F1F5F9] transition cursor-pointer {{ $notification->read ? 'opacity-75' : '' }}"
                             @else
@@ -97,9 +97,10 @@
                             @if(!$notification->read && (!$isBookingNotification || !$isUser))
                                 <button 
                                     type="button"
-                                    data-mark-read-id="{{ $notification->id }}"
-                                    class="mark-read-btn text-blue-500 hover:text-blue-700 transition">
-                                    <i class="fas fa-check fa-2x"></i>
+                                    data-mark-read-id="{{ $notification->notification_id }}"
+                                    class="mark-read-btn text-blue-500 hover:text-blue-700 transition cursor-pointer p-2 rounded-full hover:bg-blue-100"
+                                    title="Mark as read">
+                                    <i class="fas fa-check fa-2x pointer-events-none"></i>
                                 </button>
                             @endif
                         </div>
@@ -251,25 +252,31 @@
 
         // Event delegation for notification items
         document.addEventListener('DOMContentLoaded', function() {
+            // Handle mark as read button clicks - MUST be registered first to catch the event before it bubbles
+            document.addEventListener('click', function(e) {
+                const markReadBtn = e.target.closest('.mark-read-btn');
+                if (markReadBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const notificationId = parseInt(markReadBtn.getAttribute('data-mark-read-id'));
+                    if (notificationId) {
+                        markAsRead(notificationId);
+                    }
+                }
+            });
+
             // Handle booking notification clicks
             document.addEventListener('click', function(e) {
+                // Skip if clicking on the mark-read button
+                if (e.target.closest('.mark-read-btn')) {
+                    return;
+                }
                 const notificationItem = e.target.closest('.booking-notification-item');
                 if (notificationItem) {
                     const notificationId = parseInt(notificationItem.getAttribute('data-notification-id'));
                     const notificationType = notificationItem.getAttribute('data-notification-type');
                     if (notificationId && notificationType) {
                         handleBookingNotification(notificationId, notificationType);
-                    }
-                }
-            });
-
-            // Handle mark as read button clicks
-            document.addEventListener('click', function(e) {
-                const markReadBtn = e.target.closest('.mark-read-btn');
-                if (markReadBtn) {
-                    const notificationId = parseInt(markReadBtn.getAttribute('data-mark-read-id'));
-                    if (notificationId) {
-                        markAsRead(notificationId);
                     }
                 }
             });

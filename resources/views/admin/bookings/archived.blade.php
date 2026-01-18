@@ -37,8 +37,8 @@
                                 <th class="px-6 py-4 text-left">Event Date</th>
                                 <th class="px-6 py-4 text-left">Amount</th>
                                 <th class="px-6 py-4 text-left">Archived At</th>
-                                <th class="px-6 py-4 text-center">Actions</th>
-                            </tr>
+                                <!-- <th class="px-6 py-4 text-center">Actions</th>
+                            </tr> -->
                         </thead>
                         <tbody class="divide-y divide-gray-200">
                             @forelse($bookings as $booking)
@@ -48,11 +48,11 @@
                                     <td class="px-6 py-4">{{ $booking->event_date?->format('M d, Y') }}</td>
                                     <td class="px-6 py-4">₱{{ number_format($booking->total_amount,2) }}</td>
                                     <td class="px-6 py-4">{{ $booking->archived_at?->format('M d, Y H:i') ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 text-center">
+                                    <!-- <td class="px-6 py-4 text-center">
                                         <div class="flex items-center justify-center gap-3">
                                             <button onclick="restoreBooking('{{ $booking->id }}')" class="bg-green-500 text-white px-3 py-2 rounded-lg">Restore</button>
                                         </div>
-                                    </td>
+                                    </td> -->
                                 </tr>
                             @empty
                                 <tr>

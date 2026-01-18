@@ -57,15 +57,15 @@
                         <tbody class="divide-y divide-gray-200">
                             @forelse($bookings as $booking)
                                 <tr class="hover:bg-gray-50 font-medium">
-                                    <td class="px-6 py-4 hidden">{{ $booking->id }}</td>
+                                    <td class="px-6 py-4 hidden">{{ $booking->booking_id }}</td>
                                     <td class="px-6 py-4">{{ $booking->user->name }}</td>
                                     <td class="px-6 py-4 capitalize">{{ $booking->event_type }}</td>
                                     <td class="px-6 py-4">{{ $booking->event_date->format('M d, Y') }}</td>
                                     <td class="px-6 py-4">{{ $booking->location }}</td>
                                     <td class="px-6 py-4">
                                         @php
-                                            $totalPaid = $bookingPayments[$booking->id]['total_paid'] ?? 0;
-                                            $remainingBalance = $bookingPayments[$booking->id]['remaining_balance'] ?? $booking->total_amount;
+                                            $totalPaid = $bookingPayments[$booking->booking_id]['total_paid'] ?? 0;
+                                            $remainingBalance = $bookingPayments[$booking->booking_id]['remaining_balance'] ?? $booking->total_amount;
                                         @endphp
                                         <div class="space-y-1">
                                             <div class="font-semibold">₱{{ number_format($booking->total_amount, 2) }}</div>
@@ -110,7 +110,7 @@
 
                                                 <!-- View -->
                                                 <button 
-                                                    onclick="viewBooking('{{ $booking->id }}')"
+                                                    onclick="viewBooking('{{ $booking->booking_id }}')"
                                                     class="relative p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-sm hover:shadow transition-all duration-200"
                                                     title="View Booking"
                                                 >
@@ -163,7 +163,10 @@
                     <div class="mb-4">
                         <label class="block text-gray-700 font-semibold mb-2">Meetup Time</label>
                         <input type="time" id="meetup_time" name="meetup_time" required
-                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#93BFC7]">
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#93BFC7]"
+                            onchange="validateMeetupTime(this)">
+                        <p class="text-gray-500 text-xs mt-1">Working hours: 8:00 AM - 12:00 AM (1-7 AM not allowed)</p>
+                        <p id="meetup-time-error" class="text-red-500 text-xs mt-1 hidden">Time must be between 8:00 AM and 12:00 AM.</p>
                     </div>
                     <div class="flex space-x-3">
                         <button type="button" onclick="saveSchedule()" 
@@ -265,6 +268,37 @@
                     .catch(error => {
                         console.error('Error:', error);
                         showToast('An error occurred while cancelling the booking.', 'error');
+                    });
+                }
+            });
+        }
+
+        function approveCancellation(bookingId) {
+            showConfirm({
+                title: 'Approve Cancellation Request',
+                message: 'Are you sure you want to approve this cancellation request? This will cancel the booking and notify the customer.',
+                confirmText: 'Approve Cancellation',
+                onConfirm: () => {
+                    fetch(`/admin/booking/${bookingId}/approve-cancellation`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('Cancellation approved. The customer has been notified.', 'success');
+                            setTimeout(() => location.reload(), 900);
+                        } else {
+                            showToast(data.message || 'An error occurred while approving the cancellation.', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('An error occurred while approving the cancellation.', 'error');
                     });
                 }
             });
@@ -746,6 +780,222 @@
 
 <!-- Toast Container -->
 <div id="toastContainer" class="fixed top-6 right-6 z-60 flex flex-col items-end"></div>
+
+<!-- Assign Inventory Modal (Outside of loaded content for proper z-index) -->
+<div id="assignInventoryModal" class="fixed inset-0 z-[100] hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onclick="closeAssignInventoryModal()"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative inline-block align-middle bg-white rounded-xl shadow-2xl text-left overflow-hidden transform transition-all sm:my-8 sm:max-w-2xl sm:w-full z-[101]">
+            <div class="bg-gradient-to-r from-[#93BFC7] to-[#7eaab1] px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white">
+                    <i class="fas fa-boxes mr-2"></i>Assign Inventory
+                </h3>
+                <button onclick="closeAssignInventoryModal()" class="text-white hover:text-gray-200 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="assignInventoryForm" class="p-6">
+                @csrf
+                <input type="hidden" id="assignBookingId" name="booking_id">
+                
+                <div class="mb-6">
+                    <p class="text-sm text-gray-600 mb-4">
+                        <i class="fas fa-info-circle mr-1 text-[#93BFC7]"></i>
+                        Select inventory items and quantities to assign to this booking.
+                    </p>
+                </div>
+                
+                <!-- Inventory Items Container -->
+                <div id="inventoryItemsContainer" class="space-y-4 max-h-80 overflow-y-auto mb-6">
+                    <!-- Dynamic inventory items will be loaded here -->
+                    <div class="text-center py-4 text-gray-500">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>Loading available inventory...
+                    </div>
+                </div>
+                
+                <!-- Add More Button -->
+                <button type="button" onclick="addInventoryRow()" class="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-[#93BFC7] hover:text-[#93BFC7] transition">
+                    <i class="fas fa-plus mr-2"></i>Add Another Item
+                </button>
+                
+                <div class="flex gap-3 mt-6 pt-4 border-t border-gray-200">
+                    <button type="button" onclick="closeAssignInventoryModal()" class="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="flex-1 bg-[#93BFC7] text-white font-bold py-3 rounded-lg hover:bg-[#7eaab1] transition">
+                        <i class="fas fa-check mr-2"></i>Assign Inventory
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Inventory assignment variables and functions
+let availableInventory = [];
+let inventoryRowCount = 0;
+
+// Open Assign Inventory Modal
+function openAssignInventoryModal(bookingId) {
+    document.getElementById('assignBookingId').value = bookingId;
+    document.getElementById('assignInventoryModal').classList.remove('hidden');
+    loadAvailableInventory();
+}
+
+// Close Assign Inventory Modal
+function closeAssignInventoryModal() {
+    document.getElementById('assignInventoryModal').classList.add('hidden');
+    document.getElementById('inventoryItemsContainer').innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading available inventory...</div>';
+    inventoryRowCount = 0;
+}
+
+// Load Available Inventory
+function loadAvailableInventory() {
+    fetch('/admin/inventory/available/list')
+        .then(response => response.json())
+        .then(data => {
+            availableInventory = data;
+            document.getElementById('inventoryItemsContainer').innerHTML = '';
+            if (data.length === 0) {
+                document.getElementById('inventoryItemsContainer').innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fas fa-box-open mr-2"></i>No inventory available for assignment.</div>';
+            } else {
+                addInventoryRow();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading inventory:', error);
+            document.getElementById('inventoryItemsContainer').innerHTML = '<div class="text-center py-4 text-red-500"><i class="fas fa-exclamation-circle mr-2"></i>Error loading inventory.</div>';
+        });
+}
+
+// Add Inventory Row
+function addInventoryRow() {
+    if (availableInventory.length === 0) return;
+    
+    inventoryRowCount++;
+    const rowId = inventoryRowCount;
+    
+    let optionsHtml = '<option value="">Select Item...</option>';
+    availableInventory.forEach(item => {
+        optionsHtml += `<option value="${item.id}" data-unit="${item.unit}" data-available="${item.available_stock}">${item.item_name} (${parseFloat(item.available_stock).toFixed(2)} ${item.unit} available)</option>`;
+    });
+    
+    const rowHtml = `
+        <div id="inventoryRow${rowId}" class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Item</label>
+                <select name="inventory[${rowId}][id]" onchange="updateQuantityMax(${rowId}, this)" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent">
+                    ${optionsHtml}
+                </select>
+            </div>
+            <div class="w-32">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                <input type="number" name="inventory[${rowId}][quantity]" step="0.01" min="0.01" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-transparent" 
+                       placeholder="0.00" required>
+            </div>
+            <div class="w-16 text-center pt-6">
+                <span id="unit${rowId}" class="text-sm text-gray-500">-</span>
+            </div>
+            <button type="button" onclick="removeInventoryRow(${rowId})" class="pt-6 text-red-500 hover:text-red-700 transition">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    
+    document.getElementById('inventoryItemsContainer').insertAdjacentHTML('beforeend', rowHtml);
+}
+
+// Update Quantity Max based on selected item
+function updateQuantityMax(rowId, selectElement) {
+    const option = selectElement.options[selectElement.selectedIndex];
+    const unit = option.dataset.unit || '-';
+    const available = option.dataset.available || 0;
+    
+    document.getElementById(`unit${rowId}`).textContent = unit;
+    const quantityInput = selectElement.closest('.flex').querySelector('input[type="number"]');
+    quantityInput.max = available;
+    quantityInput.placeholder = `Max: ${parseFloat(available).toFixed(2)}`;
+}
+
+// Remove Inventory Row
+function removeInventoryRow(rowId) {
+    document.getElementById(`inventoryRow${rowId}`).remove();
+}
+
+// Handle Form Submission
+document.getElementById('assignInventoryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const bookingId = document.getElementById('assignBookingId').value;
+    const formData = new FormData(this);
+    
+    // Collect inventory items
+    const items = [];
+    document.querySelectorAll('#inventoryItemsContainer > div').forEach(row => {
+        const select = row.querySelector('select');
+        const quantity = row.querySelector('input[type="number"]');
+        if (select && select.value && quantity && quantity.value) {
+            items.push({
+                inventory_id: select.value,
+                quantity: parseFloat(quantity.value)
+            });
+        }
+    });
+    
+    if (items.length === 0) {
+        alert('Please add at least one inventory item.');
+        return;
+    }
+    
+    fetch(`/admin/bookings/${bookingId}/inventory/assign`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ items: items })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Inventory assigned successfully!');
+            closeAssignInventoryModal();
+            window.location.reload();
+        } else {
+            alert(data.message || 'Error assigning inventory.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error assigning inventory. Please try again.');
+    });
+});
+
+// Time validation function for meetup - block 1:00 AM to 7:59 AM
+function validateMeetupTime(input) {
+    const time = input.value;
+    const errorEl = document.getElementById('meetup-time-error');
+    
+    if (time) {
+        const [hours, minutes] = time.split(':').map(Number);
+        // Block times from 01:00 to 07:59 (1 AM to 7:59 AM)
+        if (hours >= 1 && hours <= 7) {
+            errorEl.classList.remove('hidden');
+            input.setCustomValidity('Time must be between 8:00 AM and 12:00 AM');
+            input.value = ''; // Clear invalid time
+        } else {
+            errorEl.classList.add('hidden');
+            input.setCustomValidity('');
+        }
+    }
+}
+</script>
 
 </body>
 </html>

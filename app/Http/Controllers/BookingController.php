@@ -51,14 +51,17 @@ class BookingController extends Controller
                     $temporaryPassword = Str::random(12); // Generate random 12-character password
                     
                     // Create a new user for the walk-in client
+                    // Note: Don't use bcrypt() here because the User model has 'password' => 'hashed' cast
+                    // which will automatically hash the password. Using bcrypt() would double-hash it.
                     $client = User::create([
                         'name' => $request->input('client_name'),
                         'email' => $request->input('client_email'),
-                        'password' => bcrypt($temporaryPassword),
+                        'password' => $temporaryPassword, // Model's 'hashed' cast will hash this automatically
                         'role' => 'user',
                         'first_name' => explode(' ', $request->input('client_name'))[0],
                         'last_name' => implode(' ', array_slice(explode(' ', $request->input('client_name')), 1)),
                         'phone' => $request->input('client_phone'),
+                        'account_status' => 'approved', // Walk-in customers are pre-approved
                     ]);
                     
                     $isNewWalkInUser = true;
@@ -432,9 +435,9 @@ class BookingController extends Controller
             $booking->refresh();
         }
         
-        // If it's an AJAX request, return the view content
+        // If it's an AJAX request, return only the partial content (no full layout)
         if (request()->ajax()) {
-            return view('admin.bookings.show', compact('booking'))->render();
+            return view('admin.bookings._details', compact('booking'))->render();
         }
         
         return view('admin.bookings.show', compact('booking'));
@@ -972,7 +975,102 @@ class BookingController extends Controller
     }
 
     /**
+     * Request cancellation for a booking (for users who have made payments).
+     * This creates a cancellation request that must be approved by admin.
+     */
+    public function requestCancellation(Request $request, Booking $booking)
+    {
+        // Check if user is the booking owner
+        if (!Auth::check() || $booking->user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized.',
+            ], 403);
+        }
+
+        // Check if booking can have cancellation requested
+        if (in_array($booking->status, ['cancelled', 'completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This booking cannot be cancelled.',
+            ], 400);
+        }
+
+        // Check if cancellation is already requested
+        if ($booking->cancellation_requested_at) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A cancellation request is already pending for this booking.',
+            ], 400);
+        }
+
+        // Get the cancellation reason from request
+        $reason = $request->input('cancellation_reason', '');
+
+        // Update booking with cancellation request
+        $booking->update([
+            'cancellation_requested_at' => now(),
+            'cancellation_reason' => $reason,
+        ]);
+
+        // Notify all admins about the cancellation request
+        $notificationMessage = "Customer {$booking->user->name} has requested to cancel booking #{$booking->booking_id} for {$booking->event_type} event on {$booking->event_date->format('F d, Y')}.";
+        if ($reason) {
+            $notificationMessage .= " Reason: \"{$reason}\"";
+        }
+        
+        $notificationData = [
+            'booking_id' => $booking->booking_id,
+            'status' => $booking->status,
+            'cancellation_requested' => true,
+            'cancellation_reason' => $reason,
+            'customer_name' => $booking->user->name,
+        ];
+
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            Notification::create([
+                'user_id' => $admin->user_id,
+                'type' => 'cancellation_request',
+                'notifiable_type' => Booking::class,
+                'notifiable_id' => $booking->booking_id,
+                'message' => $notificationMessage,
+                'read' => false,
+                'data' => $notificationData,
+            ]);
+
+            // Send email notification to admin
+            $this->emailNotificationService->sendNotification(
+                $admin,
+                'cancellation_request',
+                $notificationMessage,
+                $notificationData,
+                $booking
+            );
+        }
+
+        // Notify customer that their request was submitted
+        $customerMessage = "Your cancellation request for booking #{$booking->booking_id} has been submitted. An administrator will review it shortly.";
+        Notification::create([
+            'user_id' => $booking->user_id,
+            'type' => 'cancellation_request_submitted',
+            'notifiable_type' => Booking::class,
+            'notifiable_id' => $booking->booking_id,
+            'message' => $customerMessage,
+            'read' => false,
+            'data' => $notificationData,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your cancellation request has been submitted. An administrator will review it shortly.',
+        ]);
+    }
+
+    /**
      * Cancel a booking.
+     * For users who have made payments, this creates a cancellation request
+     * that must be approved by admin.
      */
     public function cancel(Request $request, Booking $booking)
     {
@@ -992,6 +1090,24 @@ class BookingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'This booking cannot be cancelled.',
+            ], 400);
+        }
+
+        // Check if user has made any payment
+        $hasAnyPayment = $booking->payments()
+            ->whereIn('status', ['paid', 'partial_payment'])
+            ->exists();
+
+        // If user (not admin) has made payment, create cancellation request instead
+        if (!$isAdmin && $hasAnyPayment) {
+            return $this->requestCancellation($request, $booking);
+        }
+
+        // If admin is trying to cancel a booking with payment, check for cancellation request
+        if ($isAdmin && $hasAnyPayment && !$booking->cancellation_requested_at) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot cancel a booking with payments. The customer must request cancellation first.',
             ], 400);
         }
 
@@ -1108,6 +1224,99 @@ class BookingController extends Controller
     }
 
     /**
+     * Approve a cancellation request from a customer.
+     * This is used when a customer has already paid and requests cancellation.
+     * Admin reviews and approves the cancellation.
+     */
+    public function approveCancellation(Request $request, Booking $booking)
+    {
+        // Only admin can approve cancellation requests
+        if (!$this->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admin can approve cancellations.',
+            ], 403);
+        }
+
+        // Check if booking has a pending cancellation request
+        if (!$booking->cancellation_requested_at) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No cancellation request found for this booking.',
+            ], 400);
+        }
+
+        // Check if booking can be cancelled
+        if (in_array($booking->status, ['cancelled', 'completed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This booking cannot be cancelled.',
+            ], 400);
+        }
+
+        // Update booking status to cancelled
+        $booking->update([
+            'status' => 'cancelled',
+        ]);
+
+        // Notify customer that their cancellation request was approved
+        $notificationMessage = "Your cancellation request for booking #{$booking->booking_id} ({$booking->event_type} event on {$booking->event_date->format('F d, Y')}) has been approved. The booking is now cancelled.";
+        
+        if ($booking->cancellation_reason) {
+            $notificationMessage .= " Your reason: \"{$booking->cancellation_reason}\"";
+        }
+        
+        $notificationData = [
+            'booking_id' => $booking->booking_id,
+            'status' => 'cancelled',
+            'cancelled_by' => 'customer_request_approved',
+            'cancellation_reason' => $booking->cancellation_reason,
+        ];
+
+        Notification::create([
+            'user_id' => $booking->user_id,
+            'type' => 'cancellation_approved',
+            'notifiable_type' => Booking::class,
+            'notifiable_id' => $booking->booking_id,
+            'message' => $notificationMessage,
+            'read' => false,
+            'data' => $notificationData,
+        ]);
+
+        // Send email notification to customer
+        $customer = $booking->user;
+        $this->emailNotificationService->sendNotification(
+            $customer,
+            'cancellation_approved',
+            $notificationMessage,
+            $notificationData,
+            $booking
+        );
+
+        // Notify other admins
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            if ($admin->user_id !== Auth::id()) {
+                $adminMessage = "Cancellation request for booking #{$booking->booking_id} has been approved by " . ($this->authUser()?->name ?? 'Admin') . ".";
+                Notification::create([
+                    'user_id' => $admin->user_id,
+                    'type' => 'cancellation_approved',
+                    'notifiable_type' => Booking::class,
+                    'notifiable_id' => $booking->booking_id,
+                    'message' => $adminMessage,
+                    'read' => false,
+                    'data' => $notificationData,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cancellation request approved. The customer has been notified.',
+        ]);
+    }
+
+    /**
      * Mark booking as completed (event successful).
      */
     public function markAsCompleted(Request $request, Booking $booking)
@@ -1168,7 +1377,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Archive a booking (mark as archived_at)
+     * Archive a booking (mark as archived_at) - Admin only
      */
     public function archive(Request $request, Booking $booking)
     {
@@ -1185,6 +1394,31 @@ class BookingController extends Controller
         $booking->save();
 
         return response()->json(['success' => true, 'message' => 'Booking archived.']);
+    }
+
+    /**
+     * Archive a booking (mark as archived_at) - User can archive their own completed/cancelled bookings
+     */
+    public function userArchive(Request $request, Booking $booking)
+    {
+        // Check if user owns this booking
+        if (!Auth::check() || $booking->user_id !== Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        // Only allow archiving completed or cancelled bookings
+        if (!in_array($booking->status, ['completed', 'cancelled'])) {
+            return response()->json(['success' => false, 'message' => 'Only completed or cancelled bookings can be archived.'], 400);
+        }
+
+        if ($booking->archived_at) {
+            return response()->json(['success' => false, 'message' => 'Booking already archived.'], 400);
+        }
+
+        $booking->archived_at = now();
+        $booking->save();
+
+        return response()->json(['success' => true, 'message' => 'Booking archived successfully.']);
     }
 
     /**

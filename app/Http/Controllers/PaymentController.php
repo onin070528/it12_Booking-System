@@ -273,7 +273,7 @@ class PaymentController extends Controller
         $bookingBalances = [];
         foreach ($payments as $payment) {
             if ($payment->booking) {
-                $bookingId = $payment->booking->id;
+                $bookingId = $payment->booking->booking_id;
                 if (!isset($bookingBalances[$bookingId])) {
                     $totalPaid = $payment->booking->payments()
                         ->whereIn('status', ['paid', 'partial_payment'])

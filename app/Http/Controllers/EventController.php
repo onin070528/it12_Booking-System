@@ -386,8 +386,8 @@ class EventController extends Controller
             ];
         });
 
-        // Payment Methods Statistics (filtered by date range)
-        $paymentsByMethod = \App\Models\Payment::where('status', 'paid')
+        // Payment Methods Statistics (filtered by date range, include partial payments)
+        $paymentsByMethod = \App\Models\Payment::whereIn('status', ['paid', 'partial_payment'])
             ->whereBetween('paid_at', [$startDate, $endDate])
             ->selectRaw('payment_method, COUNT(*) as count, SUM(amount) as total')
             ->groupBy('payment_method')
@@ -592,23 +592,27 @@ class EventController extends Controller
                 continue;
             }
 
-            // Create or update the assignment
-            $assignment = BookingInventory::updateOrCreate(
-                [
+            // Check if assignment already exists
+            $existingAssignment = BookingInventory::where('booking_id', $bookingId)
+                ->where('inventory_id', $item['inventory_id'])
+                ->first();
+
+            if ($existingAssignment) {
+                // Update existing assignment - add to quantity
+                $existingAssignment->quantity_assigned += $item['quantity'];
+                $existingAssignment->status = 'assigned';
+                $existingAssignment->assigned_at = now();
+                $existingAssignment->save();
+                $assignment = $existingAssignment;
+            } else {
+                // Create new assignment
+                $assignment = BookingInventory::create([
                     'booking_id' => $bookingId,
                     'inventory_id' => $item['inventory_id'],
-                ],
-                [
-                    'quantity_assigned' => DB::raw('quantity_assigned + ' . $item['quantity']),
+                    'quantity_assigned' => $item['quantity'],
                     'status' => 'assigned',
                     'assigned_at' => now(),
-                ]
-            );
-
-            // If new record, set quantity directly
-            if ($assignment->wasRecentlyCreated) {
-                $assignment->quantity_assigned = $item['quantity'];
-                $assignment->save();
+                ]);
             }
 
             $assigned[] = $inventory->item_name;
@@ -662,7 +666,7 @@ class EventController extends Controller
         
         $assignments = $booking->inventoryAssignments->map(function ($assignment) {
             return [
-                'id' => $assignment->id,
+                'id' => $assignment->booking_inventory_id,
                 'inventory_id' => $assignment->inventory_id,
                 'item_name' => $assignment->inventory->item_name,
                 'category' => $assignment->inventory->category,
@@ -694,28 +698,31 @@ class EventController extends Controller
         
         $validated = $request->validate([
             'items' => 'required|array|min:1',
-            'items.*.assignment_id' => 'required|exists:booking_inventory,id',
+            'items.*.assignment_id' => 'required|exists:booking_inventory,booking_inventory_id',
             'items.*.quantity_returned' => 'required|numeric|min:0',
             'items.*.quantity_damaged' => 'required|numeric|min:0',
             'items.*.damage_notes' => 'nullable|string|max:500',
         ]);
 
         foreach ($validated['items'] as $item) {
-            $assignment = \App\Models\BookingInventory::findOrFail($item['assignment_id']);
+            $assignment = \App\Models\BookingInventory::where('booking_inventory_id', $item['assignment_id'])->firstOrFail();
             
-            // Validate totals don't exceed assigned
-            $totalReturned = $item['quantity_returned'] + $item['quantity_damaged'];
-            if ($totalReturned > $assignment->quantity_assigned) {
+            // Calculate remaining quantity that can still be returned
+            $remainingQty = $assignment->quantity_assigned - $assignment->quantity_returned - $assignment->quantity_damaged;
+            
+            // Validate totals don't exceed remaining quantity
+            $totalReturning = $item['quantity_returned'] + $item['quantity_damaged'];
+            if ($totalReturning > $remainingQty + 0.001) { // Small tolerance for floating point
                 return response()->json([
                     'success' => false,
-                    'message' => "Return quantity exceeds assigned quantity for {$assignment->inventory->item_name}."
+                    'message' => "Return quantity exceeds remaining quantity for {$assignment->inventory->item_name}. Only {$remainingQty} remaining."
                 ], 400);
             }
 
-            // Update the assignment
-            $assignment->quantity_returned = $item['quantity_returned'];
-            $assignment->quantity_damaged = $item['quantity_damaged'];
-            $assignment->damage_notes = $item['damage_notes'] ?? null;
+            // Add to the existing returned/damaged quantities (not overwrite)
+            $assignment->quantity_returned += $item['quantity_returned'];
+            $assignment->quantity_damaged += $item['quantity_damaged'];
+            $assignment->damage_notes = $item['damage_notes'] ?? $assignment->damage_notes;
             $assignment->returned_at = now();
             
             // Set status based on return
@@ -753,7 +760,7 @@ class EventController extends Controller
      */
     public function removeInventoryAssignment($assignmentId)
     {
-        $assignment = \App\Models\BookingInventory::findOrFail($assignmentId);
+        $assignment = \App\Models\BookingInventory::where('booking_inventory_id', $assignmentId)->firstOrFail();
         
         // Only allow removal if not already returned
         if ($assignment->status === 'returned') {

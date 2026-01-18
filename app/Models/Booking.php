@@ -33,6 +33,8 @@ class Booking extends Model
         'meetup_date',
         'meetup_time',
         'communication_method',
+        'cancellation_requested_at',
+        'cancellation_reason',
     ];
 
     protected $casts = [
@@ -43,6 +45,7 @@ class Booking extends Model
         'meetup_date' => 'date',
         'meetup_time' => 'datetime',
         'archived_at' => 'datetime',
+        'cancellation_requested_at' => 'datetime',
     ];
 
     /**

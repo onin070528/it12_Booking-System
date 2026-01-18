@@ -58,7 +58,7 @@
            <tbody>
                 @forelse($payments as $payment)
                 @php
-                    $bookingId = $payment->booking->id ?? null;
+                    $bookingId = $payment->booking->booking_id ?? null;
                     $balance = $bookingId && isset($bookingBalances[$bookingId]) ? $bookingBalances[$bookingId] : null;
                 @endphp
                 <tr class="bg-white font-medium text-[#93BFC7] hover:bg-gray-200 border-b border-gray-300">

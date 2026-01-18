@@ -330,7 +330,10 @@
                             <div class="mb-4">
                                 <label class="text-white font-semibold mb-2 block">Event Time *</label>
                                 <input type="time" id="time" name="time" required
-                                    class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white">
+                                    class="w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-white"
+                                    onchange="validateEventTime(this)">
+                                <p class="text-white text-xs mt-1 opacity-75">Working hours: 8:00 AM - 12:00 AM (1-7 AM not allowed)</p>
+                                <p id="time-error" class="text-red-300 text-xs mt-1 hidden">Time must be between 8:00 AM and 12:00 AM. (1:00 AM - 7:59 AM not allowed)</p>
                             </div>
 
                             <div class="mb-4">
@@ -835,6 +838,25 @@
                         this.classList.remove('border-2', 'border-red-400');
                     });
                 });
+
+                // Time validation function - block 1:00 AM to 7:59 AM
+                function validateEventTime(input) {
+                    const time = input.value;
+                    const errorEl = document.getElementById('time-error');
+                    
+                    if (time) {
+                        const [hours, minutes] = time.split(':').map(Number);
+                        // Block times from 01:00 to 07:59 (1 AM to 7:59 AM)
+                        if (hours >= 1 && hours <= 7) {
+                            errorEl.classList.remove('hidden');
+                            input.setCustomValidity('Time must be between 8:00 AM and 12:00 AM');
+                            input.value = ''; // Clear invalid time
+                        } else {
+                            errorEl.classList.add('hidden');
+                            input.setCustomValidity('');
+                        }
+                    }
+                }
             </script>
 
         </div>

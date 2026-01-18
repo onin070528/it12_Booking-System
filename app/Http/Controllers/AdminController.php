@@ -18,9 +18,7 @@ use Illuminate\Support\Facades\Mail;
 
 class AdminController extends Controller
 {
-    /**
-     * Display the admin dashboard.
-     */
+
     public function dashboard()
     {
         $totalUsers = User::where('role', 'user')->where('account_status', 'approved')->count();
@@ -47,7 +45,6 @@ class AdminController extends Controller
                 ];
             });
 
-        // Bookings by Status
         $bookingsByStatus = Booking::selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->get()
@@ -58,18 +55,25 @@ class AdminController extends Controller
                 ];
             });
 
-        // Revenue Statistics
-        $totalRevenue = Payment::where('status', 'paid')->sum('amount');
-        $downpaymentsReceived = Payment::where('status', 'paid')->sum('amount');
-        $pendingPayments = Payment::where('status', 'pending')->sum('amount');
-        $totalBookingValue = Booking::sum('total_amount');
-        $expectedRevenue = $totalBookingValue * 0.30; // 30% downpayment expected
 
-        // Monthly Revenue Trend (last 6 months) - ensure months with zero totals are present
+        // Total Profit: Only from bookings with status 'completed'
+        $completedBookingIds = Booking::where('status', 'completed')->pluck('booking_id');
+        $totalProfit = Payment::where('status', 'paid')
+            ->whereIn('booking_id', $completedBookingIds)
+            ->sum('amount');
+        
+        // This Month's Revenue: Payments received this month
+        $thisMonthRevenue = Payment::where('status', 'paid')
+            ->whereMonth('paid_at', now()->month)
+            ->whereYear('paid_at', now()->year)
+            ->sum('amount');
+        $totalBookingValue = Booking::sum('total_amount');
+        $expectedRevenue = $totalBookingValue * 0.30;
+
+
         $end = now()->endOfMonth();
         $start = now()->subMonths(5)->startOfMonth();
 
-        // Build list of last 6 months in YYYY-MM format (oldest -> newest)
         $months = collect();
         for ($i = 0; $i < 6; $i++) {
             $months->push(now()->subMonths(5 - $i)->format('Y-m'));
@@ -90,19 +94,26 @@ class AdminController extends Controller
             ];
         });
 
-        // Payment Methods Statistics
-        $paymentsByMethod = Payment::where('status', 'paid')
+ 
+        $paymentsByMethod = Payment::whereIn('status', ['paid', 'partial_payment'])
             ->selectRaw('payment_method, COUNT(*) as count, SUM(amount) as total')
             ->groupBy('payment_method')
             ->get();
 
-        // Archived users (for dashboard quick view)
         $archivedUsers = User::whereNotNull('archived_at')->where('role', 'user')->latest('archived_at')->take(5)->get();
 
-        // Inventory status counts
         $inStockCount = Inventory::where('status', 'In Stock')->count();
         $lowStockCount = Inventory::where('status', 'Low Stock')->count();
         $outOfStockCount = Inventory::where('status', 'Out of Stock')->count();
+
+        // Upcoming booking reminders (all upcoming events)
+        $upcomingBookings = Booking::with('user')
+            ->whereIn('status', ['confirmed', 'approved', 'pending_payment', 'partial_payment', 'design'])
+            ->whereNull('archived_at')
+            ->where('event_date', '>=', now()->startOfDay())
+            ->orderBy('event_date', 'asc')
+            ->orderBy('event_time', 'asc')
+            ->get();
 
         return view('admin.dashboard', compact(
             'totalUsers',
@@ -116,33 +127,27 @@ class AdminController extends Controller
             'cancelledBookings',
             'bookingsByType',
             'bookingsByStatus',
-            'totalRevenue',
-            'downpaymentsReceived',
-            'pendingPayments',
+            'totalProfit',
+            'thisMonthRevenue',
             'totalBookingValue',
             'expectedRevenue',
             'monthlyRevenue',
             'paymentsByMethod',
             'archivedUsers',
             'pendingUsersCount',
-            'inStockCount', 'lowStockCount', 'outOfStockCount'
+            'inStockCount', 'lowStockCount', 'outOfStockCount',
+            'upcomingBookings'
         ));
     }
 
-    /**
-     * Return JSON chart data for given date range (used by dashboard filters).
-     * Expects `start_date` and `end_date` as YYYY-MM-DD (optional).
-     */
     public function chartsData(Request $request)
     {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
-        // Determine date range; default to last 6 months
         $end = $endDate ? \Carbon\Carbon::parse($endDate)->endOfDay() : now()->endOfMonth();
         $start = $startDate ? \Carbon\Carbon::parse($startDate)->startOfDay() : now()->subMonths(5)->startOfMonth();
 
-        // Bookings by type within range (based on created_at)
         $bookingsByTypeQuery = Booking::selectRaw('event_type, COUNT(*) as count')
             ->groupBy('event_type')
             ->whereBetween('created_at', [$start, $end]);
@@ -154,7 +159,6 @@ class AdminController extends Controller
             ];
         });
 
-        // Bookings by status within range
         $bookingsByStatus = Booking::selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->whereBetween('created_at', [$start, $end])
@@ -166,8 +170,7 @@ class AdminController extends Controller
                 ];
             });
 
-        // Monthly revenue for months between start and end (inclusive)
-        // Build months in YYYY-MM format between start and end (limit to 24 months to be safe)
+
         $months = collect();
         $cursor = $start->copy()->startOfMonth();
         while ($cursor->lte($end) && $months->count() < 24) {
@@ -206,9 +209,6 @@ class AdminController extends Controller
         ]);
     }
 
-    /**
-     * Restore an archived user (remove archived_at timestamp).
-     */
     public function restoreUser(User $user)
     {
         try {
@@ -224,10 +224,6 @@ class AdminController extends Controller
         }
     }
 
-    /**
-     * Global admin search across bookings, users, events, and inventory.
-     * Returns JSON with categorized results.
-     */
     public function search(Request $request)
     {
         $q = trim($request->query('q', ''));
@@ -237,8 +233,6 @@ class AdminController extends Controller
         }
 
         $limit = 6;
-
-        // Search users by name or email
         $users = User::where('name', 'like', "%{$q}%")
             ->orWhere('email', 'like', "%{$q}%")
             ->take($limit)
@@ -248,10 +242,8 @@ class AdminController extends Controller
                 'id' => $u->id,
                 'title' => $u->name,
                 'subtitle' => $u->email,
-                'url' => route('admin.dashboard') // change if you have a user detail page
+                'url' => route('admin.dashboard')
             ]);
-
-        // Search bookings by id or event_type or user name
         $bookings = Booking::where('id', $q)
             ->orWhere('event_type', 'like', "%{$q}%")
             ->orWhereHas('user', fn($qbd) => $qbd->where('name', 'like', "%{$q}%"))
@@ -265,7 +257,6 @@ class AdminController extends Controller
                 'url' => route('admin.booking.show', ['booking' => $b->id]) ?? '#'
             ]);
 
-        // Search events by title
         $events = Event::where('title', 'like', "%{$q}%")
             ->take($limit)
             ->get()
@@ -277,7 +268,6 @@ class AdminController extends Controller
                 'url' => route('admin.events')
             ]);
 
-        // Search inventory by item_name
         $inventories = Inventory::where('item_name', 'like', "%{$q}%")
             ->take($limit)
             ->get()
@@ -294,17 +284,11 @@ class AdminController extends Controller
         return response()->json(['results' => $results]);
     }
 
-    /**
-     * Show user details for admin.
-     */
     public function showUser(User $user)
     {
         return view('admin.users.show', compact('user'));
     }
 
-    /**
-     * List users for admin - shows pending, active, archived, and rejected users.
-     */
     public function usersIndex()
     {
         $pendingUsers = User::where('account_status', 'pending')
@@ -331,9 +315,7 @@ class AdminController extends Controller
         return view('admin.users.index', compact('pendingUsers', 'activeUsers', 'archivedUsers', 'rejectedUsers'));
     }
 
-    /**
-     * Return JSON data for a single user (used by admin dashboard modal).
-     */
+   
     public function userData(User $user)
     {
         return response()->json([
@@ -347,9 +329,6 @@ class AdminController extends Controller
         ]);
     }
 
-    /**
-     * Return the count of pending users (for sidebar badge).
-     */
     public function pendingUsersCount()
     {
         $count = User::where('role', 'user')
@@ -359,18 +338,13 @@ class AdminController extends Controller
         return response()->json(['count' => $count]);
     }
 
-    /**
-     * Archive a user (soft archive via archived_at timestamp).
-     */
+
     public function archiveUser(User $user)
     {
         try {
             $user->archived_at = now();
             $user->save();
-
-            // Optionally log
             Log::info('User archived', ['user_id' => $user->id]);
-
             return response()->json(['success' => true, 'message' => 'User archived']);
         } catch (\Exception $e) {
             Log::error('Failed to archive user: ' . $e->getMessage());
@@ -378,9 +352,6 @@ class AdminController extends Controller
         }
     }
 
-    /**
-     * Approve a pending user account.
-     */
     public function approveUser(User $user)
     {
         try {
@@ -393,7 +364,6 @@ class AdminController extends Controller
             $user->approved_by = Auth::id();
             $user->save();
 
-            // Send approval email and welcome email
             try {
                 Mail::to($user->email)->send(new AccountApprovedMail($user));
                 Mail::to($user->email)->send(new WelcomeMail($user));

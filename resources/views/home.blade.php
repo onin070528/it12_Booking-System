@@ -177,7 +177,7 @@
                         <tbody class="divide-y divide-gray-100">
                             @forelse($bookings as $booking)
                                 <tr class="bg-white text-gray-700 hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-300 group">
-                                    <td class="px-8 py-5 text-left hidden font-semibold text-gray-500">#{{ $booking->id }}</td>
+                                    <td class="px-8 py-5 text-left hidden font-semibold text-gray-500">#{{ $booking->booking_id }}</td>
                                     <td class="px-8 py-5 text-left">
                                         <div class="flex items-center gap-3">
                                             <div class="w-2 h-2 rounded-full bg-[#93BFC7] opacity-60 group-hover:opacity-100 transition-opacity"></div>
@@ -225,9 +225,12 @@
                                         </span>
                                     </td>
                                     <td class="px-8 py-5 text-center">
+                                        @php
+                                            $hasPayment = $booking->payments()->whereIn('status', ['paid', 'partial_payment'])->exists();
+                                        @endphp
                                         <button 
                                             data-booking-data="{{ json_encode([
-                                                'id' => $booking->id,
+                                                'id' => $booking->booking_id,
                                                 'event_type' => $booking->event_type,
                                                 'event_date' => $booking->event_date->format('Y-m-d'),
                                                 'event_time' => $booking->event_time ?? 'Not specified',
@@ -237,17 +240,20 @@
                                                 'description' => $booking->description ?? '',
                                                 'communication_method' => $booking->communication_method ?? '',
                                                 'meetup_date' => $booking->meetup_date ? $booking->meetup_date->format('Y-m-d') : '',
-                                                'meetup_time' => $booking->meetup_time ?? ''
+                                                'meetup_time' => $booking->meetup_time ?? '',
+                                                'has_payment' => $hasPayment,
+                                                'cancellation_requested_at' => $booking->cancellation_requested_at ? $booking->cancellation_requested_at->toISOString() : null,
+                                                'archived_at' => $booking->archived_at ? $booking->archived_at->toISOString() : null
                                             ]) }}"
                                             onclick="openViewModalFromData(this)"
                                             class="inline-flex items-center justify-center w-10 h-10 bg-white text-[#93BFC7] rounded-lg hover:bg-gray-100 transition-all duration-300 shadow-sm hover:shadow-md border border-gray-200 hover:border-[#93BFC7] transform hover:scale-110">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </td>
-                                    <td class="px-8 py-5 text-center method-cell" data-booking-id="{{ $booking->id }}" data-has-method="{{ $booking->communication_method ? 'true' : 'false' }}">
+                                    <td class="px-8 py-5 text-center method-cell" data-booking-id="{{ $booking->booking_id }}" data-has-method="{{ $booking->communication_method ? 'true' : 'false' }}">
                                         @if($booking->status == 'confirmed' && !$booking->communication_method)
                                             <button 
-                                                data-booking-id="{{ $booking->id }}"
+                                                data-booking-id="{{ $booking->booking_id }}"
                                                 onclick="openCommunicationModal(this.dataset.bookingId)"
                                                 class="inline-flex items-center gap-2 bg-[#93BFC7] text-white px-4 py-2 rounded-lg hover:bg-[#7eaab1] transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 font-semibold text-xs">
                                                 <i class="fas fa-comments"></i>
@@ -400,7 +406,10 @@
                                 <span>Meetup Time</span>
                             </label>
                             <input type="time" id="meetup_time_comm" name="meetup_time" 
-                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-[#93BFC7] transition-all duration-200 bg-white">
+                                class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#93BFC7] focus:border-[#93BFC7] transition-all duration-200 bg-white"
+                                onchange="validateMeetupTimeComm(this)">
+                            <p class="text-gray-500 text-xs mt-1">Working hours: 8:00 AM - 12:00 AM (1-7 AM not allowed)</p>
+                            <p id="meetup-time-comm-error" class="text-red-500 text-xs mt-1 hidden">Time must be between 8:00 AM and 12:00 AM.</p>
                         </div>
                     </div>
 
@@ -416,6 +425,59 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancellation Reason Modal -->
+    <div id="cancellationReasonModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 animate-fadeIn">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300">
+            <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-t-2xl px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                        <i class="fas fa-exclamation-circle text-white text-lg"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white tracking-tight">
+                        Request Cancellation
+                    </h3>
+                </div>
+                <button onclick="closeCancellationReasonModal()" class="text-white hover:text-gray-200 transition-colors duration-200 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <input type="hidden" id="cancellation_booking_id">
+                
+                <div class="mb-4">
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Since you have already made a payment, your cancellation request will be reviewed by an administrator.
+                        </p>
+                    </div>
+                    
+                    <label class="block text-gray-700 font-semibold mb-2">
+                        <i class="fas fa-comment-alt text-gray-500 mr-2"></i>
+                        Reason for Cancellation <span class="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                        id="cancellation_reason" 
+                        rows="4" 
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all duration-200 resize-none"
+                        placeholder="Please explain why you need to cancel this booking..."></textarea>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="button" onclick="submitCancellationRequest()" 
+                        class="flex-1 inline-flex items-center justify-center gap-2 bg-yellow-500 text-white font-bold py-3 rounded-lg hover:bg-yellow-600 transition-all duration-300 shadow-md hover:shadow-lg">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Submit Request</span>
+                    </button>
+                    <button type="button" onclick="closeCancellationReasonModal()" 
+                        class="flex-1 inline-flex items-center justify-center gap-2 bg-gray-200 text-gray-700 font-bold py-3 rounded-lg hover:bg-gray-300 transition-all duration-300">
+                        <span>Cancel</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -586,6 +648,32 @@
                         </a>
                     </div>
                     ` : ''}
+                    ${booking.cancellation_requested_at && !['cancelled', 'completed', 'rejected'].includes(booking.status) ? `
+                    <div class="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mt-4">
+                        <p class="text-sm text-yellow-800 font-semibold flex items-center">
+                            <i class="fas fa-clock mr-2"></i>Cancellation Request Pending
+                        </p>
+                        <p class="text-xs text-yellow-600 mt-1">Your cancellation request is being reviewed by admin.</p>
+                    </div>
+                    ` : ''}
+                    ${!['cancelled', 'completed', 'rejected'].includes(booking.status) && !booking.cancellation_requested_at ? `
+                    <div class="flex gap-3 pt-4 border-t border-gray-200 mt-4">
+                        <button onclick="cancelOrRequestCancellation(${booking.id}, ${booking.has_payment ? 'true' : 'false'})" 
+                           class="flex-1 inline-flex items-center justify-center gap-2 ${booking.has_payment ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-red-500 hover:bg-red-600'} text-white font-bold py-3 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-[1.02]">
+                            <i class="fas ${booking.has_payment ? 'fa-paper-plane' : 'fa-times-circle'}"></i>
+                            <span>${booking.has_payment ? 'Request Cancellation' : 'Cancel Booking'}</span>
+                        </button>
+                    </div>
+                    ` : ''}
+                    ${['cancelled', 'completed'].includes(booking.status) && !booking.archived_at ? `
+                    <div class="flex gap-3 pt-4 border-t border-gray-200 mt-4">
+                        <button onclick="archiveUserBooking(${booking.id})" 
+                           class="flex-1 inline-flex items-center justify-center gap-2 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-[1.02]">
+                            <i class="fas fa-archive"></i>
+                            <span>Archive Booking</span>
+                        </button>
+                    </div>
+                    ` : ''}
                 </div>
             `;
             
@@ -609,6 +697,118 @@
             setTimeout(() => {
                 modal.classList.add('hidden');
             }, 200);
+        }
+
+        // Cancel booking or request cancellation
+        function cancelOrRequestCancellation(bookingId, hasPayment) {
+            if (hasPayment) {
+                // Show cancellation reason modal for paid bookings
+                openCancellationReasonModal(bookingId);
+            } else {
+                // Direct cancel for unpaid bookings
+                if (confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+                    cancelBookingDirect(bookingId);
+                }
+            }
+        }
+
+        function cancelBookingDirect(bookingId) {
+            fetch(`/booking/${bookingId}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || 'Booking cancelled successfully.');
+                    closeViewModal();
+                    location.reload();
+                } else {
+                    alert(data.message || 'An error occurred while cancelling the booking.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while cancelling the booking.');
+            });
+        }
+
+        function openCancellationReasonModal(bookingId) {
+            const modal = document.getElementById('cancellationReasonModal');
+            document.getElementById('cancellation_booking_id').value = bookingId;
+            document.getElementById('cancellation_reason').value = '';
+            modal.classList.remove('hidden');
+        }
+
+        function closeCancellationReasonModal() {
+            const modal = document.getElementById('cancellationReasonModal');
+            modal.classList.add('hidden');
+        }
+
+        function submitCancellationRequest() {
+            const bookingId = document.getElementById('cancellation_booking_id').value;
+            const reason = document.getElementById('cancellation_reason').value;
+
+            if (!reason.trim()) {
+                alert('Please provide a reason for cancellation.');
+                return;
+            }
+
+            fetch(`/booking/${bookingId}/request-cancellation`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ cancellation_reason: reason })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message || 'Cancellation request submitted successfully.');
+                    closeCancellationReasonModal();
+                    closeViewModal();
+                    location.reload();
+                } else {
+                    alert(data.message || 'An error occurred while submitting the cancellation request.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while submitting the cancellation request.');
+            });
+        }
+
+        function archiveUserBooking(bookingId) {
+            if (confirm('Archive this booking? It will be moved to your archived bookings.')) {
+                fetch(`/booking/${bookingId}/archive`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message || 'Booking archived successfully.');
+                        closeViewModal();
+                        location.reload();
+                    } else {
+                        alert(data.message || 'An error occurred while archiving the booking.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while archiving the booking.');
+                });
+            }
         }
 
         function openCommunicationModal(bookingId) {
@@ -768,6 +968,25 @@
             setTimeout(() => {
                 toast.remove();
             }, 5000);
+        }
+
+        // Time validation function for meetup - block 1:00 AM to 7:59 AM
+        function validateMeetupTimeComm(input) {
+            const time = input.value;
+            const errorEl = document.getElementById('meetup-time-comm-error');
+            
+            if (time) {
+                const [hours, minutes] = time.split(':').map(Number);
+                // Block times from 01:00 to 07:59 (1 AM to 7:59 AM)
+                if (hours >= 1 && hours <= 7) {
+                    errorEl.classList.remove('hidden');
+                    input.setCustomValidity('Time must be between 8:00 AM and 12:00 AM');
+                    input.value = ''; // Clear invalid time
+                } else {
+                    errorEl.classList.add('hidden');
+                    input.setCustomValidity('');
+                }
+            }
         }
     </script>
 

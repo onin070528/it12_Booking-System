@@ -60,6 +60,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/booking/{booking}/mark-completed', [BookingController::class, 'markAsCompleted'])->name('booking.mark-completed');
     Route::post('/booking/{booking}/reject', [BookingController::class, 'reject'])->name('booking.reject');
     Route::post('/booking/{booking}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
+    Route::post('/booking/{booking}/approve-cancellation', [BookingController::class, 'approveCancellation'])->name('booking.approve-cancellation');
     Route::post('/booking/{booking}/archive', [BookingController::class, 'archive'])->name('booking.archive');
     Route::post('/booking/{booking}/restore', [BookingController::class, 'restore'])->name('booking.restore');
     Route::get('/bookings/archived', [BookingController::class, 'archivedIndex'])->name('bookings.archived');
@@ -152,8 +153,12 @@ Route::middleware(['auth', 'user'])->group(function () {
     // Choose Communication Method
     Route::post('/booking/{booking}/choose-communication', [BookingController::class, 'chooseCommunicationMethod'])->name('booking.choose-communication');
     
-    // Cancel Booking (users can cancel their own bookings)
+    // Cancel Booking (users can cancel their own bookings, or request cancellation if paid)
     Route::post('/booking/{booking}/cancel', [BookingController::class, 'cancel'])->name('booking.cancel');
+    Route::post('/booking/{booking}/request-cancellation', [BookingController::class, 'requestCancellation'])->name('booking.request-cancellation');
+    
+    // Archive Booking (users can archive their own completed/cancelled bookings)
+    Route::post('/booking/{booking}/archive', [BookingController::class, 'userArchive'])->name('booking.user-archive');
 
     // Payment routes
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');

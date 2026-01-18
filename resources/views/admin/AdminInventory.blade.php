@@ -292,6 +292,8 @@
                             <th class="px-6 py-4 text-left">Assigned To</th>
                             <th class="px-6 py-4 text-left">Event Date</th>
                             <th class="px-6 py-4 text-left">Qty Assigned</th>
+                            <th class="px-6 py-4 text-left">Returned</th>
+                            <th class="px-6 py-4 text-left">Damaged</th>
                             <th class="px-6 py-4 text-left">Status</th>
                             <th class="px-6 py-4 text-left">Assigned Date</th>
                             <th class="px-6 py-4 text-center">Actions</th>
@@ -317,12 +319,30 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="font-semibold">{{ $assignment->booking->user->name ?? 'N/A' }}</div>
-                                    <div class="text-sm text-gray-500">{{ ucfirst($assignment->booking->event_type ?? '') }}</div>
+                                    <div class="font-semibold">{{ $assignment->booking?->user?->name ?? 'N/A' }}</div>
+                                    <div class="text-sm text-gray-500">{{ ucfirst($assignment->booking?->event_type ?? '') }}</div>
                                 </td>
-                                <td class="px-6 py-4">{{ $assignment->booking->event_date?->format('M d, Y') ?? 'N/A' }}</td>
+                                <td class="px-6 py-4">{{ $assignment->booking?->event_date?->format('M d, Y') ?? 'N/A' }}</td>
                                 <td class="px-6 py-4 font-semibold">
                                     {{ number_format($assignment->quantity_assigned, 2) }} {{ $assignment->inventory->unit ?? 'pcs' }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if($assignment->quantity_returned > 0)
+                                        <span class="text-green-600 font-medium">
+                                            <i class="fas fa-check-circle mr-1"></i>{{ number_format($assignment->quantity_returned, 2) }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if($assignment->quantity_damaged > 0)
+                                        <span class="text-red-600 font-medium" title="{{ $assignment->damage_notes }}">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>{{ number_format($assignment->quantity_damaged, 2) }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="px-3 py-1 rounded-full text-sm font-medium {{ $statusBg }}">
@@ -335,7 +355,7 @@
                                         <button 
                                             type="button"
                                             data-return-booking-id="{{ $assignment->booking_id }}"
-                                            data-return-assignment-id="{{ $assignment->id }}"
+                                            data-return-assignment-id="{{ $assignment->booking_inventory_id }}"
                                             class="return-inventory-btn bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
                                             <i class="fas fa-check-circle mr-1"></i>Complete & Return
                                         </button>
@@ -346,7 +366,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                                <td colspan="9" class="px-6 py-8 text-center text-gray-500">
                                     <i class="fas fa-clipboard-check text-4xl mb-2 block"></i>
                                     No inventory currently assigned to bookings.
                                 </td>
@@ -612,6 +632,48 @@
 
     <!-- Toast Notification Container -->
     <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- Return Inventory Modal -->
+    <div id="returnInventoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
+            <div class="bg-green-600 rounded-t-xl px-6 py-4 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-xl font-bold text-white">
+                    <i class="fas fa-clipboard-check mr-2"></i>Complete Booking & Return Items
+                </h3>
+                <button id="closeReturnModal" class="text-white hover:text-gray-200 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div id="returnBookingInfo" class="mb-4 pb-4 border-b">
+                    <!-- Booking info will be loaded here -->
+                </div>
+                
+                <h4 class="font-semibold text-gray-700 mb-3">
+                    <i class="fas fa-boxes mr-2"></i>Check Returned Items
+                </h4>
+                <p class="text-sm text-gray-500 mb-4">Verify the condition of each item. Items marked as damaged will be deducted from inventory.</p>
+                
+                <div id="returnItemsContainer">
+                    <!-- Items will be loaded here -->
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                        <p class="text-gray-500 mt-2">Loading items...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t px-6 py-4 flex gap-3 flex-shrink-0">
+                <button id="cancelReturnModal" 
+                    class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
+                    <i class="fas fa-times mr-2"></i>Cancel
+                </button>
+                <button id="confirmReturnInventory"
+                    class="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
+                    <i class="fas fa-check-circle mr-2"></i>Complete & Return
+                </button>
+            </div>
+        </div>
+    </div>
 
         <script>
 /* ==========================================
@@ -1193,48 +1255,6 @@ document.getElementById('confirmReturnInventory')?.addEventListener('click', asy
     btn.innerHTML = originalText;
 });
 </script>
-
-    <!-- Return Inventory Modal -->
-    <div id="returnInventoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col">
-            <div class="bg-green-600 rounded-t-xl px-6 py-4 flex items-center justify-between flex-shrink-0">
-                <h3 class="text-xl font-bold text-white">
-                    <i class="fas fa-clipboard-check mr-2"></i>Complete Booking & Return Items
-                </h3>
-                <button id="closeReturnModal" class="text-white hover:text-gray-200 transition">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6 overflow-y-auto flex-1">
-                <div id="returnBookingInfo" class="mb-4 pb-4 border-b">
-                    <!-- Booking info will be loaded here -->
-                </div>
-                
-                <h4 class="font-semibold text-gray-700 mb-3">
-                    <i class="fas fa-boxes mr-2"></i>Check Returned Items
-                </h4>
-                <p class="text-sm text-gray-500 mb-4">Verify the condition of each item. Items marked as damaged will be deducted from inventory.</p>
-                
-                <div id="returnItemsContainer">
-                    <!-- Items will be loaded here -->
-                    <div class="text-center py-4">
-                        <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
-                        <p class="text-gray-500 mt-2">Loading items...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="border-t px-6 py-4 flex gap-3 flex-shrink-0">
-                <button id="cancelReturnModal" 
-                    class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition">
-                    <i class="fas fa-times mr-2"></i>Cancel
-                </button>
-                <button id="confirmReturnInventory"
-                    class="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
-                    <i class="fas fa-check-circle mr-2"></i>Complete & Return
-                </button>
-            </div>
-        </div>
-    </div>
 
 </body>
 </html>
