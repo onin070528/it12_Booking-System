@@ -9,7 +9,7 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="text-sm font-semibold text-gray-600">Payment ID</label>
-                <p class="text-gray-900 font-medium">#{{ $payment->id }}</p>
+                <p class="text-gray-900 font-medium">#{{ $payment->payment_id }}</p>
             </div>
             <div>
                 <label class="text-sm font-semibold text-gray-600">Payment Date</label>
@@ -81,8 +81,8 @@
             <div class="relative">
                 <img src="{{ asset('storage/' . $payment->payment_screenshot) }}" 
                      alt="Payment Screenshot" 
-                     class="max-w-full h-auto rounded-lg border-2 border-gray-200 shadow-md cursor-pointer"
-                     onclick="openImageModal('{{ asset('storage/' . $payment->payment_screenshot) }}')">
+                     class="max-w-full h-auto rounded-lg border-2 border-gray-200 shadow-md cursor-pointer payment-screenshot-img"
+                     data-image-url="{{ asset('storage/' . $payment->payment_screenshot) }}">
                 <div class="absolute top-2 right-2">
                     <a href="{{ asset('storage/' . $payment->payment_screenshot) }}" 
                        download
@@ -126,7 +126,7 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="text-sm font-semibold text-gray-600">Booking ID</label>
-                <p class="text-gray-900 font-medium">#{{ $payment->booking->id }}</p>
+                <p class="text-gray-900 font-medium">#{{ $payment->booking->booking_id }}</p>
             </div>
             <div>
                 <label class="text-sm font-semibold text-gray-600">Event Type</label>
@@ -180,7 +180,7 @@
                 </thead>
                 <tbody>
                     @foreach($paymentHistory as $histPayment)
-                    <tr class="border-b border-gray-200 {{ $histPayment->id === $payment->id ? 'bg-blue-50' : '' }}">
+                    <tr class="border-b border-gray-200 {{ $histPayment->payment_id === $payment->payment_id ? 'bg-blue-50' : '' }}">
                         <td class="px-4 py-3">{{ $histPayment->created_at->format('M d, Y h:i A') }}</td>
                         <td class="px-4 py-3 capitalize">{{ $histPayment->payment_method ?? 'N/A' }}</td>
                         <td class="px-4 py-3 font-semibold">₱{{ number_format($histPayment->amount, 2) }}</td>
@@ -289,5 +289,12 @@ function openImageModal(imageSrc) {
     modal.appendChild(closeBtn);
     document.body.appendChild(modal);
 }
+
+// Attach click handler for payment screenshot image
+document.querySelectorAll('.payment-screenshot-img').forEach(function(img) {
+    img.addEventListener('click', function() {
+        openImageModal(this.getAttribute('data-image-url'));
+    });
+});
 </script>
 

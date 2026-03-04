@@ -127,16 +127,16 @@
                         @endif
                     </td>
                     <td class="px-6 py-4">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             @if($payment->booking)
-                                <button data-payment-id="{{ $payment->id }}" 
+                                <button data-payment-id="{{ $payment->payment_id }}" 
                                         onclick="viewPaymentDetails(this)" 
                                         class="inline-flex items-center gap-1 bg-[#93BFC7] text-white px-3 py-1.5 rounded-lg hover:bg-[#7eaab1] transition text-sm font-semibold"
                                         title="View Payment Details">
                                     <i class="fas fa-eye"></i>
                                     Payment
                                 </button>
-                                <button data-booking-id="{{ $payment->booking->id }}" 
+                                <button data-booking-id="{{ $payment->booking->booking_id }}" 
                                         data-payment-status="{{ $payment->status }}"
                                         data-show-mark-received="{{ $payment->status == 'pending' ? 1 : 0 }}"
                                         onclick="viewBookingModalFromButton(this)" 
@@ -145,8 +145,15 @@
                                     <i class="fas fa-calendar-alt"></i>
                                     Booking
                                 </button>
+                                <button data-booking-id="{{ $payment->booking->booking_id }}" 
+                                        onclick="openInvoiceModal(this.getAttribute('data-booking-id'))" 
+                                        class="inline-flex items-center gap-1 bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition text-sm font-semibold"
+                                        title="Generate Invoice">
+                                    <i class="fas fa-file-invoice"></i>
+                                    Invoice
+                                </button>
                             @else
-                                <button data-payment-id="{{ $payment->id }}" 
+                                <button data-payment-id="{{ $payment->payment_id }}" 
                                         onclick="viewPaymentDetails(this)" 
                                         class="inline-flex items-center gap-1 bg-[#93BFC7] text-white px-3 py-1.5 rounded-lg hover:bg-[#7eaab1] transition text-sm font-semibold"
                                         title="View Payment Details">
@@ -251,6 +258,75 @@
                             Mark Event as Successful
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Generate Modal -->
+    <div id="invoiceModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-bold"><i class="fas fa-file-invoice mr-2"></i>Generate Invoice</h3>
+                <button onclick="closeInvoiceModal()" class="text-white hover:text-gray-200 transition">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-6">
+                <div id="invoiceModalLoading" class="hidden flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500"></div>
+                </div>
+                <div id="invoiceModalForm">
+                    <p class="text-gray-600 mb-4">Generate an invoice for this booking. You can optionally add notes and a due date.</p>
+                    <input type="hidden" id="invoiceBookingId" value="">
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Due Date (optional)</label>
+                        <input type="date" id="invoiceDueDate" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-400 focus:border-transparent">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Notes (optional)</label>
+                        <textarea id="invoiceNotes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-400 focus:border-transparent" placeholder="Any additional notes for the invoice..."></textarea>
+                    </div>
+                    <!-- Existing Invoices -->
+                    <div id="existingInvoices" class="mb-4 hidden">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Previous Invoices</label>
+                        <div id="existingInvoicesList" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal Footer -->
+            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                <button onclick="closeInvoiceModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold">
+                    Cancel
+                </button>
+                <button onclick="generateInvoice()" id="generateInvoiceBtn" class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition font-semibold">
+                    <i class="fas fa-file-invoice mr-1"></i> Generate Invoice
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice View Modal -->
+    <div id="invoiceViewModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-6 py-4 flex items-center justify-between">
+                <h3 class="text-xl font-bold"><i class="fas fa-file-invoice mr-2"></i>Invoice Preview</h3>
+                <div class="flex items-center gap-3">
+                    <a id="invoicePrintLink" href="#" target="_blank" class="text-white hover:text-gray-200 transition" title="Open Printable Version">
+                        <i class="fas fa-external-link-alt text-lg"></i>
+                    </a>
+                    <button onclick="closeInvoiceViewModal()" class="text-white hover:text-gray-200 transition">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Modal Content -->
+            <div id="invoiceViewModalContent" class="flex-1 overflow-y-auto p-6">
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
                 </div>
             </div>
         </div>
@@ -676,7 +752,154 @@
             if (e.key === 'Escape' && !document.getElementById('bookingModal').classList.contains('hidden')) {
                 closeBookingModal();
             }
+            if (e.key === 'Escape' && !document.getElementById('invoiceModal').classList.contains('hidden')) {
+                closeInvoiceModal();
+            }
+            if (e.key === 'Escape' && !document.getElementById('invoiceViewModal').classList.contains('hidden')) {
+                closeInvoiceViewModal();
+            }
         });
+
+        // ===== INVOICE FUNCTIONS =====
+
+        function openInvoiceModal(bookingId) {
+            document.getElementById('invoiceBookingId').value = bookingId;
+            document.getElementById('invoiceDueDate').value = '';
+            document.getElementById('invoiceNotes').value = '';
+            document.getElementById('invoiceModal').classList.remove('hidden');
+            document.getElementById('invoiceModalForm').classList.remove('hidden');
+            document.getElementById('invoiceModalLoading').classList.add('hidden');
+
+            // Load existing invoices for this booking
+            loadExistingInvoices(bookingId);
+        }
+
+        function closeInvoiceModal() {
+            document.getElementById('invoiceModal').classList.add('hidden');
+        }
+
+        function closeInvoiceViewModal() {
+            document.getElementById('invoiceViewModal').classList.add('hidden');
+        }
+
+        // Close invoice modals when clicking outside
+        document.getElementById('invoiceModal').addEventListener('click', function(e) {
+            if (e.target === this) closeInvoiceModal();
+        });
+        document.getElementById('invoiceViewModal').addEventListener('click', function(e) {
+            if (e.target === this) closeInvoiceViewModal();
+        });
+
+        function loadExistingInvoices(bookingId) {
+            fetch(`/admin/invoices/booking/${bookingId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('existingInvoices');
+                const list = document.getElementById('existingInvoicesList');
+                if (data.success && data.invoices.length > 0) {
+                    container.classList.remove('hidden');
+                    list.innerHTML = data.invoices.map(inv => `
+                        <div class="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border">
+                            <div>
+                                <span class="font-mono font-semibold text-sm text-gray-800">${inv.invoice_number}</span>
+                                <span class="text-xs text-gray-500 ml-2">${inv.issued_at}</span>
+                                <span class="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                    inv.status === 'paid' ? 'bg-green-100 text-green-800' :
+                                    inv.status === 'partially_paid' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-red-100 text-red-800'
+                                }">${inv.status.replace('_', ' ').toUpperCase()}</span>
+                            </div>
+                            <button onclick="viewInvoice(${inv.id})" class="text-amber-600 hover:text-amber-800 text-sm font-semibold">
+                                <i class="fas fa-eye mr-1"></i>View
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    container.classList.add('hidden');
+                    list.innerHTML = '';
+                }
+            })
+            .catch(() => {
+                document.getElementById('existingInvoices').classList.add('hidden');
+            });
+        }
+
+        function generateInvoice() {
+            const bookingId = document.getElementById('invoiceBookingId').value;
+            const dueDate = document.getElementById('invoiceDueDate').value;
+            const notes = document.getElementById('invoiceNotes').value;
+            const btn = document.getElementById('generateInvoiceBtn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Generating...';
+
+            fetch(`/admin/invoice/generate/${bookingId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    due_date: dueDate || null,
+                    notes: notes || null
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    closeInvoiceModal();
+                    // Open the invoice view
+                    viewInvoice(data.invoice_id);
+                } else {
+                    alert(data.message || 'Failed to generate invoice.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while generating the invoice.');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-file-invoice mr-1"></i> Generate Invoice';
+            });
+        }
+
+        function viewInvoice(invoiceId) {
+            const modal = document.getElementById('invoiceViewModal');
+            const content = document.getElementById('invoiceViewModalContent');
+            const printLink = document.getElementById('invoicePrintLink');
+
+            modal.classList.remove('hidden');
+            content.innerHTML = '<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div></div>';
+
+            // Set print link
+            printLink.href = `/admin/invoice/${invoiceId}`;
+
+            fetch(`/admin/invoice/${invoiceId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.text();
+            })
+            .then(html => {
+                content.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                content.innerHTML = '<div class="text-center py-8 text-red-600">An error occurred while loading the invoice.</div>';
+            });
+        }
     </script>
 
 </body>

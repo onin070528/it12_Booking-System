@@ -68,6 +68,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     // Payment Management (renamed from AdminPayment)
     Route::get('/payments', [EventController::class, 'AdminPayment'])->name('payments.index');
     Route::get('/payment/{id}/details', [EventController::class, 'getPaymentDetails'])->name('payment.details');
+
+    // Invoice Management
+    Route::post('/invoice/generate/{bookingId}', [\App\Http\Controllers\InvoiceController::class, 'generate'])->name('invoices.generate');
+    Route::get('/invoice/{id}', [\App\Http\Controllers\InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/invoices/booking/{bookingId}', [\App\Http\Controllers\InvoiceController::class, 'bookingInvoices'])->name('invoices.booking');
     
     // Inventory Management (renamed from AdminInventory)
     Route::get('/inventory', [EventController::class, 'AdminInventory'])->name('inventory.index');
