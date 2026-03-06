@@ -13,12 +13,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bookings', function (Blueprint $table) {
-            $table->date('meetup_date')->nullable()->after('status');
-            $table->time('meetup_time')->nullable()->after('meetup_date');
+            if (!Schema::hasColumn('bookings', 'meetup_date')) {
+                $table->date('meetup_date')->nullable()->after('status');
+            }
+            if (!Schema::hasColumn('bookings', 'meetup_time')) {
+                $table->time('meetup_time')->nullable()->after('meetup_date');
+            }
         });
-        
-        // Update status enum to include 'confirmed'
-        DB::statement("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending', 'confirmed', 'approved', 'rejected', 'cancelled', 'completed') DEFAULT 'pending'");
+
+        // Update status enum to include 'confirmed' (MySQL only)
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending', 'confirmed', 'approved', 'rejected', 'cancelled', 'completed') DEFAULT 'pending'");
+        }
     }
 
     /**
@@ -27,10 +33,17 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('bookings', function (Blueprint $table) {
-            $table->dropColumn(['meetup_date', 'meetup_time']);
+            if (Schema::hasColumn('bookings', 'meetup_date')) {
+                $table->dropColumn('meetup_date');
+            }
+            if (Schema::hasColumn('bookings', 'meetup_time')) {
+                $table->dropColumn('meetup_time');
+            }
         });
-        
-        // Revert status enum
-        DB::statement("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'cancelled', 'completed') DEFAULT 'pending'");
+
+        // Revert status enum (MySQL only)
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'cancelled', 'completed') DEFAULT 'pending'");
+        }
     }
 };

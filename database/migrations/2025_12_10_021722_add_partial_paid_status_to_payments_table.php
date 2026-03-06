@@ -12,8 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Update status enum to include 'partial_paid'
-        DB::statement("ALTER TABLE payments MODIFY COLUMN status ENUM('pending', 'paid', 'partial_paid', 'failed', 'cancelled', 'refunded') DEFAULT 'pending'");
+        // Update status enum to include 'partial_paid' (MySQL only)
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE payments MODIFY COLUMN status ENUM('pending', 'paid', 'partial_paid', 'failed', 'cancelled', 'refunded') DEFAULT 'pending'");
+        }
     }
 
     /**
@@ -21,7 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert status enum
-        DB::statement("ALTER TABLE payments MODIFY COLUMN status ENUM('pending', 'paid', 'failed', 'cancelled', 'refunded') DEFAULT 'pending'");
+        // Revert status enum (MySQL only)
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE payments MODIFY COLUMN status ENUM('pending', 'paid', 'failed', 'cancelled', 'refunded') DEFAULT 'pending'");
+        }
     }
 };

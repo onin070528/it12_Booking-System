@@ -12,8 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Update status enum to include 'in_design'
-        DB::statement("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending', 'confirmed', 'approved', 'pending_payment', 'partial_paid', 'in_design', 'rejected', 'cancelled', 'completed') DEFAULT 'pending'");
+        // Update status enum to include 'in_design' (MySQL only)
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending', 'confirmed', 'approved', 'pending_payment', 'partial_paid', 'in_design', 'rejected', 'cancelled', 'completed') DEFAULT 'pending'");
+        }
     }
 
     /**
@@ -21,7 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert status enum
-        DB::statement("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending', 'confirmed', 'approved', 'pending_payment', 'partial_paid', 'rejected', 'cancelled', 'completed') DEFAULT 'pending'");
+        // Revert status enum (MySQL only)
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE bookings MODIFY COLUMN status ENUM('pending', 'confirmed', 'approved', 'pending_payment', 'partial_paid', 'rejected', 'cancelled', 'completed') DEFAULT 'pending'");
+        }
     }
 };
