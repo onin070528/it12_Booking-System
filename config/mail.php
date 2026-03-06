@@ -45,7 +45,7 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            'timeout' => 10,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
@@ -97,13 +97,13 @@ return [
 
         // Dedicated notifications mailer (third-party provider)
         'notifications' => [
-            'transport' => env('NOTIF_MAILER_TRANSPORT', env('NOTIF_MAILER', 'smtp')),
+            'transport' => env('NOTIF_MAILER_TRANSPORT', env('NOTIF_MAILER', env('MAIL_MAILER', 'log'))),
             'host' => env('NOTIF_HOST', env('MAIL_HOST', 'smtp.mailgun.org')),
             'port' => env('NOTIF_PORT', env('MAIL_PORT', 587)),
             'username' => env('NOTIF_USERNAME', env('MAIL_USERNAME')),
             'password' => env('NOTIF_PASSWORD', env('MAIL_PASSWORD')),
             'encryption' => env('NOTIF_ENCRYPTION', env('MAIL_ENCRYPTION', 'tls')),
-            'timeout' => null,
+            'timeout' => 10,
             'local_domain' => env('NOTIF_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 

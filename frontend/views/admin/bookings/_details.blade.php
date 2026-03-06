@@ -186,10 +186,44 @@
                         <tr><td class="py-3 px-4 font-semibold text-gray-700">Number of Guests</td><td class="py-3 px-4 text-gray-900">{{ $details['guests'] ?? 'N/A' }}</td></tr>
                     </tbody>
                 </table>
+            @elseif($booking->event_type === 'pageant')
+                <table class="w-full">
+                    <tbody class="divide-y divide-gray-100">
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700 w-1/3">Organizer</td><td class="py-3 px-4 text-gray-900">{{ trim(($details['organizer_firstname'] ?? '') . ' ' . ($details['organizer_middlename'] ?? '') . ' ' . ($details['organizer_lastname'] ?? '')) ?: ($details['organizer'] ?? 'N/A') }}</td></tr>
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700">Pageant Title</td><td class="py-3 px-4 text-gray-900">{{ $details['title'] ?? 'N/A' }}</td></tr>
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700">Number of Guests</td><td class="py-3 px-4 text-gray-900">{{ $details['guests'] ?? 'N/A' }}</td></tr>
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700">Number of Contestants</td><td class="py-3 px-4 text-gray-900">{{ $details['contestants'] ?? 'N/A' }}</td></tr>
+                        @if(!empty($details['notes']))
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700">Notes</td><td class="py-3 px-4 text-gray-900">{{ $details['notes'] }}</td></tr>
+                        @endif
+                    </tbody>
+                </table>
+            @elseif($booking->event_type === 'corporate')
+                <table class="w-full">
+                    <tbody class="divide-y divide-gray-100">
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700 w-1/3">Representative</td><td class="py-3 px-4 text-gray-900">{{ trim(($details['rep_firstname'] ?? '') . ' ' . ($details['rep_middlename'] ?? '') . ' ' . ($details['rep_lastname'] ?? '')) ?: 'N/A' }}</td></tr>
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700">Company Name</td><td class="py-3 px-4 text-gray-900">{{ $details['company'] ?? 'N/A' }}</td></tr>
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700">Event Title / Theme</td><td class="py-3 px-4 text-gray-900">{{ $details['title'] ?? 'N/A' }}</td></tr>
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700">Number of Attendees</td><td class="py-3 px-4 text-gray-900">{{ $details['attendees'] ?? 'N/A' }}</td></tr>
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700">Contact Number</td><td class="py-3 px-4 text-gray-900">{{ $details['contact'] ?? 'N/A' }}</td></tr>
+                        @if(!empty($details['requirements']))
+                        <tr><td class="py-3 px-4 font-semibold text-gray-700">Requirements</td><td class="py-3 px-4 text-gray-900">{{ $details['requirements'] }}</td></tr>
+                        @endif
+                    </tbody>
+                </table>
             @else
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <pre class="text-sm text-gray-800 whitespace-pre-wrap">{{ json_encode($details, JSON_PRETTY_PRINT) }}</pre>
-                </div>
+                <table class="w-full">
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach($details as $key => $value)
+                            @if(!is_null($value) && $value !== '')
+                            <tr>
+                                <td class="py-3 px-4 font-semibold text-gray-700 w-1/3">{{ ucwords(str_replace('_', ' ', $key)) }}</td>
+                                <td class="py-3 px-4 text-gray-900">{{ $value }}</td>
+                            </tr>
+                            @endif
+                        @endforeach
+                    </tbody>
+                </table>
             @endif
         </div>
     </div>

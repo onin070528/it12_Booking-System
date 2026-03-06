@@ -22,6 +22,7 @@ class AdminSeeder extends Seeder
                 'middle_initial' => null,
                 'password' => 'admin123',
                 'role' => 'admin',
+                'account_status' => 'approved',
             ]
         );
 
@@ -33,6 +34,7 @@ class AdminSeeder extends Seeder
                 'middle_initial' => null,
                 'password' => 'admin123', // The User model's 'hashed' cast will automatically hash this
                 'role' => 'admin',
+                'account_status' => 'approved',
             ]);
         }
 
