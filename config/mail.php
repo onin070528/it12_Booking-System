@@ -55,10 +55,6 @@ return [
 
         'postmark' => [
             'transport' => 'postmark',
-            // 'message_stream_id' => env('POSTMARK_MESSAGE_STREAM_ID'),
-            // 'client' => [
-            //     'timeout' => 5,
-            // ],
         ],
 
         'resend' => [
@@ -95,7 +91,6 @@ return [
             ],
         ],
 
-        // Dedicated notifications mailer (third-party provider)
         'notifications' => [
             'transport' => env('NOTIF_MAILER_TRANSPORT', env('NOTIF_MAILER', env('MAIL_MAILER', 'log'))),
             'host' => env('NOTIF_HOST', env('MAIL_HOST', 'smtp.mailgun.org')),

@@ -335,6 +335,28 @@
     <script>
         let currentBookingId = null;
 
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return alert(message);
+
+            const toast = document.createElement('div');
+            toast.className = 'max-w-sm w-full bg-white shadow-lg rounded-md pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden mb-3';
+            toast.style.borderLeft = type === 'success' ? '4px solid #16a34a' : (type === 'error' ? '4px solid #dc2626' : '4px solid #2563eb');
+            toast.innerHTML = `
+                <div class="p-3">
+                    <div class="text-sm font-medium text-gray-900">${type === 'success' ? 'Success' : (type === 'error' ? 'Error' : 'Notice')}</div>
+                    <div class="mt-1 text-sm text-gray-700">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
         function viewPaymentDetails(button) {
             const paymentId = parseInt(button.getAttribute('data-payment-id'));
             const modal = document.getElementById('paymentModal');
@@ -619,18 +641,18 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Payment marked as partial payment! Customer has been notified.');
+                    showToast('Payment marked as partial payment! Customer has been notified.', 'success');
                     if (currentBookingId) {
                         closeBookingModal();
                     }
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while marking the payment.');
+                showToast('An error occurred while marking the payment.', 'error');
             });
         }
 
@@ -657,18 +679,18 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
+                    showToast(data.message, 'success');
                     if (currentBookingId) {
                         closeBookingModal();
                     }
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while marking the payment.');
+                showToast('An error occurred while marking the payment.', 'error');
             });
         }
 
@@ -693,16 +715,16 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Booking moved to design phase! Customer has been notified.');
+                    showToast('Booking moved to design phase! Customer has been notified.', 'success');
                     closeBookingModal();
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating the booking status.');
+                showToast('An error occurred while updating the booking status.', 'error');
             });
         }
 
@@ -727,16 +749,16 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Booking marked as completed! Customer has been notified.');
+                    showToast('Booking marked as completed! Customer has been notified.', 'success');
                     closeBookingModal();
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating the booking status.');
+                showToast('An error occurred while updating the booking status.', 'error');
             });
         }
 
@@ -858,12 +880,12 @@
                     // Open the invoice view
                     viewInvoice(data.invoice_id);
                 } else {
-                    alert(data.message || 'Failed to generate invoice.');
+                    showToast(data.message || 'Failed to generate invoice.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while generating the invoice.');
+                showToast('An error occurred while generating the invoice.', 'error');
             })
             .finally(() => {
                 btn.disabled = false;
@@ -901,6 +923,9 @@
             });
         }
     </script>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-6 right-6 z-[200] flex flex-col items-end"></div>
 
 </body>
 </html>

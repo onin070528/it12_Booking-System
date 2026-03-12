@@ -342,7 +342,7 @@
             const meetupTime = document.getElementById('meetup_time').value;
 
             if (!meetupDate || !meetupTime) {
-                alert('Please fill in all fields.');
+                showToast('Please fill in all fields.', 'error');
                 return;
             }
 
@@ -361,15 +361,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Schedule saved successfully!');
-                    location.reload();
+                    showToast('Schedule saved successfully!', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while saving the schedule.');
+                showToast('An error occurred while saving the schedule.', 'error');
             });
         }
 
@@ -392,15 +392,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Customer has been notified that their booking is ready for payment!');
-                    location.reload();
+                    showToast('Customer has been notified that their booking is ready for payment!', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while notifying the customer.');
+                showToast('An error occurred while notifying the customer.', 'error');
             });
         }
 
@@ -421,15 +421,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Payment marked as partial payment! Customer has been notified.');
-                    location.reload();
+                    showToast('Payment marked as partial payment! Customer has been notified.', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while marking the payment.');
+                showToast('An error occurred while marking the payment.', 'error');
             });
         }
 
@@ -450,15 +450,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
-                    location.reload();
+                    showToast(data.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while marking the payment.');
+                showToast('An error occurred while marking the payment.', 'error');
             });
         }
 
@@ -479,15 +479,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Booking moved to design phase! Customer has been notified.');
-                    location.reload();
+                    showToast('Booking moved to design phase! Customer has been notified.', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating the booking status.');
+                showToast('An error occurred while updating the booking status.', 'error');
             });
         }
 
@@ -508,15 +508,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Booking marked as completed! Customer has been notified.');
-                    location.reload();
+                    showToast('Booking marked as completed! Customer has been notified.', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating the booking status.');
+                showToast('An error occurred while updating the booking status.', 'error');
             });
         }
 
@@ -564,7 +564,7 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while loading booking details.');
+                    showToast('An error occurred while loading booking details.', 'error');
                 });
         }
 
@@ -949,7 +949,7 @@ document.getElementById('assignInventoryForm').addEventListener('submit', functi
     });
     
     if (items.length === 0) {
-        alert('Please add at least one inventory item.');
+        showToast('Please add at least one inventory item.', 'error');
         return;
     }
     
@@ -964,16 +964,16 @@ document.getElementById('assignInventoryForm').addEventListener('submit', functi
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Inventory assigned successfully!');
+            showToast('Inventory assigned successfully!', 'success');
             closeAssignInventoryModal();
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 1000);
         } else {
-            alert(data.message || 'Error assigning inventory.');
+            showToast(data.message || 'Error assigning inventory.', 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error assigning inventory. Please try again.');
+        showToast('Error assigning inventory. Please try again.', 'error');
     });
 });
 

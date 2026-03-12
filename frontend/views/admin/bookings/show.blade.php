@@ -56,6 +56,28 @@
             }
         });
 
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return alert(message);
+
+            const toast = document.createElement('div');
+            toast.className = 'max-w-sm w-full bg-white shadow-lg rounded-md pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden mb-3';
+            toast.style.borderLeft = type === 'success' ? '4px solid #16a34a' : (type === 'error' ? '4px solid #dc2626' : '4px solid #2563eb');
+            toast.innerHTML = `
+                <div class="p-3">
+                    <div class="text-sm font-medium text-gray-900">${type === 'success' ? 'Success' : (type === 'error' ? 'Error' : 'Notice')}</div>
+                    <div class="mt-1 text-sm text-gray-700">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
         // Approve Cancellation function for standalone page
         function approveCancellation(bookingId) {
             if (confirm('Are you sure you want to approve this cancellation request? This will cancel the booking and notify the customer.')) {
@@ -70,19 +92,22 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Cancellation approved. The customer has been notified.');
-                        location.reload();
+                        showToast('Cancellation approved. The customer has been notified.', 'success');
+                        setTimeout(() => location.reload(), 1000);
                     } else {
-                        alert(data.message || 'An error occurred.');
+                        showToast(data.message || 'An error occurred.', 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while processing the cancellation.');
+                    showToast('An error occurred while processing the cancellation.', 'error');
                 });
             }
         }
     </script>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-6 right-6 z-[200] flex flex-col items-end"></div>
 
 </body>
 </html>

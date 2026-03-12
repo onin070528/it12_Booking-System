@@ -33,7 +33,7 @@
                 <!-- Wedding Card -->
                 <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
                     <div class="relative overflow-hidden">
-                        <img src="/img/wedding.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Wedding Event">
+                        <img src="/img/Wedding.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Wedding Event">
                     </div>
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
@@ -47,7 +47,7 @@
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
-                            <a onclick="openModal('/img/wedding.jpg', 'Wedding', 'Elegant styling and complete packages for your dream wedding.')"
+                            <a onclick="openModal('/img/Wedding.jpg', 'Wedding', 'Elegant styling and complete packages for your dream wedding.')"
                                class="px-5 py-3 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all duration-300 border border-gray-200">
                                 <i class="fas fa-eye mr-2"></i>Details
                             </a>
@@ -58,7 +58,7 @@
                 <!-- Birthday Card -->
                 <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
                     <div class="relative overflow-hidden">
-                        <img src="/img/birthday.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Birthday Event">
+                        <img src="/img/Birthday.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Birthday Event">
                     </div>
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
@@ -72,7 +72,7 @@
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
-                            <a onclick="openModal('/img/birthday.jpg', 'Birthday', 'Colorful and themed setups perfect for any birthday celebration.')"
+                            <a onclick="openModal('/img/Birthday.jpg', 'Birthday', 'Colorful and themed setups perfect for any birthday celebration.')"
                                class="px-5 py-3 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all duration-300 border border-gray-200">
                                 <i class="fas fa-eye mr-2"></i>Details
                             </a>
@@ -83,7 +83,7 @@
                 <!-- Pageant Card -->
                 <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
                     <div class="relative overflow-hidden">
-                        <img src="/img/pageant.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Pageant Event">
+                        <img src="/img/Pageant.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Pageant Event">
                     </div>
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
@@ -97,7 +97,7 @@
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
-                            <a onclick="openModal('/img/pageant.jpg', 'Pageant', 'Stylish backdrops and stage aesthetics designed for pageants.')"
+                            <a onclick="openModal('/img/Pageant.jpg', 'Pageant', 'Stylish backdrops and stage aesthetics designed for pageants.')"
                                class="px-5 py-3 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all duration-300 border border-gray-200">
                                 <i class="fas fa-eye mr-2"></i>Details
                             </a>
@@ -108,7 +108,7 @@
                 <!-- Christening Card -->
                 <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
                     <div class="relative overflow-hidden">
-                        <img src="/img/christening.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Christening Event">
+                        <img src="/img/Christening.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Christening Event">
                     </div>
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
@@ -122,7 +122,7 @@
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
-                            <a onclick="openModal('/img/christening.jpg', 'Christening', 'Soft tones and charming designs perfect for christening events.')"
+                            <a onclick="openModal('/img/Christening.jpg', 'Christening', 'Soft tones and charming designs perfect for christening events.')"
                                class="px-5 py-3 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all duration-300 border border-gray-200">
                                 <i class="fas fa-eye mr-2"></i>Details
                             </a>
@@ -133,7 +133,7 @@
                 <!-- Debut Card -->
                 <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2 border border-gray-100">
                     <div class="relative overflow-hidden">
-                        <img src="/img/debut.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Debut Event">
+                        <img src="/img/Debut.jpg" class="w-full h-64 object-cover transition-transform duration-300 hover:scale-110" alt="Debut Event">
                     </div>
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
@@ -147,7 +147,7 @@
                                class="flex-1 bg-gradient-to-r from-[#5394D0] to-[#3e78a9] text-white px-5 py-3 rounded-lg text-sm font-semibold hover:from-[#3e78a9] hover:to-[#2d5a7a] transition-all duration-300 shadow-md hover:shadow-lg text-center transform hover:scale-105">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Now
                             </a>
-                            <a onclick="openModal('/img/debut.jpg', 'Debut', 'Elegant and sophisticated styling for your memorable 18th birthday debut celebration.')"
+                            <a onclick="openModal('/img/Debut.jpg', 'Debut', 'Elegant and sophisticated styling for your memorable 18th birthday debut celebration.')"
                                class="px-5 py-3 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-all duration-300 border border-gray-200">
                                 <i class="fas fa-eye mr-2"></i>Details
                             </a>

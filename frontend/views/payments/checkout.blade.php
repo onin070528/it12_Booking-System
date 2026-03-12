@@ -228,7 +228,7 @@
             const selectedMethod = document.querySelector('input[name="payment_method"]:checked');
             
             if (!selectedMethod) {
-                alert('Please select a payment method');
+                showToast('Please select a payment method.', 'error');
                 return;
             }
 
@@ -252,7 +252,7 @@
             const file = e.target.files[0];
             if (file) {
                 if (file.size > 10 * 1024 * 1024) {
-                    alert('File size must be less than 10MB');
+                    showToast('File size must be less than 10MB.', 'error');
                     this.value = '';
                     return;
                 }
@@ -278,7 +278,7 @@
             const referenceNumber = document.getElementById('reference_number').value.trim();
             
             if (!referenceNumber) {
-                alert('Please enter a reference number');
+                showToast('Please enter a reference number.', 'error');
                 return;
             }
 
@@ -337,6 +337,33 @@
             }, 200);
         }
     </script>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-6 right-6 z-[200] flex flex-col items-end"></div>
+
+<script>
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return alert(message);
+
+    const toast = document.createElement('div');
+    toast.className = 'max-w-sm w-full bg-white shadow-lg rounded-md pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden mb-3';
+    toast.style.borderLeft = type === 'success' ? '4px solid #16a34a' : (type === 'error' ? '4px solid #dc2626' : '4px solid #2563eb');
+    toast.innerHTML = `
+        <div class="p-3">
+            <div class="text-sm font-medium text-gray-900">${type === 'success' ? 'Success' : (type === 'error' ? 'Error' : 'Notice')}</div>
+            <div class="mt-1 text-sm text-gray-700">${message}</div>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 400);
+    }, 3000);
+}
+</script>
         </div>
     </div>
 </body>

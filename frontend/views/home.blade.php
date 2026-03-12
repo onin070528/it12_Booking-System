@@ -724,16 +724,16 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message || 'Booking cancelled successfully.');
+                    showToast(data.message || 'Booking cancelled successfully.', 'success');
                     closeViewModal();
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred while cancelling the booking.');
+                    showToast(data.message || 'An error occurred while cancelling the booking.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while cancelling the booking.');
+                showToast('An error occurred while cancelling the booking.', 'error');
             });
         }
 
@@ -754,7 +754,7 @@
             const reason = document.getElementById('cancellation_reason').value;
 
             if (!reason.trim()) {
-                alert('Please provide a reason for cancellation.');
+                showToast('Please provide a reason for cancellation.', 'error');
                 return;
             }
 
@@ -770,17 +770,17 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message || 'Cancellation request submitted successfully.');
+                    showToast(data.message || 'Cancellation request submitted successfully.', 'success');
                     closeCancellationReasonModal();
                     closeViewModal();
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert(data.message || 'An error occurred while submitting the cancellation request.');
+                    showToast(data.message || 'An error occurred while submitting the cancellation request.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while submitting the cancellation request.');
+                showToast('An error occurred while submitting the cancellation request.', 'error');
             });
         }
 
@@ -797,16 +797,16 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert(data.message || 'Booking archived successfully.');
+                        showToast(data.message || 'Booking archived successfully.', 'success');
                         closeViewModal();
-                        location.reload();
+                        setTimeout(() => location.reload(), 1000);
                     } else {
-                        alert(data.message || 'An error occurred while archiving the booking.');
+                        showToast(data.message || 'An error occurred while archiving the booking.', 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred while archiving the booking.');
+                    showToast('An error occurred while archiving the booking.', 'error');
                 });
             }
         }
@@ -872,7 +872,7 @@
             const communicationMethod = form.querySelector('input[name="communication_method"]:checked')?.value;
 
             if (!communicationMethod) {
-                alert('Please select a communication method.');
+                showToast('Please select a communication method.', 'error');
                 return;
             }
 
@@ -881,7 +881,7 @@
                 const meetupTime = document.getElementById('meetup_time_comm').value;
                 
                 if (!meetupDate || !meetupTime) {
-                    alert('Please fill in meetup date and time.');
+                    showToast('Please fill in meetup date and time.', 'error');
                     return;
                 }
             }
@@ -905,12 +905,12 @@
                         location.reload();
                     }, 1500);
                 } else {
-                    alert(data.message || 'An error occurred.');
+                    showToast(data.message || 'An error occurred.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while saving your choice.');
+                showToast('An error occurred while saving your choice.', 'error');
             });
         }
 

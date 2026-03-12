@@ -79,12 +79,12 @@
         <div class="mt-4 pt-4 border-t border-gray-200">
             <label class="text-sm font-semibold text-gray-600 mb-2 block">Payment Screenshot/Proof</label>
             <div class="relative">
-                <img src="{{ asset('storage/' . $payment->payment_screenshot) }}" 
-                     alt="Payment Screenshot" 
+                <img src="{{ Storage::disk('s3')->url($payment->payment_screenshot) }}"
+                     alt="Payment Screenshot"
                      class="max-w-full h-auto rounded-lg border-2 border-gray-200 shadow-md cursor-pointer payment-screenshot-img"
-                     data-image-url="{{ asset('storage/' . $payment->payment_screenshot) }}">
+                     data-image-url="{{ Storage::disk('s3')->url($payment->payment_screenshot) }}">
                 <div class="absolute top-2 right-2">
-                    <a href="{{ asset('storage/' . $payment->payment_screenshot) }}" 
+                    <a href="{{ Storage::disk('s3')->url($payment->payment_screenshot) }}"
                        download
                        class="px-3 py-2 bg-white bg-opacity-90 rounded-lg hover:bg-opacity-100 transition shadow-md"
                        title="Download Screenshot">
@@ -242,9 +242,31 @@
 </div>
 
 <script>
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return alert(message);
+
+    const toast = document.createElement('div');
+    toast.className = 'max-w-sm w-full bg-white shadow-lg rounded-md pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden mb-3';
+    toast.style.borderLeft = type === 'success' ? '4px solid #16a34a' : (type === 'error' ? '4px solid #dc2626' : '4px solid #2563eb');
+    toast.innerHTML = `
+        <div class="p-3">
+            <div class="text-sm font-medium text-gray-900">${type === 'success' ? 'Success' : (type === 'error' ? 'Error' : 'Notice')}</div>
+            <div class="mt-1 text-sm text-gray-700">${message}</div>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 400);
+    }, 3000);
+}
+
 function copyReferenceNumber(refNumber) {
     navigator.clipboard.writeText(refNumber).then(function() {
-        alert('Reference number copied to clipboard!');
+        showToast('Reference number copied to clipboard!', 'success');
     }, function() {
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
@@ -253,7 +275,7 @@ function copyReferenceNumber(refNumber) {
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        alert('Reference number copied to clipboard!');
+        showToast('Reference number copied to clipboard!', 'success');
     });
 }
 
@@ -297,4 +319,7 @@ document.querySelectorAll('.payment-screenshot-img').forEach(function(img) {
     });
 });
 </script>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-6 right-6 z-[200] flex flex-col items-end"></div>
 

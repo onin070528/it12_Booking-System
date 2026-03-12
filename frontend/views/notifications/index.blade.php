@@ -165,6 +165,28 @@
         const HOME_ROUTE = window.NOTIFICATION_CONFIG.homeRoute;
         const CSRF_TOKEN = window.NOTIFICATION_CONFIG.csrfToken;
 
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return alert(message);
+
+            const toast = document.createElement('div');
+            toast.className = 'max-w-sm w-full bg-white shadow-lg rounded-md pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden mb-3';
+            toast.style.borderLeft = type === 'success' ? '4px solid #16a34a' : (type === 'error' ? '4px solid #dc2626' : '4px solid #2563eb');
+            toast.innerHTML = `
+                <div class="p-3">
+                    <div class="text-sm font-medium text-gray-900">${type === 'success' ? 'Success' : (type === 'error' ? 'Error' : 'Notice')}</div>
+                    <div class="mt-1 text-sm text-gray-700">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
         function markAsRead(notificationId) {
             const readRoute = IS_ADMIN ? ADMIN_READ_ROUTE_BASE : USER_READ_ROUTE_BASE;
             const url = readRoute.replace('__NOTIFICATION_ID__', notificationId);
@@ -180,11 +202,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    location.reload();
+                    showToast('Notification marked as read.', 'success');
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    showToast('Failed to mark notification as read.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                showToast('An error occurred.', 'error');
             });
         }
 
@@ -215,12 +241,16 @@
                             window.location.href = HOME_ROUTE;
                         }
                     } else {
-                        location.reload();
+                        showToast('Notification marked as read.', 'success');
+                        setTimeout(() => location.reload(), 800);
                     }
+                } else {
+                    showToast('Failed to process notification.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                showToast('An error occurred.', 'error');
             });
         }
 
@@ -242,11 +272,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    location.reload();
+                    showToast('All notifications marked as read.', 'success');
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    showToast('Failed to mark notifications as read.', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                showToast('An error occurred.', 'error');
             });
         }
 
@@ -288,6 +322,9 @@
             }
         });
     </script>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-6 right-6 z-[200] flex flex-col items-end"></div>
 
 </body>
 

@@ -178,10 +178,10 @@ class PaymentController extends Controller
                 return back()->with('error', 'Reference number is required for ' . ucfirst($paymentMethod) . ' payments.');
             }
 
-            // Store screenshot if provided
+            // Store screenshot if provided (use S3 for persistent storage)
             $screenshotPath = null;
             if ($screenshot) {
-                $screenshotPath = $screenshot->store('payment-proofs', 'public');
+                $screenshotPath = $screenshot->store('payment-proofs', 's3');
             }
             
             $description = $isRemainingBalance 
