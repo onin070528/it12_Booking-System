@@ -19,9 +19,9 @@ return [
     ],
 
     'ses' => [
-        'key' => env('AWS_ACCESS_KEY_ID'),
-        'secret' => env('AWS_SECRET_ACCESS_KEY'),
-        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+        'key' => getenv('AWS_ACCESS_KEY_ID') ?: '',
+        'secret' => getenv('AWS_SECRET_ACCESS_KEY') ?: '',
+        'region' => getenv('AWS_DEFAULT_REGION') ?: 'us-east-1',
     ],
 
     'resend' => [
