@@ -81,7 +81,7 @@ return [
             'driver' => 'dynamodb',
             'key' => getenv('AWS_ACCESS_KEY_ID') ?: '',
             'secret' => getenv('AWS_SECRET_ACCESS_KEY') ?: '',
-            'region' => getenv('AWS_DEFAULT_REGION') ?: 'us-east-1',
+            'region' => getenv('AWS_DEFAULT_REGION') ?: 'ap-southeast-1',
             'table' => env('DYNAMODB_CACHE_TABLE', 'cache'),
             'endpoint' => env('DYNAMODB_ENDPOINT'),
         ],
