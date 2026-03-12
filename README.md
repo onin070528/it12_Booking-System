@@ -1,15 +1,16 @@
 # Cloud Deployment Guide
 
-This document describes the deployment architecture and step-by-step process for deploying the RJ Booking System to the cloud.
+This document describes the deployment architecture and step-by-step process for deploying the **Rj's Event Styling Booking System** to the cloud.
 
 ## Architecture Overview
 
-- **Framework:** Laravel 11 (PHP 8.2+)
-- **Frontend:** Blade Templates + Tailwind CSS + Alpine.js + Vite
-- **Deployment Platform:** Railway (automatic builds via Nixpacks)
-- **Database:** MySQL (provisioned on Railway)
-- **File Storage:** Amazon S3
-- **Authentication:** Laravel Breeze (role-based: Admin / User)
+* **Framework:** Laravel 11 (PHP 8.2+)
+* **Frontend:** Blade Templates + Tailwind CSS + Alpine.js + FullCalendar
+* **Build Tool:** Vite
+* **Deployment Platform:** Railway (automatic builds via Nixpacks)
+* **Database:** MySQL (provisioned on Railway)
+* **File Storage:** Amazon S3 (for payment proof uploads)
+* **Authentication:** Laravel Breeze (role-based: Admin / User)
 
 ---
 
@@ -37,7 +38,7 @@ Since Railway uses ephemeral storage (files are wiped on every deploy), Amazon S
 1. Go to [AWS S3 Console](https://s3.console.aws.amazon.com/)
 2. Click **Create bucket**
 3. Enter a bucket name (e.g., `booking-system-upload-things`)
-4. Select a region (e.g., `us-east-1`)
+4. Select the region **Asia Pacific (Singapore) - ap-southeast-1**
 5. Uncheck **Block all public access** (since uploaded payment proofs need to be viewable)
 6. Acknowledge the warning and click **Create bucket**
 
@@ -76,7 +77,11 @@ Replace `booking-system-upload-things` with your actual bucket name.
     "Statement": [
         {
             "Effect": "Allow",
-            "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject"
+            ],
             "Resource": "arn:aws:s3:::booking-system-upload-things/*"
         }
     ]
@@ -89,7 +94,7 @@ Replace `booking-system-upload-things` with your actual bucket name.
 9. Select **Application running outside AWS**
 10. Save the **Access Key ID** and **Secret Access Key** securely
 
-> **Important:** Never commit these keys to your repository. Store them only in environment variables.
+> **Important:** Never commit these keys to your repository. Store them only in Railway environment variables.
 
 ## Step 4: Configure CORS (Optional)
 
@@ -137,7 +142,7 @@ Make sure your `.gitignore` includes:
 2. Click **New Project**
 3. Select **Deploy from GitHub repo**
 4. Connect your GitHub account and select your repository
-5. Railway will auto-detect that this is a Laravel (PHP) project using **Nixpacks**
+5. Railway will auto-detect that this is a Laravel (PHP) project
 
 ## Step 3: Provision a MySQL Database
 
@@ -201,44 +206,43 @@ LOG_CHANNEL=stack
 LOG_LEVEL=error
 ```
 
-## Step 5: Deploy
+## Step 5: Configure the Build
+
+The project includes a `railway.toml` file that configures the build:
+
+```toml
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "php artisan migrate --force && php artisan storage:link 2>/dev/null; php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"
+```
+
+This tells Railway to:
+- Use **Nixpacks** as the build system
+- Run database migrations automatically on each deploy
+- Create the storage symlink
+- Start the Laravel development server on the correct port
+
+## Step 6: Deploy
 
 Railway deploys automatically when you push to the `main` branch. During deployment, Nixpacks will:
 
 1. Detect the PHP/Laravel project
 2. Install PHP 8.2+ and required extensions
 3. Run `composer install` (installs PHP dependencies)
-4. Run `npm install` and `npm run build` (compiles Tailwind CSS and JavaScript via Vite)
-5. Start the application using PHP's built-in server
+4. Install Node.js and run `npm install` + `npm run build` (compiles Tailwind CSS and JavaScript via Vite)
+5. Execute the start command defined in `railway.toml`
 
 You can monitor the deployment logs in the Railway dashboard under the **Deployments** tab.
-
-## Step 6: Run Database Migrations
-
-After the first deployment, you need to run migrations to set up the database schema.
-
-In the Railway dashboard:
-
-1. Click on your web service
-2. Go to the **Settings** tab
-3. Under **Deploy**, find the **Custom Start Command** or use the Railway CLI:
-
-```bash
-railway run php artisan migrate --force
-```
-
-Alternatively, you can add migrations to your build process by adding a `Procfile` in the project root:
-
-```
-web: php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
-```
 
 ## Step 7: Verify Deployment
 
 1. Visit your Railway-provided URL (e.g., `https://it12booking-system-production.up.railway.app`)
 2. Verify the landing page loads with all event images (Wedding, Birthday, etc.)
-3. Test a payment with a screenshot upload to confirm S3 is working
-4. Check the admin panel to verify payment proof images display correctly
+3. Register a user account and test the login flow
+4. Create a test booking and submit a payment proof screenshot to confirm S3 uploads are working
+5. Log in as admin to verify payment proof images display correctly
 
 ---
 
@@ -276,9 +280,27 @@ User-uploaded files (payment proof screenshots) are stored in **Amazon S3** to e
 it12_Booking-System/
   app/
     Http/Controllers/       # Application controllers
-    Models/                 # Eloquent models (User, Booking, Payment, etc.)
+      AdminController.php       # Admin dashboard, user management, reports
+      BookingController.php     # Booking CRUD and status management
+      ChatController.php        # Real-time messaging between admin and users
+      EventController.php       # Event type management
+      InvoiceController.php     # Invoice generation and viewing
+      LandingController.php     # Public landing page
+      NotificationController.php # In-app notifications
+      PaymentController.php     # Payment processing and S3 uploads
+      ProfileController.php    # User profile management
+    Models/                 # Eloquent models
+      Booking.php               # Booking records
+      BookingInventory.php      # Pivot: bookings <-> inventory items
+      Event.php                 # Event types (Wedding, Birthday, etc.)
+      Inventory.php             # Inventory/stock management
+      Invoice.php               # Generated invoices
+      Message.php               # Chat messages
+      Notification.php          # User notifications
+      Payment.php               # Payment records
+      User.php                  # User accounts (Admin/User roles)
   frontend/
-    views/                  # Blade templates (custom path, not resources/views)
+    views/                  # Blade templates (custom path)
     css/app.css             # Tailwind CSS entry point
     js/app.js               # Alpine.js + FullCalendar entry point
   config/                   # Laravel configuration files
@@ -287,8 +309,9 @@ it12_Booking-System/
     img/                    # Static event images and logos
     build/                  # Vite-compiled assets (auto-generated)
   routes/
-    web.php                 # Web routes
-    auth.php                # Authentication routes
+    web.php                 # Web routes (admin and user)
+    auth.php                # Authentication routes (Laravel Breeze)
+  railway.toml              # Railway deployment configuration
   .env                      # Environment variables (DO NOT COMMIT)
   composer.json             # PHP dependencies
   package.json              # Node.js dependencies
@@ -309,7 +332,7 @@ it12_Booking-System/
 ## Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/it12_Booking-System.git
+git clone https://github.com/onin070528/it12_Booking-System.git
 cd it12_Booking-System
 ```
 
@@ -344,7 +367,7 @@ For local development, you can use local file storage:
 FILESYSTEM_DISK=local
 ```
 
-Or connect to S3 by adding your AWS credentials.
+Or connect to S3 by adding your AWS credentials to `.env`.
 
 ## Step 4: Run Migrations
 
@@ -352,7 +375,7 @@ Or connect to S3 by adding your AWS credentials.
 php artisan migrate
 ```
 
-## Step 5: Create Storage Symlink (for local file storage)
+## Step 5: Create Storage Symlink
 
 ```bash
 php artisan storage:link
@@ -364,18 +387,23 @@ php artisan storage:link
 composer dev
 ```
 
-This starts the Laravel server, queue listener, log viewer, and Vite dev server concurrently.
+This starts the following services concurrently:
+- Laravel development server
+- Queue listener
+- Log viewer (Laravel Pail)
+- Vite dev server (for hot-reloading CSS/JS)
 
 ---
 
 # 6. Troubleshooting
 
-| Issue                             | Solution                                                                                        |
-| --------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Images not loading after deploy   | Ensure filenames match exactly (case-sensitive on Linux). E.g., `Wedding.jpg` not `wedding.jpg` |
-| Payment proof screenshots missing | Verify `FILESYSTEM_DISK=s3` and AWS credentials are set in Railway environment variables        |
-| S3 upload fails                   | Check that the IAM user has `s3:PutObject` permission on the bucket                             |
-| S3 images not displaying          | Ensure the bucket policy allows public `s3:GetObject` access                                    |
-| Database connection error         | Verify MySQL service is running on Railway and `DB_*` variables are correctly set               |
-| 500 error on deploy               | Set `APP_DEBUG=true` temporarily to see the full error, then set it back to `false`             |
-| Assets not styled (no CSS)        | Ensure `npm run build` runs during deployment (Nixpacks does this automatically)                |
+| Issue | Solution |
+| --- | --- |
+| Images not loading after deploy | Ensure filenames match exactly (case-sensitive on Linux). E.g., `Wedding.jpg` not `wedding.jpg` |
+| Payment proof screenshots missing | Verify `FILESYSTEM_DISK=s3` and AWS credentials are set in Railway environment variables |
+| S3 upload fails | Check that the IAM user has `s3:PutObject` permission on the bucket |
+| S3 images not displaying | Ensure the bucket policy allows public `s3:GetObject` access |
+| Database connection error | Verify MySQL service is running on Railway and `DB_*` variables are correctly set |
+| 500 error on deploy | Set `APP_DEBUG=true` temporarily to see the full error, then set it back to `false` |
+| Assets not styled (no CSS) | Ensure `npm run build` runs during deployment (Nixpacks does this automatically) |
+| Build fails with "secret not found" | Ensure `railway.toml` has `builder = "nixpacks"` to avoid Railpack secret detection issues |
