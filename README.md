@@ -4,12 +4,12 @@ This document describes the deployment architecture and step-by-step process for
 
 ## Architecture Overview
 
-* **Framework:** Laravel 11 (PHP 8.2+)
-* **Frontend:** Blade Templates + Tailwind CSS + Alpine.js + Vite
-* **Deployment Platform:** Railway (automatic builds via Nixpacks)
-* **Database:** MySQL (provisioned on Railway)
-* **File Storage:** Amazon S3
-* **Authentication:** Laravel Breeze (role-based: Admin / User)
+- **Framework:** Laravel 11 (PHP 8.2+)
+- **Frontend:** Blade Templates + Tailwind CSS + Alpine.js + Vite
+- **Deployment Platform:** Railway (automatic builds via Nixpacks)
+- **Database:** MySQL (provisioned on Railway)
+- **File Storage:** Amazon S3
+- **Authentication:** Laravel Breeze (role-based: Admin / User)
 
 ---
 
@@ -47,16 +47,16 @@ Go to your bucket > **Permissions** > **Bucket Policy** and add:
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublicReadGetObject",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::booking-system-upload-things/*"
-    }
-  ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::booking-system-upload-things/*"
+        }
+    ]
 }
 ```
 
@@ -72,18 +72,14 @@ Replace `booking-system-upload-things` with your actual bucket name.
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:PutObject",
-        "s3:GetObject",
-        "s3:DeleteObject"
-      ],
-      "Resource": "arn:aws:s3:::booking-system-upload-things/*"
-    }
-  ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+            "Resource": "arn:aws:s3:::booking-system-upload-things/*"
+        }
+    ]
 }
 ```
 
@@ -101,12 +97,14 @@ If you need direct browser uploads to S3, go to your bucket > **Permissions** > 
 
 ```json
 [
-  {
-    "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "PUT", "POST"],
-    "AllowedOrigins": ["https://it12booking-system-production.up.railway.app"],
-    "ExposeHeaders": []
-  }
+    {
+        "AllowedHeaders": ["*"],
+        "AllowedMethods": ["GET", "PUT", "POST"],
+        "AllowedOrigins": [
+            "https://it12booking-system-production.up.railway.app"
+        ],
+        "ExposeHeaders": []
+    }
 ]
 ```
 
@@ -146,11 +144,11 @@ Make sure your `.gitignore` includes:
 1. In your Railway project dashboard, click **New** > **Database** > **MySQL**
 2. Railway will provision a MySQL instance and provide connection credentials
 3. Click on the MySQL service to view the connection variables:
-   - `MYSQL_HOST`
-   - `MYSQL_PORT`
-   - `MYSQL_DATABASE`
-   - `MYSQL_USER`
-   - `MYSQL_PASSWORD`
+    - `MYSQL_HOST`
+    - `MYSQL_PORT`
+    - `MYSQL_DATABASE`
+    - `MYSQL_USER`
+    - `MYSQL_PASSWORD`
 
 ## Step 4: Set Environment Variables
 
@@ -187,7 +185,6 @@ DB_PASSWORD=${MYSQL_PASSWORD}
 ```
 AWS_ACCESS_KEY_ID=your-access-key-id
 AWS_SECRET_ACCESS_KEY=your-secret-access-key
-AWS_DEFAULT_REGION=us-east-1
 AWS_BUCKET=booking-system-upload-things
 AWS_USE_PATH_STYLE_ENDPOINT=false
 FILESYSTEM_DISK=s3
@@ -373,12 +370,12 @@ This starts the Laravel server, queue listener, log viewer, and Vite dev server 
 
 # 6. Troubleshooting
 
-| Issue | Solution |
-|---|---|
-| Images not loading after deploy | Ensure filenames match exactly (case-sensitive on Linux). E.g., `Wedding.jpg` not `wedding.jpg` |
-| Payment proof screenshots missing | Verify `FILESYSTEM_DISK=s3` and AWS credentials are set in Railway environment variables |
-| S3 upload fails | Check that the IAM user has `s3:PutObject` permission on the bucket |
-| S3 images not displaying | Ensure the bucket policy allows public `s3:GetObject` access |
-| Database connection error | Verify MySQL service is running on Railway and `DB_*` variables are correctly set |
-| 500 error on deploy | Set `APP_DEBUG=true` temporarily to see the full error, then set it back to `false` |
-| Assets not styled (no CSS) | Ensure `npm run build` runs during deployment (Nixpacks does this automatically) |
+| Issue                             | Solution                                                                                        |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Images not loading after deploy   | Ensure filenames match exactly (case-sensitive on Linux). E.g., `Wedding.jpg` not `wedding.jpg` |
+| Payment proof screenshots missing | Verify `FILESYSTEM_DISK=s3` and AWS credentials are set in Railway environment variables        |
+| S3 upload fails                   | Check that the IAM user has `s3:PutObject` permission on the bucket                             |
+| S3 images not displaying          | Ensure the bucket policy allows public `s3:GetObject` access                                    |
+| Database connection error         | Verify MySQL service is running on Railway and `DB_*` variables are correctly set               |
+| 500 error on deploy               | Set `APP_DEBUG=true` temporarily to see the full error, then set it back to `false`             |
+| Assets not styled (no CSS)        | Ensure `npm run build` runs during deployment (Nixpacks does this automatically)                |
