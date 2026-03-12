@@ -181,7 +181,16 @@ class PaymentController extends Controller
             // Store screenshot if provided (use S3 for persistent storage)
             $screenshotPath = null;
             if ($screenshot) {
-                $screenshotPath = $screenshot->store('payment-proofs', 's3');
+                try {
+                    $screenshotPath = $screenshot->store('payment-proofs', 's3');
+                    if (!$screenshotPath) {
+                        Log::error('S3 upload returned false - check AWS credentials and bucket configuration');
+                        return back()->with('error', 'Failed to upload payment screenshot. Please try again or contact support.');
+                    }
+                } catch (\Exception $e) {
+                    Log::error('S3 upload failed: ' . $e->getMessage());
+                    return back()->with('error', 'Failed to upload payment screenshot. Please try again or contact support.');
+                }
             }
             
             $description = $isRemainingBalance 
